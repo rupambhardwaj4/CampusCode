@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Institution Registration - CampusCode</title>
+    <link rel="shortcut icon" href="/images/logo.png" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E4A7A',
+                        darkBg: '#0f172a',
+                        darkCard: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <style>
+        .step-transition {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        .hidden-step {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
+        }
+        .active-step {
+            opacity: 1;
+            transform: translateY(0);
+            position: relative;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans transition-colors duration-300 dark:bg-darkBg dark:text-gray-200 min-h-screen flex items-center justify-center p-4">
+
+    <button onclick="toggleTheme()" class="absolute top-6 right-6 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full p-3 transition bg-white dark:bg-darkCard shadow-md z-50">
+        <i id="theme-toggle-light-icon" class="fas fa-sun hidden text-xl"></i>
+        <i id="theme-toggle-dark-icon" class="fas fa-moon hidden text-xl"></i>
+    </button>
+
+    <div class="max-w-5xl w-full bg-white dark:bg-darkCard rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-colors duration-300 border border-gray-100 dark:border-gray-800">
+        
+        <div class="md:w-5/12 bg-gradient-to-br from-[#1E4A7A] to-blue-800 p-10 text-white flex flex-col justify-between relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-12">
+                    <i class="fas fa-code text-3xl"></i>
+                    <span class="text-2xl font-bold tracking-wide">CampusCode</span>
+                </div>
+                
+                <h1 class="text-4xl font-bold mb-4 leading-tight">Empower Your<br>Institution</h1>
+                <p class="text-blue-100 text-lg mb-8 opacity-90">Join the premier platform for managing coding contests, student progress, and faculty collaboration.</p>
+                
+                <ul class="space-y-4 text-blue-50">
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> Seamless Student Management</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> Automated Coding Contests</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> Comprehensive Analytics</li>
+                </ul>
+            </div>
+            
+            <div class="relative z-10 mt-12 pt-8 border-t border-blue-500/30">
+                <p class="text-sm text-blue-200">Already verified? <a href="/" class="text-white font-bold hover:underline">Log in here</a></p>
+            </div>
+
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-white opacity-5 rounded-full blur-2xl"></div>
+            <div class="absolute -top-24 -right-24 w-80 h-80 bg-blue-400 opacity-10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="md:w-7/12 p-10 md:p-14 relative">
+            
+            <div class="flex items-center justify-center gap-2 mb-10">
+                <div id="ind-1" class="h-2 w-12 rounded-full bg-[#1E4A7A] dark:bg-blue-500 transition-colors"></div>
+                <div id="ind-2" class="h-2 w-12 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors"></div>
+            </div>
+
+            <form id="registrationForm" action="/auth/register-institution" method="POST" class="relative min-h-[400px]">
+                
+                <div id="step-1" class="step-transition active-step">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Institution Setup</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mb-8">Register your college and set up the main administrator account.</p>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Authorized College <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-university text-gray-400"></i>
+                                </div>
+                                <select id="collegeSelect" name="collegeName" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition appearance-none" required>
+                                    <option value="">Loading authorized colleges...</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1"><i class="fas fa-info-circle"></i> Don't see your college? Contact the Platform Superadmin.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Admin Full Name <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                </div>
+                                <input type="text" id="fullName" name="fullName" placeholder="John Doe" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition" required>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Admin Email <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                </div>
+                                <input type="email" id="email" name="email" placeholder="admin@college.edu" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="sendOTP()" id="btnSendOtp" class="w-full mt-8 bg-[#1E4A7A] hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-lg transition-colors flex justify-center items-center shadow-md">
+                        <span>Send Verification OTP</span>
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                    <p id="otpErrorMsg" class="text-red-500 text-sm mt-3 hidden text-center font-medium"></p>
+                </div>
+
+                <div id="step-2" class="step-transition hidden-step">
+                    <button type="button" onclick="goBack()" class="text-sm text-gray-500 dark:text-gray-400 hover:text-[#1E4A7A] dark:hover:text-blue-400 mb-6 flex items-center gap-1 transition-colors">
+                        <i class="fas fa-arrow-left"></i> Back to details
+                    </button>
+                    
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verify Your Email</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mb-8">We've sent a 6-digit OTP to <strong id="displayEmail" class="text-gray-800 dark:text-gray-200"></strong>.</p>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter OTP <span class="text-red-500">*</span></label>
+                            <div class="flex gap-2 justify-between max-w-sm">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                                <input type="text" maxlength="1" class="otp-input w-12 h-14 text-center text-xl font-bold border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                            </div>
+                            <input type="hidden" id="combined-otp" name="otp" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 mt-6">Create Password <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-lock text-gray-400"></i>
+                                </div>
+                                <input type="password" id="password" name="password" placeholder="••••••••" class="w-full pl-10 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1E4A7A] focus:outline-none transition">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Must be at least 8 characters long.</p>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmit" class="w-full mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-4 rounded-lg transition-colors flex justify-center items-center shadow-md">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span>Complete Registration</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Fetch Authorized Colleges on Page Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const selectElement = document.getElementById('collegeSelect');
+            try {
+                const response = await fetch('/api/public/colleges');
+                const data = await response.json();
+                
+                if (data.success && data.colleges.length > 0) {
+                    selectElement.innerHTML = '<option value="" disabled selected>Select your College</option>';
+                    data.colleges.forEach(college => {
+                        const option = document.createElement('option');
+                        option.value = college.name;
+                        option.textContent = college.name;
+                        selectElement.appendChild(option);
+                    });
+                } else {
+                    selectElement.innerHTML = '<option value="">No authorized colleges found</option>';
+                }
+            } catch (error) {
+                console.error("Failed to fetch colleges:", error);
+                selectElement.innerHTML = '<option value="">Error loading colleges</option>';
+            }
+        });
+
+        // --- 2. Multi-step Form Logic & OTP Sending ---
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const ind1 = document.getElementById('ind-1');
+        const ind2 = document.getElementById('ind-2');
+
+        async function sendOTP() {
+            const collegeName = document.getElementById('collegeSelect').value;
+            const fullName = document.getElementById('fullName').value;
+            const email = document.getElementById('email').value;
+            const btn = document.getElementById('btnSendOtp');
+            const errorMsg = document.getElementById('otpErrorMsg');
+
+            if (!collegeName || !fullName || !email) {
+                errorMsg.innerText = "Please fill in all fields.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorMsg.innerText = "Please enter a valid email address.";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <span class="ml-2">Sending OTP...</span>';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('displayEmail').innerText = email;
+                    
+                    // Transition to Step 2
+                    step1.classList.remove('active-step');
+                    step1.classList.add('hidden-step');
+                    
+                    setTimeout(() => {
+                        step2.classList.remove('hidden-step');
+                        step2.classList.add('active-step');
+                        
+                        // Update indicators
+                        ind1.classList.replace('bg-[#1E4A7A]', 'bg-green-500');
+                        ind1.classList.replace('dark:bg-blue-500', 'dark:bg-green-500');
+                        ind2.classList.replace('bg-gray-200', 'bg-[#1E4A7A]');
+                        ind2.classList.replace('dark:bg-gray-700', 'dark:bg-blue-500');
+                        
+                        // Focus first OTP input
+                        document.querySelector('.otp-input').focus();
+                    }, 400);
+
+                } else {
+                    errorMsg.innerText = result.message || "Failed to send OTP.";
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorMsg.innerText = "Network error. Please try again.";
+                errorMsg.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
+            }
+        }
+
+        function goBack() {
+            step2.classList.remove('active-step');
+            step2.classList.add('hidden-step');
+            
+            setTimeout(() => {
+                step1.classList.remove('hidden-step');
+                step1.classList.add('active-step');
+                
+                ind1.classList.replace('bg-green-500', 'bg-[#1E4A7A]');
+                ind1.classList.replace('dark:bg-green-500', 'dark:bg-blue-500');
+                ind2.classList.replace('bg-[#1E4A7A]', 'bg-gray-200');
+                ind2.classList.replace('dark:bg-blue-500', 'dark:bg-gray-700');
+            }, 400);
+        }
+
+        // --- 3. OTP Input Formatting Logic ---
+        const otpInputs = document.querySelectorAll('.otp-input');
+        const hiddenOtpInput = document.getElementById('combined-otp');
+
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                // Ensure only numbers
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                
+                // Move to next input if filled
+                if (e.target.value !== '' && index < otpInputs.length - 1) {
+                    otpInputs[index + 1].focus();
+                }
+                updateHiddenOtp();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Move to previous input on backspace if empty
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    otpInputs[index - 1].focus();
+                }
+            });
+
+            // Handle paste event for OTP
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                if (pastedData) {
+                    for (let i = 0; i < pastedData.length; i++) {
+                        if (otpInputs[i]) {
+                            otpInputs[i].value = pastedData[i];
+                        }
+                    }
+                    if (pastedData.length < 6) {
+                        otpInputs[pastedData.length].focus();
+                    } else {
+                        otpInputs[5].focus();
+                        document.getElementById('password').focus();
+                    }
+                    updateHiddenOtp();
+                }
+            });
+        });
+
+        function updateHiddenOtp() {
+            const otpCode = Array.from(otpInputs).map(input => input.value).join('');
+            hiddenOtpInput.value = otpCode;
+        }
+
+        // Form Submit Validation
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const pwd = document.getElementById('password').value;
+            if (hiddenOtpInput.value.length !== 6) {
+                e.preventDefault();
+                alert('Please enter the complete 6-digit OTP.');
+                return;
+            }
+            if (pwd.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long.');
+                return;
+            }
+            document.getElementById('btnSubmit').innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Registering...';
+            document.getElementById('btnSubmit').disabled = true;
+        });
+
+        // --- 4. Theme Toggle Logic ---
+        function toggleTheme() {
+            if (localStorage.theme === 'light') {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            }
+            updateThemeIcons();
+        }
+
+        function updateThemeIcons() {
+            const darkIcon = document.getElementById('theme-toggle-dark-icon');
+            const lightIcon = document.getElementById('theme-toggle-light-icon');
+            if (document.documentElement.classList.contains('dark')) {
+                lightIcon.classList.remove('hidden');
+                darkIcon.classList.add('hidden');
+            } else {
+                lightIcon.classList.add('hidden');
+                darkIcon.classList.remove('hidden');
+            }
+        }
+        updateThemeIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusCode - Master Competitive Programming</title>
+    <link rel="shortcut icon" href="/images/logo.png" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#1E4A7A', darkBg: '#0f172a', darkCard: '#1e293b' } } }
+        }
+    </script>
+    <script>
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    
+    <style>
+        .auth-container { background-color: #fff; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden; width: 900px; max-width: 100%; min-height: 550px; }
+        .dark .auth-container { background-color: #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+        .form-container { position: absolute; top: 0; height: 100%; transition: all 0.6s ease-in-out; }
+        .sign-in-container { left: 0; width: 50%; z-index: 2; }
+        .auth-container.right-panel-active .sign-in-container { transform: translateX(100%); }
+        .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+        .auth-container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; animation: show 0.6s; }
+        @keyframes show { 0%, 49.99% { opacity: 0; z-index: 1; } 50%, 100% { opacity: 1; z-index: 5; } }
+        .overlay-container { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100; }
+        .auth-container.right-panel-active .overlay-container { transform: translateX(-100%); }
+        .overlay { background: linear-gradient(to right, #1E4A7A, #2a6bb0); background-repeat: no-repeat; background-size: cover; background-position: 0 0; color: #FFFFFF; position: relative; left: -100%; height: 100%; width: 200%; transform: translateX(0); transition: transform 0.6s ease-in-out; }
+        .auth-container.right-panel-active .overlay { transform: translateX(50%); }
+        .overlay-panel { position: absolute; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 0 40px; text-align: center; top: 0; height: 100%; width: 50%; transform: translateX(0); transition: transform 0.6s ease-in-out; }
+        .overlay-left { transform: translateX(-20%); }
+        .auth-container.right-panel-active .overlay-left { transform: translateX(0); }
+        .overlay-right { right: 0; transform: translateX(0); }
+        .auth-container.right-panel-active .overlay-right { transform: translateX(20%); }
+        
+        .step-hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans transition-colors duration-300 dark:bg-darkBg dark:text-gray-200">
+
+    <nav class="fixed w-full z-40 top-0 bg-white/80 dark:bg-darkCard/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-code text-primary dark:text-blue-400 text-2xl"></i>
+                    <span class="font-bold text-xl tracking-tight text-gray-900 dark:text-white">CampusCode</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-blue-400 font-medium transition">Features</a>
+                    <a href="/college-register" class="text-gray-600 hover:text-primary dark:text-gray-300 dark:hover:text-blue-400 font-medium transition">For Institutions</a>
+                    <button onclick="toggleTheme()" class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full p-2 transition">
+                        <i id="theme-toggle-light-icon" class="fas fa-sun hidden"></i>
+                        <i id="theme-toggle-dark-icon" class="fas fa-moon hidden"></i>
+                    </button>
+                    <button onclick="openAuthModal(false)" class="text-primary dark:text-white font-medium hover:opacity-80 transition">Log In</button>
+                    <button onclick="openAuthModal(true)" class="bg-primary hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-md transition transform hover:-translate-y-0.5">Get Started</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <h1 class="text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-6">
+                Master Competitive <br class="hidden md:block">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Programming Together</span>
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500 dark:text-gray-400 mb-10">
+                The ultimate platform for colleges to host contests, track student progress, and build a thriving coding culture on campus.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button onclick="openAuthModal(true)" class="bg-primary hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold text-lg shadow-lg transition transform hover:-translate-y-1">
+                    Join Your College
+                </button>
+                <a href="/college-register" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 px-8 py-3 rounded-lg font-bold text-lg shadow-sm transition">
+                    Register Institution
+                </a>
+            </div>
+        </div>
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl opacity-50 pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 rounded-full bg-primary/10 dark:bg-primary/20 blur-3xl opacity-50 pointer-events-none"></div>
+    </main>
+
+    <section id="features" class="py-16 bg-white dark:bg-darkCard transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16"><h2 class="text-3xl font-bold text-gray-900 dark:text-white">Why Choose CampusCode?</h2></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-trophy"></i></div>
+                    <h3 class="text-xl font-bold mb-2 dark:text-white">Host Contests</h3>
+                    <p class="text-gray-500 dark:text-gray-400">Easily create and manage algorithmic coding competitions for your students.</p>
+                </div>
+                <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-chart-line"></i></div>
+                    <h3 class="text-xl font-bold mb-2 dark:text-white">Track Progress</h3>
+                    <p class="text-gray-500 dark:text-gray-400">Detailed analytics and leaderboards to monitor student performance over time.</p>
+                </div>
+                <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-primary dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-4"><i class="fas fa-users-cog"></i></div>
+                    <h3 class="text-xl font-bold mb-2 dark:text-white">Role Management</h3>
+                    <p class="text-gray-500 dark:text-gray-400">Dedicated dashboards for Admins, Faculty, and Students to streamline workflows.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="authModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAuthModal()"></div>
+        
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <div class="pointer-events-auto relative">
+                <button onclick="closeAuthModal()" class="absolute -top-4 -right-4 md:-top-6 md:-right-6 z-[101] bg-white dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-full w-10 h-10 flex items-center justify-center shadow-lg border border-gray-200 dark:border-gray-700 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+
+                <div class="auth-container" id="authContainer">
+                    
+                    <div class="form-container sign-up-container bg-white dark:bg-darkCard">
+                        <form id="signupForm" action="/auth/signup" method="POST" class="flex flex-col items-center justify-center h-full px-8 md:px-12 text-center w-full">
+                            
+                            <div id="signup-step-1" class="w-full">
+                                <h2 class="font-bold text-3xl mb-4 text-gray-900 dark:text-white">Create Account</h2>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Join your college on CampusCode</p>
+                                
+                                <div class="w-full space-y-3">
+                                    <input type="text" id="su_name" name="name" placeholder="Full Name" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition">
+                                    <input type="email" id="su_email" name="email" placeholder="Email Address" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition">
+                                    <input type="password" id="su_password" name="password" placeholder="Password" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition">
+                                    <select id="su_role" name="role" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Select your Role</option>
+                                        <option value="student">Student</option>
+                                        <option value="faculty">Faculty</option>
+                                    </select>
+                                    <select id="su_college" name="collegeName" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Loading colleges...</option>
+                                    </select>
+                                </div>
+                                
+                                <p id="su_error" class="text-red-500 text-xs mt-3 hidden"></p>
+                                <button type="button" onclick="triggerSignupOTP()" id="btnSendSignupOTP" class="rounded-lg border border-primary bg-primary text-white text-sm font-bold py-3.5 px-12 mt-6 uppercase tracking-wider transition-transform transform hover:scale-105 shadow-md w-full">Send OTP to Email</button>
+                            </div>
+
+                            <div id="signup-step-2" class="w-full step-hidden">
+                                <button type="button" onclick="backToSignupStep1()" class="text-sm text-gray-500 hover:text-primary mb-4 self-start flex items-center gap-1"><i class="fas fa-arrow-left"></i> Back</button>
+                                <h2 class="font-bold text-3xl mb-4 text-gray-900 dark:text-white">Verify Email</h2>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Enter the 6-digit code sent to your email.</p>
+                                
+                                <input type="text" name="otp" id="su_otp" placeholder="Enter OTP" maxlength="6" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white text-center font-bold tracking-[0.5em] focus:ring-2 focus:ring-primary focus:outline-none transition mb-4">
+                                
+                                <button type="submit" id="btnCompleteRegistration" class="rounded-lg border border-green-600 bg-green-600 text-white text-sm font-bold py-3.5 px-12 uppercase tracking-wider transition-transform transform hover:scale-105 shadow-md w-full">Complete Registration</button>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <div class="form-container sign-in-container bg-white dark:bg-darkCard">
+                        <form action="/auth/login" method="POST" class="flex flex-col items-center justify-center h-full px-8 md:px-12 text-center">
+                            <div class="mb-8">
+                                <i class="fas fa-code text-primary dark:text-blue-400 text-4xl mb-2"></i>
+                                <h2 class="font-bold text-3xl text-gray-900 dark:text-white">Welcome Back</h2>
+                            </div>
+                            
+                            <div class="w-full space-y-4">
+                                <input type="email" name="email" placeholder="Email Address" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition">
+                                <input type="password" name="password" placeholder="Password" required class="w-full bg-gray-100 dark:bg-gray-700 border-none p-3.5 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition">
+                            </div>
+                            
+                            <a href="#" class="text-gray-500 dark:text-gray-400 text-sm mt-4 hover:text-primary dark:hover:text-blue-400 transition">Forgot your password?</a>
+                            <button type="submit" class="rounded-lg border border-primary bg-primary text-white text-sm font-bold py-3.5 px-12 mt-6 uppercase tracking-wider transition-transform transform hover:scale-105 shadow-md w-full">Sign In</button>
+                        </form>
+                    </div>
+
+                    <div class="overlay-container hidden md:block">
+                        <div class="overlay">
+                            <div class="overlay-panel overlay-left">
+                                <h2 class="font-bold text-4xl mb-4">Hello, Friend!</h2>
+                                <p class="text-lg font-light mb-8 px-6">Enter your details and pick up right where you left off.</p>
+                                <button class="bg-transparent border-2 border-white text-white rounded-lg text-sm font-bold py-3 px-12 uppercase tracking-wider transition-transform transform hover:scale-105" id="signInBtn">Sign In</button>
+                            </div>
+                            <div class="overlay-panel overlay-right">
+                                <h2 class="font-bold text-4xl mb-4">New Here?</h2>
+                                <p class="text-lg font-light mb-8 px-6">Sign up to join your college's coding platform.</p>
+                                <button class="bg-transparent border-2 border-white text-white rounded-lg text-sm font-bold py-3 px-12 uppercase tracking-wider transition-transform transform hover:scale-105" id="signUpBtn">Sign Up</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:hidden mt-4 text-center bg-white dark:bg-darkCard p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800">
+                    <p class="text-gray-600 dark:text-gray-400 mb-2" id="mobileText">Don't have an account?</p>
+                    <button id="mobileToggleBtn" class="text-primary dark:text-blue-400 font-bold hover:underline">Sign Up instead</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Modal & Sliding Logic ---
+        const authModal = document.getElementById('authModal');
+        const authContainer = document.getElementById('authContainer');
+        const signUpBtn = document.getElementById('signUpBtn');
+        const signInBtn = document.getElementById('signInBtn');
+
+        function openAuthModal(isSignUp = false) {
+            authModal.classList.remove('hidden');
+            setTimeout(() => { authModal.classList.remove('opacity-0'); }, 10);
+            if (isSignUp) authContainer.classList.add("right-panel-active");
+            else authContainer.classList.remove("right-panel-active");
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('opacity-0');
+            setTimeout(() => { authModal.classList.add('hidden'); }, 300);
+            backToSignupStep1(); // Reset signup form if closed
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape" && !authModal.classList.contains('hidden')) closeAuthModal(); 
+        });
+
+        signUpBtn.addEventListener('click', () => { authContainer.classList.add("right-panel-active"); });
+        signInBtn.addEventListener('click', () => { authContainer.classList.remove("right-panel-active"); });
+
+        // --- Multi-Step Signup Logic ---
+        const step1 = document.getElementById('signup-step-1');
+        const step2 = document.getElementById('signup-step-2');
+        const errorText = document.getElementById('su_error');
+
+        async function triggerSignupOTP() {
+            const name = document.getElementById('su_name').value;
+            const email = document.getElementById('su_email').value;
+            const password = document.getElementById('su_password').value;
+            const role = document.getElementById('su_role').value;
+            const college = document.getElementById('su_college').value;
+            const btn = document.getElementById('btnSendSignupOTP');
+
+            if (!name || !email || !password || !role || !college) {
+                errorText.innerText = "Please fill in all fields.";
+                errorText.classList.remove('hidden');
+                return;
+            }
+
+            errorText.classList.add('hidden');
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Sending OTP...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/auth/send-signup-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    step1.classList.add('step-hidden');
+                    step2.classList.remove('step-hidden');
+                } else {
+                    errorText.innerText = result.message || "Failed to send OTP.";
+                    errorText.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorText.innerText = "Network error. Try again.";
+                errorText.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = "Send OTP to Email";
+                btn.disabled = false;
+            }
+        }
+
+        function backToSignupStep1() {
+            step2.classList.add('step-hidden');
+            step1.classList.remove('step-hidden');
+            document.getElementById('su_otp').value = '';
+        }
+
+        // Disable completion button immediately upon click to prevent double submission
+        document.getElementById('signupForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnCompleteRegistration');
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Registering...';
+            btn.disabled = true;
+        });
+
+        // --- Fetch Colleges ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            const selectElement = document.getElementById('su_college');
+            try {
+                const response = await fetch('/api/public/colleges');
+                const data = await response.json();
+                
+                if (data.success && data.colleges.length > 0) {
+                    selectElement.innerHTML = '<option value="" disabled selected>Select your College</option>';
+                    data.colleges.forEach(college => {
+                        const option = document.createElement('option');
+                        option.value = college.name;
+                        option.textContent = college.name;
+                        selectElement.appendChild(option);
+                    });
+                } else {
+                    selectElement.innerHTML = '<option value="" disabled selected>No colleges available</option>';
+                }
+            } catch (error) {
+                selectElement.innerHTML = '<option value="" disabled selected>Error loading colleges</option>';
+            }
+        });
+
+        // --- Theme Toggle ---
+        function toggleTheme() {
+            document.getElementById('theme-toggle-dark-icon').classList.toggle('hidden');
+            document.getElementById('theme-toggle-light-icon').classList.toggle('hidden');
+            if (localStorage.theme === 'light') {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            }
+        }
+        if (document.documentElement.classList.contains('dark')) {
+            document.getElementById('theme-toggle-light-icon').classList.remove('hidden');
+        } else {
+            document.getElementById('theme-toggle-dark-icon').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
