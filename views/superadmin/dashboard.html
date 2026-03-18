@@ -85,7 +85,7 @@
             <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-2xl p-6 md:p-8 text-white mb-8 shadow-lg relative overflow-hidden border border-gray-700">
                 <div class="relative z-10">
                     <h2 class="text-2xl md:text-3xl font-bold mb-2">Platform Overview</h2>
-                    <p class="text-gray-300 max-w-2xl">Manage authorized institutions. Only colleges listed here will be available for faculty and student registration.</p>
+                    <p class="text-gray-300 max-w-2xl">Manage authorized institutions and approve new college registrations.</p>
                 </div>
                 <i class="fas fa-shield-alt absolute right-12 top-1/2 transform -translate-y-1/2 text-8xl text-white opacity-5"></i>
             </div>
@@ -101,6 +101,29 @@
                             <i class="fas fa-circle-notch fa-spin text-sm text-gray-400"></i>
                         </h3>
                     </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-darkCard rounded-xl border border-yellow-200 dark:border-yellow-900 shadow-sm overflow-hidden transition-colors mb-8">
+                <div class="p-6 border-b border-yellow-100 dark:border-yellow-900/50 flex justify-between items-center bg-yellow-50 dark:bg-yellow-900/20">
+                    <h3 class="font-bold text-lg text-gray-800 dark:text-white">
+                        <i class="fas fa-user-clock mr-2 text-yellow-500"></i> Pending College Registrations
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm">
+                                <th class="py-3 px-6 font-medium">Applicant Name</th>
+                                <th class="py-3 px-6 font-medium">Email</th>
+                                <th class="py-3 px-6 font-medium">College Name</th>
+                                <th class="py-3 px-6 font-medium text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingAdminsTableBody" class="text-sm divide-y divide-gray-100 dark:divide-gray-800">
+                            <tr><td colspan="4" class="py-8 text-center text-gray-500 italic">Loading requests...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -122,7 +145,7 @@
                             </tr>
                         </thead>
                         <tbody id="college-table-body" class="text-sm divide-y divide-gray-100 dark:divide-gray-800">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -151,24 +174,114 @@
 
     <script>
         // Load data on page init
-        document.addEventListener('DOMContentLoaded', loadColleges);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadColleges();
+            fetchPendingAdmins();
+        });
 
-        // Fetch Data and Populate Dashboard
+        // ==========================================
+        // PENDING ADMINS LOGIC
+        // ==========================================
+        
+        async function fetchPendingAdmins() {
+            const tbody = document.getElementById('pendingAdminsTableBody');
+            try {
+                const response = await fetch('/superadmin/api/pending-admins');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-red-500">Error loading requests</td></tr>`;
+                    return;
+                }
+
+                if (data.pendingAdmins.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-gray-500 italic">No pending registrations at the moment.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.pendingAdmins.map(admin => `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition">
+                        <td class="py-4 px-6 text-gray-900 dark:text-gray-200 font-medium">${admin.fullName}</td>
+                        <td class="py-4 px-6 text-gray-500 dark:text-gray-400">${admin.email}</td>
+                        <td class="py-4 px-6 text-[#1E4A7A] dark:text-blue-400 font-semibold">${admin.collegeName}</td>
+                        <td class="py-4 px-6 text-center space-x-2">
+                            <button onclick="approveAdmin(${admin.id}, '${admin.collegeName}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm transition shadow-sm">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button onclick="rejectAdmin(${admin.id})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm transition shadow-sm">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error("Error fetching pending admins:", error);
+                tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-red-500">Failed to connect to server.</td></tr>`;
+            }
+        }
+
+        async function approveAdmin(adminId, collegeName) {
+            if (!confirm('Are you sure you want to approve this college registration?')) return;
+            
+            try {
+                // 1. Approve the Admin account
+                const response = await fetch(`/superadmin/api/approve-admin/${adminId}`, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 2. Automatically add the college to the Authorized Institutions list
+                    await fetch('/superadmin/api/colleges', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: collegeName })
+                    });
+
+                    alert('College registration approved successfully!');
+                    fetchPendingAdmins(); // Refresh pending table
+                    loadColleges();       // Refresh authorized colleges table
+                } else {
+                    alert('Error: ' + (data.error || data.message));
+                }
+            } catch (error) {
+                console.error('Approval error:', error);
+                alert('Failed to approve request.');
+            }
+        }
+
+        async function rejectAdmin(adminId) {
+            if (!confirm('Are you sure you want to REJECT and delete this registration request?')) return;
+            
+            try {
+                const response = await fetch(`/superadmin/api/reject-admin/${adminId}`, { method: 'DELETE' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Registration request rejected.');
+                    fetchPendingAdmins(); // Refresh pending table
+                } else {
+                    alert('Error: ' + (data.error || data.message));
+                }
+            } catch (error) {
+                console.error('Rejection error:', error);
+                alert('Failed to reject request.');
+            }
+        }
+
+        // ==========================================
+        // EXISTING COLLEGES LOGIC
+        // ==========================================
+        
         async function loadColleges() {
             const tableBody = document.getElementById('college-table-body');
             const totalCollegesEl = document.getElementById('stat-total-colleges');
 
             try {
-                // CHANGED API URL HERE
                 const response = await fetch('/superadmin/api/colleges');
                 const data = await response.json();
 
                 if (data.success) {
                     const colleges = data.colleges || [];
-                    
-                    // Update Stats
                     totalCollegesEl.innerText = colleges.length;
-
                     tableBody.innerHTML = '';
 
                     if (colleges.length === 0) {
@@ -207,7 +320,6 @@
         }
 
         // --- CRUD Modal Operations ---
-        
         function openModal() {
             document.getElementById('collegeModal').classList.remove('hidden');
             document.getElementById('collegeForm').reset();
@@ -223,7 +335,6 @@
             const name = document.getElementById('collegeName').value.trim();
 
             try {
-                // CHANGED API URL HERE
                 const response = await fetch('/superadmin/api/colleges', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -234,7 +345,7 @@
                 
                 if (result.success) {
                     closeModal();
-                    loadColleges(); // Refresh the table and stats
+                    loadColleges(); 
                 } else {
                     alert('Error adding college: ' + result.error);
                 }
@@ -247,12 +358,11 @@
         async function deleteCollege(id) {
             if (confirm("Are you sure you want to permanently delete this college? This may orphan users associated with it.")) {
                 try {
-                    // CHANGED API URL HERE
                     const response = await fetch(`/superadmin/api/colleges/${id}`, { method: 'DELETE' });
                     const result = await response.json();
                     
                     if(result.success) {
-                        loadColleges(); // Refresh
+                        loadColleges(); 
                     } else {
                         alert('Error deleting college: ' + result.error);
                     }

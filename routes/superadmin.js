@@ -43,5 +43,34 @@ module.exports = (db) => {
         });
     });
 
+    // ==========================================
+    // SUPERADMIN APIs (Manage Admin Approvals)
+    // ==========================================
+    
+    // 1. Fetch all pending college admins
+    router.get('/api/pending-admins', requireRole('superadmin'), (req, res) => {
+        db.all(`SELECT id, fullName, email, collegeName FROM users WHERE role = 'admin' AND status = 'pending' ORDER BY id DESC`, [], (err, rows) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            res.json({ success: true, pendingAdmins: rows });
+        });
+    });
+
+    // 2. Approve a pending admin
+    router.post('/api/approve-admin/:id', requireRole('superadmin'), (req, res) => {
+        db.run(`UPDATE users SET status = 'active' WHERE id = ? AND role = 'admin'`, [req.params.id], function(err) {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            if (this.changes === 0) return res.status(404).json({ success: false, message: 'Admin not found or already active' });
+            res.json({ success: true, message: 'College Admin approved successfully' });
+        });
+    });
+
+    // 3. Reject (delete) a pending admin
+    router.delete('/api/reject-admin/:id', requireRole('superadmin'), (req, res) => {
+        db.run(`DELETE FROM users WHERE id = ? AND role = 'admin' AND status = 'pending'`, [req.params.id], function(err) {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            res.json({ success: true, message: 'College Admin registration rejected' });
+        });
+    });
+
     return router;
 };

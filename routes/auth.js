@@ -57,16 +57,24 @@ module.exports = (db, transporter) => {
                 return res.status(400).send('<h3>Invalid or Expired OTP.</h3><a href="/college-register">Try again</a>');
             }
 
-            db.run(`INSERT INTO users (role, fullName, email, password, collegeName, status) VALUES (?, ?, ?, ?, ?, 'active')`,
+            // Insert user with 'pending' status instead of 'active'
+            db.run(`INSERT INTO users (role, fullName, email, password, collegeName, status) VALUES (?, ?, ?, ?, ?, 'pending')`,
                 ['admin', fullName, email, password, collegeName],
                 function(err) {
                     if (err) return res.status(500).send('Registration failed. Email might already exist.');
                     
                     db.run(`DELETE FROM otps WHERE email = ?`, [email]);
                     
-                    // Automatically log the admin in
-                    req.session.user = { id: this.lastID, role: 'admin', email: email, name: fullName, collegeName: collegeName };
-                    res.redirect('/college/dashboard'); // Pointing to the new namespace
+                    // Show a success message indicating approval is required
+                    res.send(`
+                        <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+                            <h2 style="color: #1E4A7A;">Verification Successful!</h2>
+                            <p>Your college registration has been submitted and is currently <strong>pending Superadmin approval</strong>.</p>
+                            <p>You will be able to log in once your account is activated.</p>
+                            <br>
+                            <a href="/" style="padding: 10px 20px; background: #1E4A7A; color: white; text-decoration: none; border-radius: 5px;">Return to Home</a>
+                        </div>
+                    `);
                 }
             );
         });
