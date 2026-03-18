@@ -81,7 +81,61 @@ module.exports = (db, transporter) => {
     });
 
     // ==========================================
-    // 3. LOGIN LOGIC
+    // 3. STUDENT & FACULTY SIGNUP (OTP Verification)
+    // ==========================================
+    router.post('/signup', (req, res) => {
+        // Grab the form fields from the signup request
+        const { role, fullName, collegeName, email, otp, password } = req.body;
+
+        // 1. Verify the OTP
+        db.get(`SELECT * FROM otps WHERE email = ?`, [email], (err, row) => {
+            if (err || !row || Date.now() > row.expiry || row.code !== otp) {
+                return res.status(400).send('<h3>Invalid or Expired OTP.</h3><a href="/">Try again</a>');
+            }
+
+            // 2. Set the correct starting status
+            // Faculty must be approved by the college admin. Students are active immediately.
+            const initialStatus = role === 'faculty' ? 'pending' : 'active';
+
+            // 3. Insert the new user into the database
+            db.run(`INSERT INTO users (role, fullName, email, password, collegeName, status) VALUES (?, ?, ?, ?, ?, ?)`,
+                [role, fullName, email, password, collegeName, initialStatus],
+                function(err) {
+                    if (err) return res.status(500).send('Registration failed. Email might already exist.');
+                    
+                    // Clear the OTP so it can't be reused
+                    db.run(`DELETE FROM otps WHERE email = ?`, [email]);
+                    
+                    // 4. Redirect or show message based on status
+                    if (initialStatus === 'pending') {
+                        // Show pending message for Faculty
+                        res.send(`
+                            <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+                                <h2 style="color: #1E4A7A;">Registration Successful!</h2>
+                                <p>Your ${role} account has been created and is currently <strong>pending College Admin approval</strong>.</p>
+                                <p>You will be able to log in once your admin activates your account.</p>
+                                <br>
+                                <a href="/" style="padding: 10px 20px; background: #1E4A7A; color: white; text-decoration: none; border-radius: 5px;">Return to Home</a>
+                            </div>
+                        `);
+                    } else {
+                        // Automatically log the Student in and redirect to dashboard
+                        req.session.user = { 
+                            id: this.lastID, 
+                            role: role, 
+                            email: email, 
+                            name: fullName, 
+                            collegeName: collegeName 
+                        };
+                        res.redirect(`/${role}/dashboard`); 
+                    }
+                }
+            );
+        });
+    });
+
+    // ==========================================
+    // 4. LOGIN LOGIC
     // ==========================================
     router.post('/login', (req, res) => {
         const { email, password } = req.body;
@@ -115,7 +169,7 @@ module.exports = (db, transporter) => {
     });
 
     // ==========================================
-    // 4. LOG OUT
+    // 5. LOG OUT
     // ==========================================
     router.get('/logout', (req, res) => {
         req.session.destroy();
