@@ -34,7 +34,9 @@ async function fetchUserContext() {
         if (data.success && data.user) {
             currentUser = data.user;
             currentNavConfig = getNavConfig(currentUser.role);
-            applyUserShell();
+            // Keep legacy forum layout behavior; do not rebuild role shells/sidebar dynamically.
+            applyLegacyForumUser();
+            renderRoleSidebar();
         } else {
             // Not logged in -> Redirect home/login
             window.location.href = '/';
@@ -42,6 +44,22 @@ async function fetchUserContext() {
     } catch (error) {
         console.error("Error fetching user session:", error);
     }
+}
+
+function applyLegacyForumUser() {
+    if (!currentUser) return;
+    const fullName = currentUser.fullName || 'User';
+    const roleLabel = String(currentUser.role || 'User');
+    const initials = fullName.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'U';
+    setText('userNameHeader', fullName);
+    setText('sidebarName', fullName);
+    setText('sidebarRole', roleLabel);
+    ['headerAvatar', 'profileAvatarLarge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = initials;
+    });
+    const sidebarAvatar = document.getElementById('sidebarAvatar');
+    if (sidebarAvatar) sidebarAvatar.textContent = initials;
 }
 
 function initializeTheme() {
