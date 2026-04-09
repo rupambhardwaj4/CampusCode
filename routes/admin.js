@@ -363,10 +363,14 @@ module.exports = (db, transporter) => {
             res.json({ success: true, pending: rows });
         });
     });
-
-    router.post('/api/approve-faculty/:id', requireRole('admin'), (req, res) => {
+router.post('/api/approve-faculty/:id', requireRole('admin'), (req, res) => {
         const { course, branch, role } = req.body; 
         const collegeName = req.session.user.collegeName;
+
+        // Move the validation up so it applies to BOTH students and faculty
+        if (!course || !branch) {
+            return res.status(400).json({ success: false, error: "Course and Branch are required." });
+        }
 
         db.get(`SELECT id, role, status, collegeName, pending_college_name, college_request_status FROM users WHERE id = ?`, [req.params.id], (userErr, userRow) => {
             if (userErr) return res.status(500).json({ success: false, error: userErr.message });
@@ -377,6 +381,7 @@ module.exports = (db, transporter) => {
                 && String(userRow.pending_college_name || '') === String(collegeName || '');
 
             if (isStudentCollegeRequest) {
+                // Added course, branch, and department to the student update query
                 db.run(`
                     UPDATE users
                     SET collegeName = pending_college_name,
@@ -384,22 +389,30 @@ module.exports = (db, transporter) => {
                         college_request_status = 'approved',
                         status = 'active',
                         is_verified = 1,
-                        isVerified = 1
+                        isVerified = 1,
+                        course = ?,
+                        branch = ?,
+                        department = ?
                     WHERE id = ?
-                `, [req.params.id], function (approveErr) {
+                `, [course, branch, branch, req.params.id], function (approveErr) {
                     if (approveErr) return res.status(500).json({ success: false, error: approveErr.message });
                     return res.json({ success: true, message: 'Student college verification approved successfully.' });
                 });
                 return;
             }
 
-            if (!course || !branch) {
-                return res.status(400).json({ success: false, error: "Course and Branch are required." });
-            }
-
             const assignedRole = role || null;
-            db.run(`UPDATE users SET status = 'active', is_verified = 1, isVerified = 1, course = ?, branch = ?, department = ?, role = COALESCE(?, role) WHERE id = ? AND collegeName = ?`, 
-            [course, branch, branch, assignedRole, req.params.id, collegeName], function(err) {
+            db.run(`
+                UPDATE users 
+                SET status = 'active', 
+                    is_verified = 1, 
+                    isVerified = 1, 
+                    course = ?, 
+                    branch = ?, 
+                    department = ?, 
+                    role = COALESCE(?, role) 
+                WHERE id = ? AND collegeName = ?
+            `, [course, branch, branch, assignedRole, req.params.id, collegeName], function(err) {
                 if (err) return res.status(500).json({ success: false, error: err.message });
                 if (this.changes === 0) return res.status(404).json({ success: false, error: "User not found or not in pending state." });
                 res.json({ success: true, message: 'User verified and assigned successfully' });
@@ -1032,8 +1045,10 @@ router.get('/api/contests', requireRole('admin'), (req, res) => {
             startDate, endDate,
             reward, target_programs, allowed_roles 
         } = req.body;
+        
         const collegesStr = colleges ? JSON.stringify(colleges) : '[]';
         const role = req.session.user.role;
+        const collegeName = req.session.user.collegeName;
 
         const normalizedClass = contestClassInput || contest_class || null;
             
@@ -1047,15 +1062,20 @@ router.get('/api/contests', requireRole('admin'), (req, res) => {
         const targetProgramsStr = target_programs ? JSON.stringify(target_programs) : null;
         const finalAllowedRoles = allowed_roles || null;
 
+        // THE FIX: 
+        // 1. Used COALESCE(?, status) so if status is not passed, it keeps its original status instead of vanishing.
+        // 2. Added AND collegeName=? for security.
         db.run(`UPDATE contests
                 SET title=?, scope=?, level=?, date=?, deadline=?, duration=?, eligibility=?, description=?, rulesAndDescription=?,
-                    guidelines=?, contest_class=?, prize=?, startDate=?, endDate=?, status=?, colleges=?,
+                    guidelines=?, contest_class=?, prize=?, startDate=?, endDate=?, status=COALESCE(?, status), colleges=?,
                     reward=?, target_programs=?, allowed_roles=?
-                WHERE id=?`,
+                WHERE id=? AND collegeName=?`,
             [
                 title, finalScope, level, date, deadline, duration, eligibility, finalDescription, finalGuidelines,
-                finalGuidelines, normalizedClass, prize || '', finalStartDate, finalEndDate, status || 'upcoming', collegesStr,
-                reward || '', targetProgramsStr, finalAllowedRoles, req.params.id
+                finalGuidelines, normalizedClass, prize || '', finalStartDate, finalEndDate, 
+                status || null, // Will default to NULL in SQL, allowing COALESCE to preserve the old status
+                collegesStr, reward || '', targetProgramsStr, finalAllowedRoles, 
+                req.params.id, collegeName
             ],
             function(err) {
                 if (err) return res.status(500).json({ success: false, message: err.message });
@@ -1063,9 +1083,19 @@ router.get('/api/contests', requireRole('admin'), (req, res) => {
             });
     });
 
-    router.delete('/api/contests/:id', requireRole('admin'), (req, res) => {
-        db.run(`DELETE FROM contests WHERE id=?`, [req.params.id], function(err) {
+   router.delete('/api/contests/:id', requireRole('admin'), (req, res) => {
+        // 1. Get the admin's college name from the session
+        const collegeName = req.session.user.collegeName;
+
+        // 2. Add AND collegeName=? to ensure they can only delete their own college's contests
+        db.run(`DELETE FROM contests WHERE id=? AND collegeName=?`, [req.params.id, collegeName], function(err) {
             if (err) return res.status(500).json({ success: false, message: err.message });
+            
+            // 3. Security check: if no rows were deleted, it means the contest didn't exist OR it belongs to another college
+            if (this.changes === 0) {
+                return res.status(404).json({ success: false, message: "Contest not found or you don't have permission to delete it." });
+            }
+
             res.json({ success: true, message: "Contest deleted successfully!" });
         });
     });

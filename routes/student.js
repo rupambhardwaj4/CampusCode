@@ -1246,9 +1246,24 @@ module.exports = (db, transporter) => {
             const solvedDifficultyCounts = await getStudentDifficultyCounts(userId);
             const { displayUser, contests } = await buildContestVisibilityData(sessionUser, userRow, solvedDifficultyCounts);
             const contest = contests.find(c => Number(c.id) === contestId);
+            
             if (!contest) return res.status(404).json({ success: false, error: 'Contest not found' });
+            
             if (!contest.can_join) {
                 return res.status(403).json({ success: false, error: contest.join_restriction || 'You are not eligible for this contest.' });
+            }
+
+            // ⭐ NEW FIX: Check if the registration deadline has passed
+            if (contest.deadline) {
+                const now = new Date();
+                const deadlineDate = new Date(contest.deadline);
+                
+                if (now > deadlineDate) {
+                    return res.status(403).json({ 
+                        success: false, 
+                        error: 'Registration failed: The deadline to join this contest has already passed.' 
+                    });
+                }
             }
 
             const problemIds = await getContestProblemIds(contest);
@@ -1260,6 +1275,7 @@ module.exports = (db, transporter) => {
                 INSERT OR IGNORE INTO contest_participants (contest_id, user_id)
                 VALUES (?, ?)
             `, [contestId, userId]);
+            
             return res.json({
                 success: true,
                 message: 'Joined contest successfully.',

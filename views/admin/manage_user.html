@@ -269,10 +269,17 @@
                 <p class="text-sm text-gray-500 mt-1 font-medium">Manage students, faculty, and enrollment requests.</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="exportToExcel()" class="px-6 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-all flex items-center gap-2">
+                <button id="exportBtn" onclick="exportToExcel()" class="px-6 py-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-all flex items-center gap-2">
                     <i class="fas fa-download text-primary-500"></i> Export List
                 </button>
                 <button id="onboardBtn" onclick="openAddModal()" class="px-7 py-3 bg-primary-500 hover:bg-primary-600 text-white text-sm font-bold rounded-2xl shadow-lg transition-all">+ Onboard Member</button>
+
+                <button id="bulkAcceptBtn" onclick="bulkAccept()" class="hidden px-6 py-3 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-2xl shadow-lg transition-all opacity-50 cursor-not-allowed" disabled>
+                    <i class="fas fa-check mr-2"></i>Accept Selected
+                </button>
+                <button id="bulkRejectBtn" onclick="bulkReject()" class="hidden px-6 py-3 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-2xl shadow-lg transition-all opacity-50 cursor-not-allowed" disabled>
+                    <i class="fas fa-times mr-2"></i>Reject Selected
+                </button>
             </div>
         </div>
 
@@ -547,13 +554,24 @@ function setTab(tab) {
 
     const onboardBtn = document.getElementById('onboardBtn');
     const bulkInviteSection = document.getElementById('bulkInviteSection'); 
+    
+    // Elements for bulk action visibility
+    const exportBtn = document.getElementById('exportBtn'); // Assumes you added ID="exportBtn" to html button
+    const bulkAcceptBtn = document.getElementById('bulkAcceptBtn');
+    const bulkRejectBtn = document.getElementById('bulkRejectBtn');
 
     if (tab === 'requests') {
         if(onboardBtn) onboardBtn.style.display = 'none';
+        if(exportBtn) exportBtn.style.display = 'none';
         if(bulkInviteSection) bulkInviteSection.style.display = 'none';
+        if(bulkAcceptBtn) bulkAcceptBtn.classList.remove('hidden');
+        if(bulkRejectBtn) bulkRejectBtn.classList.remove('hidden');
     } else {
         if(onboardBtn) onboardBtn.style.display = 'block';
+        if(exportBtn) exportBtn.style.display = 'block';
         if(bulkInviteSection) bulkInviteSection.style.display = 'block';
+        if(bulkAcceptBtn) bulkAcceptBtn.classList.add('hidden');
+        if(bulkRejectBtn) bulkRejectBtn.classList.add('hidden');
     }
 
     ['tabStudent', 'tabFaculty', 'tabRequests'].forEach(id => {
@@ -627,9 +645,21 @@ function render() {
     } else {
         dataToRender = requests;
         thead.innerHTML = `<tr>
+            <th class="p-4 w-12 text-center">
+                <input type="checkbox" id="selectAllReq" onclick="toggleAllRequests(this)" class="w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 cursor-pointer">
+            </th>
             <th class="p-4 text-left">Name & Email</th>
             <th class="p-4 text-center">Actions</th>
         </tr>`;
+        
+        // Reset bulk buttons state
+        const acceptBtn = document.getElementById('bulkAcceptBtn');
+        const rejectBtn = document.getElementById('bulkRejectBtn');
+        if(acceptBtn && rejectBtn) {
+            acceptBtn.disabled = true; rejectBtn.disabled = true;
+            acceptBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            rejectBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
     }
 
     if (searchVal) {
@@ -719,6 +749,9 @@ function render() {
             `;
         } else {
              tr.innerHTML = `
+                <td class="p-4 text-center">
+                    <input type="checkbox" class="req-checkbox w-4 h-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 cursor-pointer" value="${u.id}" onchange="updateBulkActionButtons()">
+                </td>
                 <td class="p-4">
                     <div class="flex items-center gap-3">
                         <div class="h-8 w-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">${initial}</div>
@@ -1186,6 +1219,111 @@ async function handleExcelUpload(event) {
         }
     };
     reader.readAsArrayBuffer(file);
+}
+
+// ====== BULK ACTION LOGIC ======
+function toggleAllRequests(source) {
+    const checkboxes = document.querySelectorAll('.req-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+    updateBulkActionButtons();
+}
+
+function updateBulkActionButtons() {
+    const selected = document.querySelectorAll('.req-checkbox:checked');
+    const acceptBtn = document.getElementById('bulkAcceptBtn');
+    const rejectBtn = document.getElementById('bulkRejectBtn');
+    
+    if(!acceptBtn || !rejectBtn) return;
+
+    if (selected.length > 0) {
+        acceptBtn.disabled = false; rejectBtn.disabled = false;
+        acceptBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        rejectBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        acceptBtn.disabled = true; rejectBtn.disabled = true;
+        acceptBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        rejectBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+async function bulkAccept() {
+    const selected = Array.from(document.querySelectorAll('.req-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) return;
+    
+    const payloads = [];
+    for (let id of selected) {
+        const courseEl = document.getElementById(`course-${id}`);
+        const branchEl = document.getElementById(`branch-${id}`);
+        const course = courseEl ? courseEl.value : null;
+        const branch = branchEl ? branchEl.value : null;
+        
+        if (!course || !branch) {
+            alert(`Missing Information: Please select a Course and Branch for all checked users before accepting.`);
+            return;
+        }
+        payloads.push({ id, course, branch });
+    }
+
+    if(!confirm(`Are you sure you want to approve ${selected.length} requests?`)) return;
+
+    const acceptBtn = document.getElementById('bulkAcceptBtn');
+    const originalText = acceptBtn.innerHTML;
+    acceptBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Processing...`;
+    
+    let successCount = 0;
+    let errors = [];
+    
+    for (let p of payloads) {
+        try {
+            const res = await fetch(`/college/api/approve-faculty/${p.id}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ course: p.course, branch: p.branch })
+            });
+            const data = await res.json();
+            if(data.success) successCount++;
+            else errors.push(`User #${p.id}: ${data.error}`);
+        } catch(err) {
+            errors.push(`User #${p.id}: ${err.message}`);
+        }
+    }
+    
+    acceptBtn.innerHTML = originalText;
+    if (errors.length > 0) alert(`Accepted ${successCount} requests.\nErrors:\n` + errors.join('\n'));
+    else alert(`Successfully approved ${successCount} requests.`);
+    
+    fetchData(); 
+}
+
+async function bulkReject() {
+    const selected = Array.from(document.querySelectorAll('.req-checkbox:checked')).map(cb => cb.value);
+    if (selected.length === 0) return;
+
+    if(!confirm(`Are you sure you want to reject and remove ${selected.length} requests?`)) return;
+
+    const rejectBtn = document.getElementById('bulkRejectBtn');
+    const originalText = rejectBtn.innerHTML;
+    rejectBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Processing...`;
+
+    let successCount = 0;
+    let errors = [];
+
+    for (let id of selected) {
+         try {
+            const res = await fetch(`/college/api/reject-faculty/${id}`, { method: 'POST' });
+            const data = await res.json();
+            if(data.success) successCount++;
+            else errors.push(`User #${id}: ${data.error || 'Failed to reject'}`);
+        } catch(err) {
+            errors.push(`User #${id}: ${err.message}`);
+        }
+    }
+    
+    rejectBtn.innerHTML = originalText;
+    if (errors.length > 0) alert(`Rejected ${successCount} requests.\nErrors:\n` + errors.join('\n'));
+    else alert(`Successfully rejected ${successCount} requests.`);
+    
+    fetchData();
 }
 
 // Initialize application data
