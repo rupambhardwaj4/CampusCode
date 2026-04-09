@@ -1,0 +1,177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CampusCode - Community Forum</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Poppins', 'sans-serif'] },
+          colors: {
+            primary: { 50: '#E7F0FA', 100: '#D0E1F5', 200: '#7BA4D0', 300: '#4D84C0', 400: '#2E5E99', 500: '#1E4A7A', 600: '#0D2440' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    .sidebar { transition: width .3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
+    .nav-item { transition: all .2s ease; position: relative; display: flex; align-items: center; padding: .75rem 1rem; margin-bottom: .25rem; color: #374151; border-radius: .75rem; cursor: pointer; white-space: nowrap; }
+    .dark .nav-item { color: #d1d5db; }
+    .nav-item:hover { background-color: #f3f4f6; }
+    .dark .nav-item:hover { background-color: #374151; }
+    .nav-item.active { background-color: #d0e1f5; color: #1e4a7a; }
+    .dark .nav-item.active { background-color: #1e4a7a; color: #fff; }
+    .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 60%; width: 4px; background-color: #2e5e99; border-radius: 0 4px 4px 0; }
+    .nav-item i { width: 1.5rem; text-align: center; margin-right: .75rem; font-size: 1.1rem; flex-shrink: 0; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+    .sidebar.collapsed .nav-item i { margin-right: 0; font-size: 1.25rem; }
+    .sidebar.collapsed .nav-item span { display: none; }
+    .filter-btn.active { background-color: #e7f0fa; color: #1e4a7a; border-color: #7ba4d0; }
+    .dark .filter-btn.active { background-color: #1e4a7a; color: #fff; border-color: #60a5fa; }
+    .topic-card { cursor: pointer; transition: all .2s ease; }
+    .topic-card.selected { border-color: #3b82f6; background-color: #eff6ff; box-shadow: 0 4px 10px rgba(59,130,246,.08); }
+    .dark .topic-card.selected { background-color: rgba(30,58,138,.2); }
+  </style>
+</head>
+<body class="bg-primary-50 dark:bg-gray-900 min-h-screen font-sans transition-colors duration-200">
+  <div class="flex h-screen overflow-hidden">
+    <aside id="mainSidebar" class="sidebar w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen flex-shrink-0 transition-colors duration-200 z-50">
+      <div class="p-6 flex-shrink-0 flex items-center justify-between h-[88px]">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2 overflow-hidden whitespace-nowrap">
+          <img src="/campuscode-logo.jpeg" alt="CampusCode" class="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+          <span id="sidebarLogoText" class="transition-all duration-300 opacity-100 w-auto">CampusCode</span>
+        </h1>
+        <button id="sidebarBrandBtn" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-500 transition-colors focus:outline-none">
+          <i class="fas fa-chevron-left transition-transform duration-300"></i>
+        </button>
+      </div>
+
+      <nav id="roleSidebarNav" class="flex-1 px-4 space-y-1 overflow-y-auto mt-2"></nav>
+
+      <div class="p-4 space-y-1 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0 bottom-menu">
+        <a id="sidebarSupportLink" href="/student/support" class="nav-item"><i class="far fa-question-circle"></i><span id="sidebarSupportLabel">Help & Support</span></a>
+        <button id="sidebarProfileBtn" class="w-full text-left flex items-center gap-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-700 mt-2 border border-gray-100 dark:border-gray-600">
+          <div id="sidebarAvatar" class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm">U</div>
+          <div class="min-w-0">
+            <div id="sidebarName" class="text-sm font-bold text-gray-800 dark:text-white truncate leading-tight uppercase">User</div>
+            <div id="sidebarRole" class="text-[10px] text-primary-500 dark:text-primary-200 font-semibold uppercase tracking-wider">Student</div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <div class="flex-1 overflow-y-auto">
+      <header class="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200 sticky top-0 z-40 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+          <div class="flex-1 max-w-2xl ml-4 flex items-center gap-4">
+            <h1 id="headerLogoText" class="text-xl font-bold text-gray-800 dark:text-white hidden transition-all duration-300 opacity-0 transform -translate-x-2 whitespace-nowrap">CampusCode</h1>
+            <div class="relative w-full">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
+              <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500" placeholder="Search discussions, topics, authors..." />
+            </div>
+          </div>
+          <div class="ml-4 flex items-center gap-3">
+            <button id="themeToggleBtn" class="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-transform active:scale-95"><i class="fas fa-moon text-xl"></i></button>
+            <div class="relative">
+              <button id="notificationBtn" class="relative p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-bell text-xl"></i>
+                <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500 border-2 border-white dark:border-gray-800"></span>
+              </button>
+            </div>
+            <button id="headerProfileBtn" class="ml-2 flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <div id="headerAvatar" class="h-9 w-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm">U</div>
+              <span id="userNameHeader" class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">User</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <section class="bg-gradient-to-r from-primary-600 to-[#2E5E99] text-white rounded-2xl p-6 sm:p-8 mb-6 shadow-lg">
+          <div class="flex flex-col lg:flex-row gap-5 lg:items-end lg:justify-between">
+            <div class="max-w-2xl">
+              <h2 class="text-2xl sm:text-3xl font-bold mb-2">Community Forum</h2>
+              <p class="text-base text-blue-100">Ask questions, share solutions, and discuss with your coding community.</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <a id="heroBackLink" href="/student/dashboard" class="px-5 py-2.5 rounded-xl bg-white/15 hover:bg-white/20 border border-white/20 text-sm font-semibold transition">Back to Dashboard</a>
+              <a href="/forum/create.html" class="px-5 py-2.5 rounded-xl bg-white text-primary-600 text-sm font-semibold shadow-sm hover:bg-blue-50 transition flex items-center"><i class="fas fa-plus mr-2"></i> Start Discussion</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="mb-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-primary-100 dark:border-gray-700">
+          <div class="flex flex-wrap gap-3 items-center">
+            <button id="filterGlobal" class="filter-btn active px-5 py-2 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold">Global</button>
+            <button id="filterCollege" class="filter-btn px-5 py-2 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold">College</button>
+            <select id="sortSelect" class="px-5 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100">
+              <option value="latest">Latest</option>
+              <option value="popular">Popular</option>
+            </select>
+            <button id="addTopicBtn" class="hidden ml-auto px-4 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold transition flex items-center">
+              <i class="fas fa-plus mr-2"></i> Add Topic
+            </button>
+          </div>
+        </section>
+
+        <section id="topicCardsContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="topic-card selected bg-white dark:bg-gray-800 rounded-2xl p-6 border border-primary-100 dark:border-gray-700 text-center" data-topic="all"><i class="fas fa-layer-group text-2xl text-primary-500"></i><p class="mt-3 text-xl font-bold text-gray-800 dark:text-gray-100">All Topics</p></div>
+        </section>
+
+        <div id="loading" class="text-center py-12">
+          <i class="fas fa-circle-notch fa-spin text-3xl text-primary-400 mb-3"></i>
+          <p class="font-medium text-gray-500 dark:text-gray-400 text-sm">Loading discussions...</p>
+        </div>
+        <div id="threadsContainer" class="space-y-4"></div>
+      </main>
+    </div>
+  </div>
+
+  <div id="profileOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div id="profileCard" class="w-[340px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden scale-95 transition-transform duration-200">
+      <div class="bg-[#1E4A7A] dark:bg-[#0f2a4a] relative pt-8 pb-16 px-6 text-center">
+        <button id="closeProfileOverlay" class="absolute top-4 right-4 text-white/70 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+        <div class="absolute left-1/2 bottom-[-45px] -translate-x-1/2"><div class="w-24 h-24 rounded-full bg-[#1E4A7A] p-1"><div id="profileAvatarLarge" class="w-full h-full rounded-full bg-[#1E4A7A] flex items-center justify-center text-white text-4xl font-normal border-4 border-white dark:border-gray-800">U</div></div></div>
+      </div>
+      <div class="pt-14 pb-6 px-6 text-center">
+        <h2 id="profileName" class="text-xl font-bold text-gray-900 dark:text-white">User</h2>
+        <p id="profileMeta" class="text-sm text-gray-500 dark:text-gray-400 mt-1">Student</p>
+        <div class="h-px bg-gray-100 dark:bg-gray-700 my-6"></div>
+        <div class="space-y-1">
+          <a id="profileDashboardLink" href="/student/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Dashboard</span></a>
+          <a id="profileProfileLink" href="/student/profile" class="nav-item"><i class="fas fa-id-card"></i><span>My Profile</span></a>
+          <a href="/auth/logout" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"><div class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></div><span class="text-sm font-medium text-red-600 dark:text-red-400">Log out</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="topicModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add Forum Topic</h3>
+        <button id="closeTopicModalBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form id="topicForm" class="space-y-3">
+        <input id="topicNameInput" type="text" placeholder="Topic name (e.g. DevOps)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" required />
+        <input id="topicSlugInput" type="text" placeholder="Optional slug (e.g. devops)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" />
+        <input id="topicIconInput" type="text" placeholder="Optional icon class (fas fa-cloud)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" />
+        <p id="topicFormMsg" class="text-sm hidden"></p>
+        <button type="submit" class="w-full px-4 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold transition">Create Topic</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/forum.js"></script>
+</body>
+</html>

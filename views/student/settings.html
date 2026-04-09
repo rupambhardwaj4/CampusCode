@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -104,7 +104,7 @@
                 <a href="/student/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
                 <a href="/student/problems" class="nav-item"><i class="fas fa-tasks"></i><span>Problems</span></a>
                 <a href="/student/contests" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
-                <a href="/forum/forum.html" class="nav-item"><i class="fas fa-comments"></i><span>Community</span></a>
+                <a href="/student/forum" class="nav-item"><i class="fas fa-comments"></i><span>Community</span></a>
                 <a href="/student/stats" class="nav-item"><i class="fas fa-list"></i><span>Stats</span></a>
                 <a href="/student/report" class="nav-item"><i class="fas fa-chart-pie"></i><span>Report</span></a>
                 <a href="/student/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
@@ -445,7 +445,7 @@
                             collegeStatus.className = 'mt-2 text-sm text-amber-600 dark:text-amber-400';
                             if (requestBtn) requestBtn.disabled = true;
                         } else if (user.collegeName) {
-                            collegeStatus.textContent = `Status: Verified · ${user.collegeName}`;
+                            collegeStatus.textContent = `Status: Verified Â· ${user.collegeName}`;
                             collegeStatus.className = 'mt-2 text-sm text-green-600 dark:text-green-400';
                             if (requestBtn) requestBtn.disabled = false;
                         } else {
@@ -799,3 +799,4 @@
     </script>
 </body>
 </html>
+

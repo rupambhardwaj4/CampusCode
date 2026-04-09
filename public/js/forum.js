@@ -4,6 +4,7 @@
 
 let currentUser = null;
 let currentNavConfig = null;
+let forumTopics = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     initializeTheme();
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Identify the current page loosely based on path
     const path = window.location.pathname;
 
-    if (path.includes('forum.html') || path.endsWith('/forum/')) {
+    if (path.includes('forum.html') || path.endsWith('/forum/') || path.endsWith('/forum') || path.includes('/student/forum')) {
         initForumListing();
     } else if (path.includes('create.html')) {
         initCreateThread();
@@ -108,7 +109,7 @@ function getNavConfig(roleValue) {
                 { href: '/student/dashboard', icon: 'fas fa-home', label: 'Home', key: 'dashboard' },
                 { href: '/student/problems', icon: 'fas fa-tasks', label: 'Problems', key: 'problems' },
                 { href: '/student/contests', icon: 'fas fa-trophy', label: 'Contests', key: 'contests' },
-                commonForum,
+                { href: '/student/forum', icon: 'fas fa-comments', label: 'Community', key: 'community' },
                 { href: '/student/stats', icon: 'fas fa-list', label: 'Stats', key: 'stats' },
                 { href: '/student/report', icon: 'fas fa-chart-pie', label: 'Report', key: 'report' },
                 { href: '/student/profile', icon: 'fas fa-user', label: 'Profile', key: 'profile' }
@@ -238,7 +239,7 @@ function renderRoleSidebar() {
     const currentPath = window.location.pathname;
     nav.innerHTML = currentNavConfig.items.map(item => {
         const isCommunity = item.key === 'community';
-        const isActive = isCommunity ? currentPath.includes('/forum/') : currentPath === item.href;
+        const isActive = isCommunity ? currentPath.includes('/forum') : currentPath === item.href;
         const baseClass = isActive ? 'nav-item active' : 'nav-item';
         return `
             <a href="${item.href}" class="${baseClass}">
@@ -332,7 +333,81 @@ function initForumListing() {
     const filterGlobal = document.getElementById('filterGlobal');
     const filterCollege = document.getElementById('filterCollege');
     const sortSelect = document.getElementById('sortSelect');
-    const topics = document.querySelectorAll('.topic-card');
+    const topicCardsContainer = document.getElementById('topicCardsContainer');
+    const addTopicBtn = document.getElementById('addTopicBtn');
+    const topicModal = document.getElementById('topicModal');
+    const closeTopicModalBtn = document.getElementById('closeTopicModalBtn');
+    const topicForm = document.getElementById('topicForm');
+    const topicNameInput = document.getElementById('topicNameInput');
+    const topicSlugInput = document.getElementById('topicSlugInput');
+    const topicIconInput = document.getElementById('topicIconInput');
+    const topicFormMsg = document.getElementById('topicFormMsg');
+
+    const isSuperadmin = String(currentUser?.role || '').toLowerCase() === 'superadmin';
+    if (addTopicBtn && isSuperadmin) addTopicBtn.classList.remove('hidden');
+
+    const topicClassBySlug = {
+        algo: 'text-yellow-500',
+        web: 'text-blue-500',
+        backend: 'text-green-500',
+        general: 'text-primary-500'
+    };
+
+    const getTopicIconClass = (topic) => {
+        const raw = String(topic?.icon || '').trim();
+        if (raw && raw.includes('fa')) return raw;
+        return 'fas fa-hashtag';
+    };
+
+    const getTopicTextClass = (topic) => topicClassBySlug[String(topic?.slug || '').toLowerCase()] || 'text-primary-500';
+
+    const renderTopicCards = () => {
+        if (!topicCardsContainer) return;
+        const allCard = `
+            <div class="topic-card selected bg-white dark:bg-gray-800 rounded-2xl p-6 border border-primary-100 dark:border-gray-700 text-center" data-topic="all">
+                <i class="fas fa-layer-group text-2xl text-primary-500"></i>
+                <p class="mt-3 text-xl font-bold text-gray-800 dark:text-gray-100">All Topics</p>
+            </div>
+        `;
+
+        const dynamicCards = forumTopics.map((topic) => `
+            <div class="topic-card bg-white dark:bg-gray-800 rounded-2xl p-6 border border-primary-100 dark:border-gray-700 text-center" data-topic="${escapeHTML(topic.slug)}">
+                <i class="${escapeHTML(getTopicIconClass(topic))} text-2xl ${escapeHTML(getTopicTextClass(topic))}"></i>
+                <p class="mt-3 text-xl font-bold text-gray-800 dark:text-gray-100">${escapeHTML(topic.name)}</p>
+            </div>
+        `).join('');
+
+        topicCardsContainer.innerHTML = allCard + dynamicCards;
+        bindTopicCardEvents();
+    };
+
+    const bindTopicCardEvents = () => {
+        const topicCards = document.querySelectorAll('.topic-card');
+        topicCards.forEach(card => {
+            card.addEventListener('click', () => {
+                topicCards.forEach(t => t.classList.remove('selected'));
+                card.classList.add('selected');
+                currentTopic = card.dataset.topic || 'all';
+                loadThreads();
+            });
+        });
+    };
+
+    const loadTopics = async () => {
+        try {
+            const res = await fetch('/api/forum/topics');
+            const data = await res.json();
+            if (data.success && Array.isArray(data.topics)) {
+                forumTopics = data.topics;
+            } else {
+                forumTopics = [];
+            }
+        } catch (err) {
+            console.error('Error loading forum topics:', err);
+            forumTopics = [];
+        }
+        renderTopicCards();
+    };
 
     // Debounce Search
     let timeout = null;
@@ -365,15 +440,68 @@ function initForumListing() {
         loadThreads();
     });
 
-    // Topics Filter (Frontend filtering for simplicity, or we can send it via API. Let's do frontend filtering from fetched data)
-    topics.forEach(card => {
-        card.addEventListener('click', () => {
-            topics.forEach(t => t.classList.remove('selected'));
-            card.classList.add('selected');
-            currentTopic = card.dataset.topic; // 'all', 'web', 'backend', etc.
-            loadThreads();
+    if (addTopicBtn && topicModal && isSuperadmin) {
+        addTopicBtn.addEventListener('click', () => {
+            topicForm?.reset();
+            if (topicFormMsg) topicFormMsg.classList.add('hidden');
+            topicModal.classList.remove('hidden');
+            topicModal.classList.add('flex');
         });
-    });
+    }
+
+    if (closeTopicModalBtn && topicModal) {
+        closeTopicModalBtn.addEventListener('click', () => {
+            topicModal.classList.add('hidden');
+            topicModal.classList.remove('flex');
+        });
+    }
+
+    if (topicModal) {
+        topicModal.addEventListener('click', (event) => {
+            if (event.target === topicModal) {
+                topicModal.classList.add('hidden');
+                topicModal.classList.remove('flex');
+            }
+        });
+    }
+
+    if (topicForm && isSuperadmin) {
+        topicForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const name = String(topicNameInput?.value || '').trim();
+            const slug = String(topicSlugInput?.value || '').trim();
+            const icon = String(topicIconInput?.value || '').trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/forum/topics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, slug, icon })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    if (topicFormMsg) {
+                        topicFormMsg.textContent = data.message || 'Unable to create topic';
+                        topicFormMsg.className = 'text-sm text-red-500';
+                    }
+                    return;
+                }
+
+                if (topicModal) {
+                    topicModal.classList.add('hidden');
+                    topicModal.classList.remove('flex');
+                }
+                await loadTopics();
+            } catch (err) {
+                console.error('Create topic error:', err);
+                if (topicFormMsg) {
+                    topicFormMsg.textContent = 'Network error while creating topic.';
+                    topicFormMsg.className = 'text-sm text-red-500';
+                }
+            }
+        });
+    }
 
     // Load Threads Data
     async function loadThreads() {
@@ -441,7 +569,7 @@ function initForumListing() {
     }
 
     // Initial Load
-    loadThreads();
+    loadTopics().then(loadThreads);
 }
 
 window.deleteThread = async function(id, e) {
@@ -466,6 +594,28 @@ window.deleteThread = async function(id, e) {
 // ==========================================
 function initCreateThread() {
     const form = document.getElementById('createThreadForm');
+    const threadTopicSelect = document.getElementById('threadTopic');
+
+    const loadCreateTopics = async () => {
+        if (!threadTopicSelect) return;
+        try {
+            const res = await fetch('/api/forum/topics');
+            const data = await res.json();
+            if (!data.success || !Array.isArray(data.topics)) return;
+
+            threadTopicSelect.innerHTML = '';
+            data.topics.forEach((topic) => {
+                const option = document.createElement('option');
+                option.value = topic.slug;
+                option.textContent = topic.name;
+                threadTopicSelect.appendChild(option);
+            });
+        } catch (err) {
+            console.error('Error loading thread topics:', err);
+        }
+    };
+
+    loadCreateTopics();
     
     form.addEventListener('submit', async (e) => {
         e.preventDefault();

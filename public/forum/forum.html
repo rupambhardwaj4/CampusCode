@@ -208,11 +208,14 @@
                 <option value="latest">Latest Updates</option>
                 <option value="popular">Most Popular</option>
               </select>
+              <button id="addTopicBtn" class="hidden px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold transition-colors">
+                <i class="fa-solid fa-plus mr-1"></i> Add Topic
+              </button>
             </div>
           </div>
         </section>
 
-        <section id="topicSection" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <section id="topicCardsContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div class="topic-card selected bg-white dark:bg-gray-800 rounded-2xl p-5 text-center border border-gray-200 dark:border-gray-700 shadow-sm" data-topic="all">
             <i class="fa-solid fa-layer-group text-2xl mb-2 text-primary-500 dark:text-primary-400"></i>
             <p class="font-bold text-sm text-gray-800 dark:text-gray-100">All Topics</p>
@@ -237,6 +240,24 @@
         </div>
         <div id="threadsContainer" class="space-y-4"></div>
       </main>
+    </div>
+  </div>
+
+  <div id="topicModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Add Forum Topic</h3>
+        <button id="closeTopicModalBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <form id="topicForm" class="space-y-3">
+        <input id="topicNameInput" type="text" placeholder="Topic name (e.g. DevOps)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" required />
+        <input id="topicSlugInput" type="text" placeholder="Optional slug (e.g. devops)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" />
+        <input id="topicIconInput" type="text" placeholder="Optional icon class (fas fa-cloud)" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100" />
+        <p id="topicFormMsg" class="text-sm hidden"></p>
+        <button type="submit" class="w-full px-4 py-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold transition">Create Topic</button>
+      </form>
     </div>
   </div>
 

@@ -11,6 +11,24 @@ module.exports = (db) => {
         next();
     };
 
+    const requireSuperAdmin = (req, res, next) => {
+        if (!req.session || !req.session.user) {
+            return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
+        }
+        if (String(req.session.user.role || '').toLowerCase() !== 'superadmin') {
+            return res.status(403).json({ success: false, message: 'Forbidden: Superadmin access required.' });
+        }
+        next();
+    };
+
+    const toSlug = (value) => String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
     // ==========================================
     // 1. GET CURRENT USER CONTEXT
     // ==========================================
@@ -60,6 +78,69 @@ module.exports = (db) => {
     });
 
     // ==========================================
+    // 1b. TOPICS (VISIBLE TO ALL AUTHENTICATED USERS)
+    // ==========================================
+    router.get('/topics', requireAuth, (req, res) => {
+        db.all(
+            `SELECT id, name, slug, icon, createdAt
+             FROM forum_topics
+             WHERE is_active = 1
+             ORDER BY name COLLATE NOCASE ASC`,
+            [],
+            (err, rows) => {
+                if (err) {
+                    return res.status(500).json({ success: false, message: 'Database error', error: err.message });
+                }
+                res.json({ success: true, topics: rows || [] });
+            }
+        );
+    });
+
+    // ==========================================
+    // 1c. CREATE TOPIC (SUPERADMIN ONLY)
+    // ==========================================
+    router.post('/topics', requireSuperAdmin, (req, res) => {
+        const body = req.body || {};
+        const name = String(body.name || '').trim();
+        const slugRaw = String(body.slug || '').trim();
+        const icon = String(body.icon || 'fas fa-hashtag').trim();
+        const slug = toSlug(slugRaw || name);
+        const createdBy = req.session.user.id;
+
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Topic name is required.' });
+        }
+        if (!slug) {
+            return res.status(400).json({ success: false, message: 'Invalid topic name/slug.' });
+        }
+
+        db.get(`SELECT id FROM forum_topics WHERE slug = ?`, [slug], (checkErr, existing) => {
+            if (checkErr) {
+                return res.status(500).json({ success: false, message: 'Database error', error: checkErr.message });
+            }
+            if (existing) {
+                return res.status(400).json({ success: false, message: 'Topic already exists.' });
+            }
+
+            db.run(
+                `INSERT INTO forum_topics (name, slug, icon, created_by, is_active)
+                 VALUES (?, ?, ?, ?, 1)`,
+                [name, slug, icon, createdBy],
+                function (insertErr) {
+                    if (insertErr) {
+                        return res.status(500).json({ success: false, message: 'Database error', error: insertErr.message });
+                    }
+                    return res.json({
+                        success: true,
+                        message: 'Topic created successfully.',
+                        topic: { id: this.lastID, name, slug, icon }
+                    });
+                }
+            );
+        });
+    });
+
+    // ==========================================
     // 2. GET THREADS LIST
     // ==========================================
     router.get('/threads', requireAuth, (req, res) => {
@@ -103,7 +184,10 @@ module.exports = (db) => {
     // 3. CREATE THREAD
     // ==========================================
     router.post('/threads', requireAuth, (req, res) => {
-        const { title, content, topic } = req.body;
+        const body = req.body || {};
+        const title = body.title;
+        const content = body.content;
+        const topic = body.topic;
         const user_id = req.session.user.id;
         const collegeName = req.session.user.collegeName || '';
 

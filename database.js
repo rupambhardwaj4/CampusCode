@@ -795,6 +795,28 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 if (err) console.error("Error creating forum_thread_votes table:", err.message);
             });
 
+            db.run(`CREATE TABLE IF NOT EXISTS forum_topics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                icon TEXT DEFAULT 'fas fa-hashtag',
+                created_by INTEGER,
+                is_active INTEGER DEFAULT 1,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+            )`, (err) => {
+                if (err) console.error("Error creating forum_topics table:", err.message);
+            });
+
+            db.run(`
+                INSERT OR IGNORE INTO forum_topics (name, slug, icon, is_active)
+                VALUES
+                ('Algorithms', 'algo', 'fas fa-brain', 1),
+                ('Web Dev', 'web', 'fas fa-code', 1),
+                ('Backend', 'backend', 'fas fa-server', 1),
+                ('General', 'general', 'fas fa-layer-group', 1)
+            `, () => {});
+
             // ==========================================
             // 10. SUBMISSIONS TABLE
             // ==========================================

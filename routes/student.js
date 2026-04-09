@@ -740,6 +740,19 @@ module.exports = (db, transporter) => {
         }
     });
 
+    router.get('/forum', requireRole('student'), async (req, res) => {
+        try {
+            const userRow = await dbGet(`SELECT id, fullName, email, collegeName, department, branch, program, year, section, points, solvedCount, rank FROM account_users WHERE id = ?`, [req.session.user.id]);
+            const user = await buildDisplayUser(req.session.user, userRow);
+            res.render('student/forum.html', { user, currentPage: 'community' });
+        } catch (error) {
+            console.error('Student forum query failed:', error);
+            res.status(500).send('Unable to load forum at this time.');
+        }
+    });
+
+    router.get('/community', requireRole('student'), (req, res) => res.redirect('/student/forum'));
+
     router.get('/settings', requireRole('student'), (req, res) => {
         res.sendFile(path.join(__dirname, '../views/student/settings.html'));
     });
