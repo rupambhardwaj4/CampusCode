@@ -64,14 +64,16 @@
   <div class="flex min-h-screen">
     <aside id="mainSidebar" class="sidebar w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col sticky top-0 h-screen flex-shrink-0 transition-colors duration-200 z-50">
       <div class="p-6 flex-shrink-0 flex items-center justify-between h-[88px]">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <i class="fas fa-code text-primary-500 text-2xl flex-shrink-0"></i>
-          <span id="sidebarLogoText" class="transition-all duration-300 opacity-100 w-auto">CampusCode</span>
-        </h1>
-        <button id="sidebarToggleBtn" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-500 transition-colors focus:outline-none">
-          <i class="fas fa-chevron-left transition-transform duration-300"></i>
-        </button>
-      </div>
+                <div class="sidebar-brand text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2 overflow-hidden whitespace-nowrap">
+                    <img src="/campuscode-logo.jpeg" alt="CampusCode logo" class="sidebar-brand-logo w-8 h-8 rounded-md shadow-sm flex-shrink-0">
+                    <span id="sidebarLogoText" class="transition-all duration-300 opacity-100 w-auto">
+                        CampusCode<span class="text-primary-400 dark:text-primary-200 text-xs align-top ml-0.5">SA</span>
+                    </span>
+                </div>
+                <button id="sidebarToggleBtn" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-500 transition-colors focus:outline-none">
+                    <i class="fas fa-chevron-left transition-transform duration-300"></i>
+                </button>
+            </div>
       <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-2 custom-scrollbar">
         <a href="/student/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
         <a href="/student/problems" class="nav-item"><i class="fas fa-tasks"></i><span>Problems</span></a>

@@ -23,6 +23,13 @@
         }
       };
     </script>
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
     <style>
       ::-webkit-scrollbar { width: 6px; height: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }
@@ -104,9 +111,7 @@
       .dark .nav-item { color: #d1d5db; }
       .dark .nav-item:hover { background: #111827; }
       @media print {
-        body {
-          background: #ffffff !important;
-        }
+        body { background: #ffffff !important; }
         .report-preview-container {
           max-width: none !important;
           width: 210mm !important;
@@ -131,9 +136,7 @@
         .report-preview-container div {
           color: inherit !important;
         }
-        .report-preview-container .watermark {
-          opacity: 0.08 !important;
-        }
+        .report-preview-container .watermark { opacity: 0.08 !important; }
       }
     </style>
 </head>
@@ -143,9 +146,11 @@
       <header class="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
           <div class="flex-1 max-w-2xl ml-4 flex items-center gap-4">
-            <div class="flex items-center gap-3 whitespace-nowrap">
-              <img src="/campuscode-logo.jpeg" alt="CampusCode logo" class="h-9 w-9 rounded-xl object-contain bg-white p-1 shadow-sm">
-              <h1 class="text-xl font-bold text-gray-800 dark:text-white whitespace-nowrap">CampusCode</h1>
+            <div class="flex items-center gap-2 whitespace-nowrap text-2xl font-bold text-gray-800 dark:text-white">
+              <img src="/campuscode-logo.jpeg" alt="CampusCode logo" class="w-8 h-8 rounded-md shadow-sm flex-shrink-0">
+              <span class="transition-all duration-300 opacity-100 w-auto">
+                  CampusCode<span class="text-primary-400 dark:text-primary-200 text-xs align-top ml-0.5">SA</span>
+              </span>
             </div>
             <div class="relative flex items-center w-full">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-search text-gray-400"></i></div>
@@ -153,7 +158,7 @@
             </div>
           </div>
           <div class="ml-4 flex items-center gap-3">
-            <button id="themeToggleBtn" class="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <button id="themeToggleBtn" class="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-transform active:scale-95">
               <i class="fas fa-moon text-xl"></i>
             </button>
             <div class="relative">
@@ -417,87 +422,58 @@
         return;
       }
 
-      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-        .map(node => node.outerHTML)
-        .join('\n');
-      const htmlClass = document.documentElement.className || '';
-      const clonedReport = report.cloneNode(true);
-      const reportHtml = clonedReport.outerHTML;
+      // Safely build the print document without ANY html strings to prevent backend parsers from breaking
+      const printDoc = printWindow.document;
+      
+      const title = printDoc.createElement('title');
+      title.textContent = 'Student Report PDF';
+      printDoc.head.appendChild(title);
 
-      printWindow.document.open();
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="en" class="${htmlClass}">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Student Report PDF</title>
-          ${styles}
-          <style>
-            @page {
-              size: A4;
-              margin: 10mm;
-            }
-            body {
-              margin: 0;
-              background: ${document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff'};
-              font-family: 'Poppins', sans-serif;
-            }
-            .pdf-shell {
-              padding: 0;
-              display: flex;
-              justify-content: center;
-              align-items: flex-start;
-            }
-            #report-content.report-preview-container {
-              width: 210mm !important;
-              max-width: 210mm !important;
-              min-height: auto !important;
-              margin: 0 auto !important;
-              padding: 15mm !important;
-              box-sizing: border-box;
-              box-shadow: none !important;
-            }
-            .section-hidden {
-              display: none !important;
-            }
-            * {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            @media print {
-              body {
-                background: ${document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff'} !important;
-              }
-              .pdf-shell {
-                padding: 0 !important;
-              }
-              #report-content.report-preview-container {
-                break-inside: avoid;
-                page-break-inside: avoid;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="pdf-shell">${reportHtml}</div>
-        </body>
-        </html>
-      `);
-      printWindow.document.close();
+      const headNodes = document.head.children;
+      for (let i = 0; i < headNodes.length; i++) {
+        const node = headNodes[i];
+        if (node.tagName === 'STYLE' || node.tagName === 'LINK') {
+          printDoc.head.appendChild(node.cloneNode(true));
+        }
+      }
+
+      const customStyle = printDoc.createElement('style');
+      const isDark = document.documentElement.classList.contains('dark');
+      const bgColor = isDark ? '#111827' : '#ffffff';
+      
+      customStyle.textContent = `
+        @page { size: A4; margin: 10mm; }
+        body { margin: 0; font-family: "Poppins", sans-serif; background: ${bgColor}; }
+        .pdf-shell { padding: 0; display: flex; justify-content: center; align-items: flex-start; }
+        #report-content.report-preview-container { width: 210mm !important; max-width: 210mm !important; min-height: auto !important; margin: 0 auto !important; padding: 15mm !important; box-sizing: border-box; box-shadow: none !important; }
+        .section-hidden { display: none !important; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        @media print { body { background: ${bgColor} !important; } .pdf-shell { padding: 0 !important; } #report-content.report-preview-container { break-inside: avoid; page-break-inside: avoid; } }
+      `;
+      printDoc.head.appendChild(customStyle);
+
+      if (isDark) printDoc.documentElement.classList.add('dark');
+
+      const shell = printDoc.createElement('div');
+      shell.className = 'pdf-shell';
+      shell.appendChild(report.cloneNode(true));
+      printDoc.body.appendChild(shell);
 
       printWindow.onload = async () => {
         if (printWindow.document.fonts && printWindow.document.fonts.ready) {
-          try {
-            await printWindow.document.fonts.ready;
-          } catch (error) {
-            console.error('Font load wait skipped:', error);
-          }
+          try { await printWindow.document.fonts.ready; } catch (e) {}
         }
         printWindow.focus();
         printWindow.print();
         setTimeout(() => printWindow.close(), 500);
       };
+
+      // Fallback timer just in case onload fires too fast or fails
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        setTimeout(() => printWindow.close(), 500);
+      }, 1000);
     }
 
     function toggleSection(sectionId) {
@@ -508,10 +484,10 @@
     const themeBtn = document.getElementById('themeToggleBtn');
     const themeIcon = themeBtn.querySelector('i');
     const html = document.documentElement;
-    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      html.classList.add('dark');
+    if (html.classList.contains('dark')) {
       themeIcon.classList.replace('fa-moon', 'fa-sun');
     }
+
     themeBtn.addEventListener('click', () => {
       html.classList.toggle('dark');
       const isDark = html.classList.contains('dark');
@@ -524,6 +500,7 @@
     const notificationDropdown = document.getElementById('notificationDropdown');
     const profileOverlay = document.getElementById('profileOverlay');
     const closeProfileOverlay = document.getElementById('closeProfileOverlay');
+    
     if (notificationBtn && notificationDropdown) {
       notificationBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -535,6 +512,7 @@
         }
       });
     }
+    
     profileBtn.addEventListener('click', () => profileOverlay.classList.remove('hidden'));
     closeProfileOverlay.addEventListener('click', () => profileOverlay.classList.add('hidden'));
     profileOverlay.addEventListener('click', (e) => {
