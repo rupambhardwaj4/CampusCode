@@ -113,6 +113,7 @@
                 <a href="/college/program" class="nav-item"><i class="fa-solid fa-layer-group"></i><span>Programs</span></a>
                 <a href="/college/contest" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
                 <a href="/college/manage_user" class="nav-item"><i class="fa-solid fa-users"></i><span>User</span></a>
+                 <a href="/college/community" class="nav-item"><i class="fas fa-comments"></i><span>Community</span></a>
                 <a href="/college/report" class="nav-item"><i class="fas fa-file-invoice"></i><span>Reports</span></a>
                 <a href="/college/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
             </nav>
@@ -373,35 +374,36 @@
         });
 
         async function fetchProfile() {
-            try {
-                const response = await fetch('/college/api/profile'); 
-                const data = await response.json();
+    try {
+        const res = await fetch('/college/api/profile');
+        if (res.ok) {
+            const data = await res.json();
+            const u = data.user || data;
 
-                if (data.success !== false && data.user) {
-                    const user = data.user;
-                    
-                    document.getElementById('firstNameInput').value = user.firstName || (user.fullName ? user.fullName.split(' ')[0] : '');
-                    document.getElementById('lastNameInput').value = user.lastName || (user.fullName ? user.fullName.split(' ').slice(1).join(' ') : '');
-                    document.getElementById('emailInput').value = user.email || '';
-                    document.getElementById('designationInput').value = user.designation || user.role || '';
+            const name = u.fullName || 'Admin User';
+            const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
-                    const firstName = document.getElementById('firstNameInput').value;
-                    const lastName = document.getElementById('lastNameInput').value;
-                    const name = `${firstName} ${lastName}`.trim() || 'Admin User';
-                    
-                    const initials = firstName && lastName ? `${firstName[0]}${lastName[0]}`.toUpperCase() : name.substring(0, 2).toUpperCase();
-                    
-                    document.querySelectorAll('.profile-name-display').forEach(el => el.textContent = name);
-                    document.querySelectorAll('.profile-initials-display').forEach(el => el.textContent = initials);
-                    
-                    document.getElementById('overlayCollege').innerHTML = `<i class="fas fa-university"></i> ${user.collegeName || 'Not Assigned'}`;
-                    document.getElementById('overlayId').textContent = `Role: ${user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin'}`;
-                }
-            } catch (err) {
-                console.error("Error fetching settings:", err);
-            }
+            // 1. Update Header
+            const headerInitials = document.getElementById('headerInitials');
+            const headerName = document.getElementById('headerName');
+            if (headerInitials) headerInitials.textContent = initials;
+            if (headerName) headerName.textContent = name;
+
+            // 2. Update Profile Overlay
+            const modalInitials = document.getElementById('modalInitials');
+            const modalName = document.getElementById('modalName');
+            const modalCollege = document.getElementById('modalCollege');
+            const modalRoleDisplay = document.getElementById('modalRoleDisplay');
+
+            if (modalInitials) modalInitials.textContent = initials;
+            if (modalName) modalName.textContent = name;
+            if (modalCollege) modalCollege.innerHTML = `<i class="fas fa-university"></i> ${u.collegeName || 'Not Assigned'}`;
+            if (modalRoleDisplay) modalRoleDisplay.innerHTML = `ID: ${u.id || 'N/A'}`;
         }
-
+    } catch (err) { 
+        console.error('Error fetching profile:', err); 
+    }
+}
         // --- EMAIL UPDATE & OTP LOGIC ---
         const changeEmailBtn = document.getElementById('changeEmailBtn');
         const emailOtpSection = document.getElementById('emailOtpSection');

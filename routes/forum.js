@@ -68,7 +68,7 @@ module.exports = (db) => {
             SELECT t.*, u.fullName as author_name, u.role as author_role, u.collegeName as author_college,
                    (SELECT COUNT(*) FROM forum_replies r WHERE r.thread_id = t.id) as reply_count
             FROM forum_threads t
-            JOIN account_users u ON t.user_id = u.id
+            JOIN users u ON t.user_id = u.id
             WHERE 1=1
         `;
         const params = [];
@@ -133,23 +133,23 @@ module.exports = (db) => {
         });
 
         // Get Thread info
-        db.get(`
+       db.get(`
             SELECT t.*, u.fullName as author_name, u.role as author_role, u.collegeName as author_college,
                    (SELECT vote_type FROM forum_thread_votes WHERE thread_id = t.id AND user_id = ?) as user_vote,
                    (SELECT COUNT(*) FROM forum_replies r WHERE r.thread_id = t.id) as reply_count
             FROM forum_threads t
-            JOIN account_users u ON t.user_id = u.id
+            JOIN users u ON t.user_id = u.id
             WHERE t.id = ?
         `, [userId, threadId], (err, thread) => {
             if (err || !thread) return res.status(404).json({ success: false, message: 'Thread not found' });
 
             // Get Replies
             // We left join with current user's votes to know if they already voted
-            db.all(`
+           db.all(`
                 SELECT r.*, u.fullName as author_name, u.role as author_role,
                        (SELECT vote_type FROM forum_votes WHERE reply_id = r.id AND user_id = ?) as user_vote
                 FROM forum_replies r
-                JOIN account_users u ON r.user_id = u.id
+                JOIN users u ON r.user_id = u.id
                 WHERE r.thread_id = ?
                 ORDER BY (r.upvotes - r.downvotes) DESC, r.createdAt ASC
             `, [userId, threadId], (err, replies) => {

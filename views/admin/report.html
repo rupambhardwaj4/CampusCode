@@ -35,14 +35,12 @@
       .dark .report-preview-container { background: #1f2937; color: #e5e7eb; }
       .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 120px; font-weight: 900; color: rgba(0, 0, 0, 0.03); pointer-events: none; z-index: 0; white-space: nowrap; }
       
-      /* Standard Report Tables */
-      .report-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.65rem; position: relative; z-index: 10;}
+      .report-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.65rem; position: relative; z-index: 10; white-space: nowrap;}
       .report-table th, .report-table td { border: 1px solid #e5e7eb; padding: 0.4rem; text-align: left; }
       .dark .report-table th, .dark .report-table td { border-color: #374151; }
       .report-table th { background-color: #f8fafc; font-weight: 700; white-space: nowrap; }
       .dark .report-table th { background-color: #111827; }
 
-      /* Profile Style Table (College Overview) */
       .profile-table { width: 100%; border: 1px solid #e5e7eb; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 1.5rem; }
       .dark .profile-table { border-color: #374151; }
       .profile-table td { border: 1px solid #e5e7eb; padding: 0.75rem 1rem; }
@@ -53,7 +51,7 @@
       .dark .profile-table td:last-child { color: #f3f4f6; }
 
       .section-hidden, .col-hidden { display: none !important; }
-      @media print { .config-panel, header, .no-print { display: none !important; } .report-preview-container { margin: 0; border: none; box-shadow: none; width: 100%; } body { background: white; } }
+      @media print { .config-panel, header, .no-print { display: none !important; } .report-preview-container { margin: 0; border: none; box-shadow: none; width: 100%; overflow-x: visible; } body { background: white; } }
     </style>
 </head>
 <body class="bg-primary-50 dark:bg-gray-900 min-h-screen font-sans">
@@ -87,7 +85,7 @@
                 <div class="relative ml-2 border-l border-gray-200 dark:border-gray-700 pl-4">
                     <button id="headerProfileBtn" onclick="toggleProfile()" class="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <div id="headerInitials" class="h-9 w-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm">--</div>
-                        <span id="headerName" class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">Loading...</span>
+                        <span id="headerName" class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block">...</span>
                     </button>
                 </div>
             </div>
@@ -101,35 +99,36 @@
                         <i class="fas fa-arrow-left"></i> Back to Dashboard
                     </a>
                     
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm mb-6 space-y-3">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider text-center mb-1">Export Report</h3>
+                        <div class="flex gap-2">
+                            <button onclick="directDownloadPDF()" class="w-full bg-red-500 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-600 transition-colors"><i class="fas fa-file-pdf"></i> PDF</button>
+                            <button onclick="downloadExcel()" class="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"><i class="fas fa-file-excel"></i> Excel</button>
+                        </div>
+                    </div>
+
                     <div id="profileOverlay" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
                         <div class="bg-white dark:bg-gray-800 w-[320px] rounded-3xl overflow-hidden shadow-2xl transform transition-all">
                             <div class="bg-[#1e4a7a] p-6 text-center relative h-32">
-                                <button onclick="toggleProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white">
-                                    <i class="fas fa-times text-lg"></i>
-                                </button>
+                                <button onclick="toggleProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white"><i class="fas fa-times text-lg"></i></button>
                                 <div class="absolute -bottom-10 left-1/2 -translate-x-1/2">
                                     <div id="modalInitials" class="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 bg-[#1e4a7a] flex items-center justify-center text-white text-2xl font-bold">--</div>
                                 </div>
                             </div>
                             <div class="pt-12 pb-6 px-6 text-center">
-                                <h3 id="modalName" class="text-xl font-bold text-gray-800 dark:text-white">Loading...</h3>
-                                <p id="modalCollege" class="text-xs text-gray-500 flex items-center justify-center gap-1"><i class="fas fa-university"></i> Loading...</p>
-
+                                <h3 id="modalName" class="text-xl font-bold text-gray-800 dark:text-white">...</h3>
+                                <p id="modalCollege" class="text-xs text-gray-500 flex items-center justify-center gap-1"><i class="fas fa-university"></i> ...</p>
                                 <div class="space-y-1 mt-6">
                                     <a href="/college/profile"><button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                                         <div class="flex items-center gap-3"><i class="fas fa-user-circle text-primary-400"></i><span class="text-sm font-medium text-gray-700 dark:text-gray-200"> Profile</span></div>
                                         <i class="fas fa-chevron-right text-[10px] text-gray-400 group-hover:translate-x-1 transition-transform"></i>
                                     </button></a>
-                                    
                                     <a href="/college/help_support"><button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                                         <div class="flex items-center gap-3"><i class="fas fa-question-circle text-primary-400"></i><span class="text-sm font-medium text-gray-700 dark:text-gray-200">Help & Support</span></div>
                                         <i class="fas fa-chevron-right text-[10px] text-gray-400 group-hover:translate-x-1 transition-transform"></i>
                                     </button></a>
-
                                     <button id="logoutBtn" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 group mt-2 transition-all">
-                                        <div class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center">
-                                            <i class="fas fa-sign-out-alt"></i>
-                                        </div>
+                                        <div class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></div>
                                         <span class="text-sm font-medium text-red-600 dark:text-red-400">Log out</span>
                                     </button>
                                 </div>
@@ -141,24 +140,46 @@
                     <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm space-y-6 max-h-[85vh] overflow-y-auto">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-bold dark:text-white flex items-center gap-2"><i class="fas fa-filter text-primary-500"></i> Filters</h3>
-                            <button onclick="resetAllFilters()" class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-primary-600 font-bold hover:bg-primary-50">RESET</button>
+                            <button onclick="resetAllFilters()" class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-primary-600 font-bold hover:bg-primary-50 transition-colors">RESET</button>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Search</label>
                             <div class="relative">
-                                <input type="text" id="searchInput" onkeyup="applyGlobalFilters()" placeholder="Name, Email..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg pl-9 pr-3 py-2 text-sm dark:bg-gray-700 dark:text-white outline-none">
+                                <input type="text" id="searchInput" onkeyup="applyGlobalFilters()" placeholder="Name, ID..." class="w-full border border-gray-200 dark:border-gray-600 rounded-lg pl-9 pr-3 py-2 text-sm dark:bg-gray-700 dark:text-white outline-none">
                                 <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Dept</label>
+                                <select id="deptFilter" onchange="applyGlobalFilters()" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs dark:bg-gray-700 dark:text-white outline-none">
+                                    <option value="all">All</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="ECE">ECE</option>
+                                    <option value="ME">ME</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wider">Year</label>
+                                <select id="yearFilter" onchange="applyGlobalFilters()" class="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-2 text-xs dark:bg-gray-700 dark:text-white outline-none">
+                                    <option value="all">All</option>
+                                    <option value="1st">1st Yr</option>
+                                    <option value="2nd">2nd Yr</option>
+                                    <option value="3rd">3rd Yr</option>
+                                    <option value="4th">4th Yr</option>
+                                </select>
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-3 tracking-wider">Show/Hide Sections</label>
                             <div class="space-y-2">
-                                <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-depts" onclick="toggleSection('sec-depts')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">College Overview</span></label>
                                 <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-students" onclick="toggleSection('sec-students')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">Students</span></label>
-                                <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-faculty" onclick="toggleSection('sec-faculty')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">Faculty</span></label>
                                 <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-contests" onclick="toggleSection('sec-contests')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">Contests</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-depts" onclick="toggleSection('sec-depts')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">College Overview</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked id="check-sec-faculty" onclick="toggleSection('sec-faculty')" class="w-4 h-4 rounded text-primary-600"><span class="text-sm dark:text-gray-300">Faculty</span></label>
                             </div>
                         </div>
 
@@ -174,33 +195,56 @@
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="3" onclick="toggleColumn('studentTable', 3)"> Program</label>
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="4" onclick="toggleColumn('studentTable', 4)"> Year</label>
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="5" onclick="toggleColumn('studentTable', 5)"> Branch</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="6" onclick="toggleColumn('studentTable', 6)"> Sec</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="7" onclick="toggleColumn('studentTable', 7)"> Streak</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="8" onclick="toggleColumn('studentTable', 8)"> Contests</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="9" onclick="toggleColumn('studentTable', 9)"> Solved Qs</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="10" onclick="toggleColumn('studentTable', 10)"> Col Rank</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="11" onclick="toggleColumn('studentTable', 11)"> Global Rank</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="12" onclick="toggleColumn('studentTable', 12)"> Level</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="13" onclick="toggleColumn('studentTable', 13)"> Accuracy</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="14" onclick="toggleColumn('studentTable', 14)"> Last Active</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="studentTable" data-col="15" onclick="toggleColumn('studentTable', 15)"> Won</label>
                                     </div>
                                 </div>
-                                <div class="border-l-2 border-green-500 pl-2">
-                                    <span class="text-[9px] font-black text-gray-500 block mb-1">FACULTY TABLE</span>
-                                    <div class="grid grid-cols-1 gap-1">
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="0" onclick="toggleColumn('facultyTable', 0)"> ID</label>
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="1" onclick="toggleColumn('facultyTable', 1)"> Name</label>
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="2" onclick="toggleColumn('facultyTable', 2)"> Email</label>
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="3" onclick="toggleColumn('facultyTable', 3)"> Dept</label>
-                                    </div>
-                                </div>
+
                                 <div class="border-l-2 border-orange-500 pl-2">
                                     <span class="text-[9px] font-black text-gray-500 block mb-1">CONTEST TABLE</span>
                                     <div class="grid grid-cols-1 gap-1">
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="0" onclick="toggleColumn('contestTable', 0)"> C-ID</label>
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="1" onclick="toggleColumn('contestTable', 1)"> Title</label>
                                         <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="2" onclick="toggleColumn('contestTable', 2)"> Date</label>
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="4" onclick="toggleColumn('contestTable', 4)"> Created By</label>
-                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="5" onclick="toggleColumn('contestTable', 5)"> Program</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="3" onclick="toggleColumn('contestTable', 3)"> Time</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="4" onclick="toggleColumn('contestTable', 4)"> Dur.</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="5" onclick="toggleColumn('contestTable', 5)"> Created By</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="6" onclick="toggleColumn('contestTable', 6)"> Participants</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="7" onclick="toggleColumn('contestTable', 7)"> Qs no</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="8" onclick="toggleColumn('contestTable', 8)"> Problem Type</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="9" onclick="toggleColumn('contestTable', 9)"> Winner</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="10" onclick="toggleColumn('contestTable', 10)"> Scope</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="11" onclick="toggleColumn('contestTable', 11)"> Prog.</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="12" onclick="toggleColumn('contestTable', 12)"> Dept</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="13" onclick="toggleColumn('contestTable', 13)"> Sec</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="contestTable" data-col="14" onclick="toggleColumn('contestTable', 14)"> Subject</label>
+                                    </div>
+                                </div>
+
+                                <div class="border-l-2 border-green-500 pl-2">
+                                    <span class="text-[9px] font-black text-gray-500 block mb-1">FACULTY TABLE</span>
+                                    <div class="grid grid-cols-1 gap-1">
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="0" onclick="toggleColumn('facultyTable', 0)"> ID</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="1" onclick="toggleColumn('facultyTable', 1)"> Name</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="2" onclick="toggleColumn('facultyTable', 2)"> Email</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="3" onclick="toggleColumn('facultyTable', 3)"> Designation</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="4" onclick="toggleColumn('facultyTable', 4)"> Dept</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="5" onclick="toggleColumn('facultyTable', 5)"> Contests</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="6" onclick="toggleColumn('facultyTable', 6)"> Problems</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="7" onclick="toggleColumn('facultyTable', 7)"> Rating</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="8" onclick="toggleColumn('facultyTable', 8)"> Status</label>
+                                        <label class="flex items-center gap-2 text-[11px] dark:text-gray-300"><input type="checkbox" checked class="col-cb" data-table="facultyTable" data-col="9" onclick="toggleColumn('facultyTable', 9)"> Role</label>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
-                            <button onclick="directDownloadPDF()" class="w-full bg-red-500 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><i class="fas fa-file-pdf"></i> PDF</button>
-                            <button onclick="downloadExcel()" class="w-full bg-green-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2"><i class="fas fa-file-excel"></i> Excel</button>
                         </div>
                     </div>
                 </div>
@@ -213,7 +257,7 @@
                             <div class="flex gap-4">
                                 <div class="w-16 h-16 bg-primary-600 text-white flex items-center justify-center rounded-lg text-2xl font-black">CC</div>
                                 <div>
-                                    <h1 id="displayCollegeName" class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Loading College Data...</h1>
+                                    <h1 id="displayCollegeName" class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">...</h1>
                                     <p class="text-sm font-bold text-primary-600 tracking-widest uppercase">Master Performance Report</p>
                                 </div>
                             </div>
@@ -226,11 +270,11 @@
                             </h3>
                             <table class="profile-table" id="deptTable">
                                 <tbody id="overviewTableBody">
-                                    <tr><td>Total Faculty</td><td id="ovFaculty">Loading...</td></tr>
-                                    <tr><td>Total Students</td><td id="ovStudents">Loading...</td></tr>
-                                    <tr><td>Total Contests</td><td id="ovContests">Loading...</td></tr>
-                                    <tr><td>Total Programs</td><td id="ovPrograms">Loading...</td></tr>
-                                    <tr><td>Report Date</td><td id="ovDate">Loading...</td></tr>
+                                    <tr><td>Total Faculty</td><td id="ovFaculty">...</td></tr>
+                                    <tr><td>Total Students</td><td id="ovStudents">...</td></tr>
+                                    <tr><td>Total Contests</td><td id="ovContests">...</td></tr>
+                                    <tr><td>Total Programs</td><td id="ovPrograms">...</td></tr>
+                                    <tr><td>Report Date</td><td id="ovDate">...</td></tr>
                                 </tbody>
                             </table>
                         </section>
@@ -241,10 +285,12 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th><th>Name</th><th>Email</th><th>Program</th><th>Year</th><th>Branch</th>
+                                        <th>Sec</th><th>Streak</th><th>Contests</th><th>Solved</th><th>Col Rank</th>
+                                        <th>Global Rank</th><th>Level</th><th>Accuracy</th><th>Last Active</th><th>Won</th>
                                     </tr>
                                 </thead>
                                 <tbody id="studentTableBody">
-                                    <tr><td colspan="6" class="text-center py-4">Loading students...</td></tr>
+                                    <tr><td colspan="16" class="text-center py-4">Fetching students...</td></tr>
                                 </tbody>
                             </table>
                         </section>
@@ -254,11 +300,12 @@
                             <table class="report-table" id="facultyTable">
                                 <thead>
                                     <tr>
-                                        <th>ID</th><th>Name</th><th>Email</th><th>Department</th>
+                                        <th>ID</th><th>Name</th><th>Email</th><th>Designation</th><th>Dept</th>
+                                        <th>Contests</th><th>Problems</th><th>Rating</th><th>Status</th><th>Role</th>
                                     </tr>
                                 </thead>
                                 <tbody id="facultyTableBody">
-                                    <tr><td colspan="4" class="text-center py-4">Loading faculty...</td></tr>
+                                    <tr><td colspan="10" class="text-center py-4">Fetching faculty...</td></tr>
                                 </tbody>
                             </table>
                         </section>
@@ -268,11 +315,13 @@
                             <table class="report-table" id="contestTable">
                                 <thead>
                                     <tr>
-                                        <th>C-ID</th><th>Title</th><th>Date</th><th>Created By</th><th>Program</th>
+                                        <th>C-ID</th><th>Title</th><th>Date</th><th>Time</th><th>Dur.</th>
+                                        <th>Created By</th><th>Participant</th><th>Qs no</th><th>problem type</th>
+                                        <th>Winner</th><th>Scope</th><th>Prog.</th><th>Dept</th><th>Sec</th><th>Subject</th>
                                     </tr>
                                 </thead>
                                 <tbody id="contestTableBody">
-                                    <tr><td colspan="5" class="text-center py-4">Loading contests...</td></tr>
+                                    <tr><td colspan="15" class="text-center py-4">Fetching contests...</td></tr>
                                 </tbody>
                             </table>
                         </section>
@@ -284,47 +333,37 @@
     </div>
 
     <script>
-        // Set Current Date
         const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
         const today = new Date().toLocaleDateString('en-US', dateOptions);
         document.getElementById('curDate').textContent = today;
         document.getElementById('ovDate').textContent = today;
 
-        // --- Theme & UI Toggles ---
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
-            const newTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         }
 
-        function toggleProfile() {
-            document.getElementById('profileOverlay').classList.toggle('hidden');
-        }
+        function toggleProfile() { document.getElementById('profileOverlay').classList.toggle('hidden'); }
+        function toggleNotifications() { document.getElementById('notificationDropdown').classList.toggle('hidden'); }
 
-        function toggleNotifications() {
-            document.getElementById('notificationDropdown').classList.toggle('hidden');
-        }
-
-        // --- Data Fetching & Rendering ---
         async function fetchReportData() {
             try {
-                // 1. Fetch Profile Data
+                // Profile Data
                 try {
                     const profileRes = await fetch('/college/api/profile');
                     if(profileRes.ok) {
                         const { user } = await profileRes.json();
                         document.getElementById('displayCollegeName').textContent = user.collegeName || "Admin Dashboard";
-                        document.getElementById('headerName').textContent = user.fullName || "Admin User";
-                        document.getElementById('modalName').textContent = user.fullName || "Admin User";
-                        document.getElementById('modalCollege').innerHTML = `<i class="fas fa-university"></i> ${user.collegeName || "N/A"}`;
-                        
+                        document.getElementById('headerName').textContent = user.fullName || "";
+                        document.getElementById('modalName').textContent = user.fullName || "";
+                        document.getElementById('modalCollege').innerHTML = `<i class="fas fa-university"></i> ${user.collegeName || ""}`;
                         const initials = (user.fullName || "AU").substring(0, 2).toUpperCase();
                         document.getElementById('headerInitials').textContent = initials;
                         document.getElementById('modalInitials').textContent = initials;
                     }
-                } catch (e) { console.warn("Could not fetch profile", e); }
+                } catch (e) { console.warn(e); }
 
-                // 2. Fetch Users Data (Students & Faculty)
+                // Users Data (Strictly Database Driven)
                 let students = [], faculty = [];
                 try {
                     const usersRes = await fetch('/college/api/users');
@@ -332,13 +371,14 @@
                         const userData = await usersRes.json();
                         const allUsers = userData.users || userData || [];
                         students = allUsers.filter(u => u.role === 'student');
-                        faculty = allUsers.filter(u => u.role === 'faculty');
-                    } else if (usersRes.status === 401 || usersRes.redirected) {
+                        // Treat admin, faculty, HOD as faculty for report context
+                        faculty = allUsers.filter(u => ['faculty', 'hod', 'admin'].includes(u.role)); 
+                    } else if (usersRes.status === 401) {
                         window.location.href = '/'; return;
                     }
-                } catch(e) { console.warn("Could not fetch users", e); }
+                } catch(e) { console.warn(e); }
 
-                // 3. Fetch Contests Data
+                // Contests Data
                 let contests = [];
                 try {
                     const contestsRes = await fetch('/college/api/contests');
@@ -346,9 +386,9 @@
                         const contestData = await contestsRes.json();
                         contests = contestData.data || contestData || [];
                     }
-                } catch(e) { console.warn("Could not fetch contests", e); }
+                } catch(e) { console.warn(e); }
 
-                // 4. Fetch Programs Data (Just for count)
+                // Programs Data
                 let programs = [];
                 try {
                     const progRes = await fetch('/college/api/programs');
@@ -356,60 +396,96 @@
                         const progData = await progRes.json();
                         programs = progData.data || progData || [];
                     }
-                } catch(e) { console.warn("Could not fetch programs", e); }
+                } catch(e) { console.warn(e); }
 
-                // --- Render Data to Tables ---
-                document.getElementById('ovFaculty').textContent = `${faculty.length} Members`;
-                document.getElementById('ovStudents').textContent = `${students.length} Active Students`;
-                document.getElementById('ovContests').textContent = `${contests.length} Total Contests`;
-                document.getElementById('ovPrograms').textContent = `${programs.length} Specialized Programs`;
+                document.getElementById('ovFaculty').textContent = `${faculty.length}`;
+                document.getElementById('ovStudents').textContent = `${students.length}`;
+                document.getElementById('ovContests').textContent = `${contests.length}`;
+                document.getElementById('ovPrograms').textContent = `${programs.length}`;
 
-                // Render Students
+                // --- 1. Map Students ---
                 const studentBody = document.getElementById('studentTableBody');
                 if (students.length === 0) {
-                    studentBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">No students found.</td></tr>`;
+                    studentBody.innerHTML = `<tr><td colspan="16" class="text-center py-4">No students found.</td></tr>`;
                 } else {
-                    studentBody.innerHTML = students.map((s, index) => `
-                        <tr class="data-row">
-                            <td>${s._id ? s._id.substring(s._id.length - 6).toUpperCase() : `ST-${index+1}`}</td>
-                            <td class="font-semibold">${s.fullName || 'N/A'}</td>
-                            <td>${s.email || 'N/A'}</td>
-                            <td>${s.program || 'N/A'}</td>
-                            <td>${s.year || 'N/A'}</td>
-                            <td>${s.department || 'N/A'}</td>
+                    studentBody.innerHTML = students.map((s) => `
+                        <tr class="data-row" data-dept="${s.department || s.branch || ''}" data-year="${s.year || ''}">
+                            <td>${s.id || s._id || ''}</td>
+                            <td class="font-semibold">${s.fullName || ''}</td>
+                            <td>${s.email || ''}</td>
+                            <td>${s.program || ''}</td>
+                            <td>${s.year || ''}</td>
+                            <td>${s.department || s.branch || ''}</td>
+                            <td>${s.section || s.sec || ''}</td>
+                            <td>${s.streak || ''}</td>
+                            <td>${s.contestsCount || s.contests || ''}</td>
+                            <td>${s.solvedCount || s.solved || ''}</td>
+                            <td>${s.rank || s.colRank || ''}</td>
+                            <td>${s.globalRank || ''}</td>
+                            <td>${s.level || ''}</td>
+                            <td>${s.accuracy || ''}</td>
+                            <td>${s.lastActive || ''}</td>
+                            <td>${s.won || ''}</td>
                         </tr>
                     `).join('');
                 }
 
-                // Render Faculty
+                // --- 2. Map Faculty ---
                 const facultyBody = document.getElementById('facultyTableBody');
                 if (faculty.length === 0) {
-                    facultyBody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No faculty found.</td></tr>`;
+                    facultyBody.innerHTML = `<tr><td colspan="10" class="text-center py-4">No faculty found.</td></tr>`;
                 } else {
-                    facultyBody.innerHTML = faculty.map((f, index) => `
-                        <tr class="data-row">
-                            <td>${f._id ? f._id.substring(f._id.length - 6).toUpperCase() : `FC-${index+1}`}</td>
-                            <td class="font-semibold">${f.fullName || 'N/A'}</td>
-                            <td>${f.email || 'N/A'}</td>
-                            <td>${f.department || 'N/A'}</td>
+                    facultyBody.innerHTML = faculty.map((f) => `
+                        <tr class="data-row" data-dept="${f.department || f.branch || ''}">
+                            <td>${f.id || f._id || ''}</td>
+                            <td class="font-semibold">${f.fullName || ''}</td>
+                            <td>${f.email || ''}</td>
+                            <td>${f.designation || ''}</td>
+                            <td>${f.department || f.branch || ''}</td>
+                            <td>${f.contestsCount || f.contests || ''}</td>
+                            <td>${f.problemsCount || f.problems || ''}</td>
+                            <td>${f.rating || ''}</td>
+                            <td>${f.status || ''}</td>
+                            <td class="uppercase text-[10px] font-bold text-primary-600">${f.role || ''}</td>
                         </tr>
                     `).join('');
                 }
 
-                // Render Contests
+                // --- 3. Map Contests ---
                 const contestBody = document.getElementById('contestTableBody');
                 if (contests.length === 0) {
-                    contestBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">No contests found.</td></tr>`;
+                    contestBody.innerHTML = `<tr><td colspan="15" class="text-center py-4">No contests found.</td></tr>`;
                 } else {
-                    contestBody.innerHTML = contests.map((c, index) => `
-                        <tr class="data-row">
-                            <td>${c._id ? c._id.substring(c._id.length - 6).toUpperCase() : `C-${index+1}`}</td>
-                            <td class="font-semibold">${c.title || 'N/A'}</td>
-                            <td>${c.deadline ? new Date(c.deadline).toLocaleDateString() : 'N/A'}</td>
-                            <td>${c.createdBy ? c.createdBy.fullName || c.createdBy : 'Admin'}</td>
-                            <td>${c.program || 'All'}</td>
+                    contestBody.innerHTML = contests.map((c) => {
+                        // Dynamically Format Created By explicitly showing the user and their ROLE (Admin/Faculty/HOD)
+                        let creatorOutput = "";
+                        if (c.createdBy && typeof c.createdBy === 'object') {
+                            const name = c.createdBy.fullName || c.createdBy.name || 'Unknown';
+                            const role = c.createdBy.role ? c.createdBy.role.toUpperCase() : 'USER';
+                            creatorOutput = `${name} (${role})`;
+                        } else {
+                            creatorOutput = c.createdBy || c.creatorName || '';
+                        }
+
+                        return `
+                        <tr class="data-row" data-dept="${c.dept || c.department || ''}">
+                            <td>${c.id || c._id || ''}</td>
+                            <td class="font-semibold">${c.title || ''}</td>
+                            <td>${c.deadline || c.date ? new Date(c.deadline || c.date).toLocaleDateString() : ''}</td>
+                            <td>${c.time || ''}</td>
+                            <td>${c.duration || ''}</td>
+                            <td class="font-medium text-gray-700 dark:text-gray-200">${creatorOutput}</td>
+                            <td>${c.participants || c.participant || ''}</td>
+                            <td>${c.qsNo || c.questionsCount || ''}</td>
+                            <td>${c.problemType || ''}</td>
+                            <td>${c.winner || ''}</td>
+                            <td>${c.scope || ''}</td>
+                            <td>${c.program || ''}</td>
+                            <td>${c.dept || c.department || ''}</td>
+                            <td>${c.sec || c.section || ''}</td>
+                            <td>${c.subject || ''}</td>
                         </tr>
-                    `).join('');
+                    `}).join('');
                 }
 
             } catch (error) {
@@ -417,103 +493,78 @@
             }
         }
 
-        // Initialize on load
         window.addEventListener('DOMContentLoaded', fetchReportData);
 
-        // --- Bulletproof Logout Logic ---
         function logoutAdmin() {
             localStorage.removeItem("adminLogin"); 
-            fetch('/auth/logout', { method: 'POST' })
-                .finally(() => { 
-                    window.location.href = "/"; 
-                });
+            fetch('/auth/logout', { method: 'POST' }).finally(() => { window.location.href = "/"; });
         }
         document.getElementById("logoutBtn").addEventListener("click", logoutAdmin);
 
-        // --- Filtering Logic ---
-        function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            if (section) section.classList.toggle('section-hidden');
-        }
+        // Filters and Table Logic
+        function toggleSection(sectionId) { document.getElementById(sectionId)?.classList.toggle('section-hidden'); }
 
         function toggleColumn(tableId, colIndex) {
-            const table = document.getElementById(tableId);
-            if (!table) return;
-            const rows = table.querySelectorAll('tr');
-            rows.forEach(row => {
-                const cells = row.children;
-                if (cells.length > colIndex) {
-                    cells[colIndex].classList.toggle('col-hidden');
-                }
-            });
+            const rows = document.getElementById(tableId)?.querySelectorAll('tr');
+            if(rows) rows.forEach(row => { if(row.children.length > colIndex) row.children[colIndex].classList.toggle('col-hidden'); });
         }
 
         function applyGlobalFilters() {
-            const searchText = document.getElementById('searchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('.data-row');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const dept = document.getElementById('deptFilter').value.toLowerCase();
+            const year = document.getElementById('yearFilter').value.toLowerCase();
             
-            rows.forEach(row => {
-                const textContent = row.textContent.toLowerCase();
-                if (textContent.includes(searchText)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+            document.querySelectorAll('.data-row').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const rDept = (row.getAttribute('data-dept') || '').toLowerCase();
+                const rYear = (row.getAttribute('data-year') || '').toLowerCase();
+                
+                let match = text.includes(search);
+                if (dept !== 'all' && !rDept.includes(dept)) match = false;
+                if (year !== 'all') {
+                    const searchYr = year.replace('yr', '').trim();
+                    if (!rYear.includes(searchYr)) match = false;
                 }
+                row.style.display = match ? '' : 'none';
             });
         }
 
         function resetAllFilters() {
             document.getElementById('searchInput').value = '';
-            
-            // Show all sections
+            document.getElementById('deptFilter').value = 'all';
+            document.getElementById('yearFilter').value = 'all';
             document.querySelectorAll('section').forEach(s => s.classList.remove('section-hidden'));
             document.querySelectorAll('input[type="checkbox"][id^="check-sec"]').forEach(cb => cb.checked = true);
-            
-            // Show all columns
             document.querySelectorAll('.col-hidden').forEach(col => col.classList.remove('col-hidden'));
             document.querySelectorAll('.col-cb').forEach(cb => cb.checked = true);
-            
-            // Reset global search
             applyGlobalFilters();
         }
 
-        // --- Export Logic ---
+        // Export Tools
         function directDownloadPDF() {
             const element = document.getElementById('report-content');
-            const opt = {
-                margin: 0,
-                filename: 'CampusCode_Master_Report.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-            };
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set({
+                margin: 0, filename: 'CampusCode_Master_Report.pdf', image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            }).from(element).save();
         }
 
         function downloadExcel() {
             try {
                 const wb = XLSX.utils.book_new();
-                
-                const addTableToSheet = (tableId, sheetName) => {
-                    const table = document.getElementById(tableId);
-                    if (table && !document.getElementById('sec-' + sheetName.toLowerCase().replace(' ', '')).classList.contains('section-hidden')) {
-                        // Create a clone to remove hidden columns before export
-                        const clone = table.cloneNode(true);
+                const addTable = (tableId, sheetName) => {
+                    const tbl = document.getElementById(tableId);
+                    if (tbl && !document.getElementById('sec-' + sheetName.toLowerCase().replace(' ', '')).classList.contains('section-hidden')) {
+                        const clone = tbl.cloneNode(true);
                         clone.querySelectorAll('.col-hidden').forEach(el => el.remove());
-                        const ws = XLSX.utils.table_to_sheet(clone);
-                        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                        XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(clone), sheetName);
                     }
                 };
-
-                addTableToSheet('studentTable', 'Students');
-                addTableToSheet('facultyTable', 'Faculty');
-                addTableToSheet('contestTable', 'Contests');
-
+                addTable('studentTable', 'Students');
+                addTable('facultyTable', 'Faculty');
+                addTable('contestTable', 'Contests');
                 XLSX.writeFile(wb, 'CampusCode_Report.xlsx');
-            } catch (err) {
-                console.error('Excel Export failed:', err);
-                alert("Failed to export Excel. Please ensure SheetJS is loaded.");
-            }
+            } catch (err) { alert("Failed to export Excel. Please ensure SheetJS is loaded."); }
         }
     </script>
 </body>

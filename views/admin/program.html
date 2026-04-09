@@ -32,6 +32,7 @@
             },
         };
     </script>
+    
 
     <style>
         ::-webkit-scrollbar {
@@ -209,6 +210,7 @@
                         class="fa-solid fa-layer-group"></i><span>Programs</span></a>
                 <a href="/college/contest" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
                 <a href="/college/manage_user" class="nav-item"><i class="fa-solid fa-users"></i><span>User</span></a>
+                 <a href="/college/community" class="nav-item"><i class="fas fa-comments"></i><span>Community</span></a>
                 <a href="/college/report" class="nav-item"><i class="fas fa-file-invoice"></i><span>Reports</span></a>
                 <a href="/college/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
             </nav>
@@ -263,18 +265,15 @@
                             </div>
                         </div>
 
-                        <button onclick="toggleProfile()"
-                            class="ml-2 flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <div class="h-9 w-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm"
-                                id="headerInitials"></div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block"
-                                id="headerName"></span>
-                        </button>
+                        <button onclick="toggleProfile()" class="ml-2 flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <div class="h-9 w-9 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold text-sm" id="headerInitials"></div>
+                      <span class="text-sm font-medium text-gray-700 dark:text-gray-200 hidden sm:block" id="headerName"></span>
+                </button>
                     </div>
                 </div>
             </header>
 
-        <main class="flex-1 overflow-y-auto p-8 no-scrollbar" onclick="if(document.getElementById('profileOverlay') && !document.getElementById('profileOverlay').classList.contains('hidden')) toggleProfile()">
+        
 
     <div class="mb-8">
         <div class="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 w-fit">
@@ -576,58 +575,38 @@
         </div>
     </div>
 
-    <div id="profileOverlay"
-        class="fixed inset-0 z-[400] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <div
-            class="bg-white dark:bg-gray-800 w-[320px] rounded-3xl overflow-hidden shadow-2xl transform transition-all">
-            <div class="bg-[#1e4a7a] p-6 text-center relative h-32">
-                <button onclick="toggleProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-                <div class="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                    <div class="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 bg-[#1e4a7a] flex items-center justify-center text-white text-2xl font-bold"
-                        id="modalInitials"></div>
-                </div>
+<div id="profileOverlay" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-800 w-[320px] rounded-3xl overflow-hidden shadow-2xl transform transition-all">
+        <div class="bg-[#1e4a7a] p-6 text-center relative h-32">
+            <button onclick="toggleProfile()" class="absolute top-4 right-4 text-white/80 hover:text-white">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            <div class="absolute -bottom-10 left-1/2 -translate-x-1/2">
+                <div id="modalInitials" class="h-20 w-20 rounded-full border-4 border-white dark:border-gray-800 bg-[#1e4a7a] flex items-center justify-center text-white text-2xl font-bold">--</div>
             </div>
-            <div class="pt-12 pb-6 px-6 text-center">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white" id="modalName"></h3>
-                <p class="text-xs text-gray-500 flex items-center justify-center gap-1" id="modalCollege"></p>
-                <p class="text-xs text-gray-500 mb-3 flex items-center justify-center gap-1" id="modalRoleDisplay"></p>
+        </div>
+        <div class="pt-12 pb-6 px-6 text-center">
+            <h3 id="modalName" class="text-xl font-bold text-gray-800 dark:text-white">--</h3>
+            <p id="modalCollege" class="text-xs text-gray-500 flex items-center justify-center gap-1"><i class="fas fa-university"></i> --</p>
+            <p id="modalRole" class="text-xs text-gray-500 mb-6 uppercase flex items-center justify-center gap-1">Admin</p>
 
-                <div class="space-y-1 mt-4">
-                    <a href="/college/profile">
-                        <button
-                            class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                            <div class="flex items-center gap-3"><i
-                                    class="fas fa-user-circle text-primary-400"></i><span
-                                    class="text-sm font-medium text-gray-700 dark:text-gray-200">My Profile</span></div>
-                            <i
-                                class="fas fa-chevron-right text-[10px] text-gray-400 group-hover:translate-x-1 transition-transform"></i>
-                        </button>
-                    </a>
-                    <a href="/college/help_support">
-                        <button
-                            class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                            <div class="flex items-center gap-3"><i
-                                    class="fas fa-question-circle text-primary-400"></i><span
-                                    class="text-sm font-medium text-gray-700 dark:text-gray-200">Help & Support</span>
-                            </div>
-                            <i
-                                class="fas fa-chevron-right text-[10px] text-gray-400 group-hover:translate-x-1 transition-transform"></i>
-                        </button>
-                    </a>
-                    <button id="logoutBtn" onclick="logoutAdmin()"
-                        class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 group mt-2 transition-all">
-                        <div
-                            class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <span class="text-sm font-medium text-red-600 dark:text-red-400">Log out</span>
+            <div class="space-y-1">
+                <a href="/college/profile" class="block">
+                    <button class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                        <div class="flex items-center gap-3"><i class="fas fa-user-circle text-primary-400"></i><span class="text-sm font-medium text-gray-700 dark:text-gray-200"> Profile</span></div>
+                        <i class="fas fa-chevron-right text-[10px] text-gray-400 group-hover:translate-x-1 transition-transform"></i>
                     </button>
-                </div>
+                </a>
+                <button onclick="logoutAdmin()" class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 group mt-2 transition-all">
+                    <div class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                    <span class="text-sm font-medium text-red-600 dark:text-red-400">Log out</span>
+                </button>
             </div>
         </div>
     </div>
+</div>
 
 
     <div id="editModalOverlay"
@@ -710,11 +689,22 @@
                 const name = u.fullName || 'Admin User';
                 const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
 
-                document.querySelectorAll('.profile-name-display').forEach(el => el.textContent = name);
-                document.querySelectorAll('.profile-initials-display').forEach(el => el.textContent = initials);
+                // Update Header
+                const headerName = document.getElementById('headerName');
+                const headerInitials = document.getElementById('headerInitials');
+                if (headerName) headerName.textContent = name;
+                if (headerInitials) headerInitials.textContent = initials;
 
-                document.getElementById('overlayCollege').innerHTML = `<i class="fas fa-university"></i> ${u.collegeName || 'Not Assigned'}`;
-                document.getElementById('overlayId').innerHTML = `ID: ${u.id || 'N/A'}`;
+                // Update Modal Overlay
+                const modalName = document.getElementById('modalName');
+                const modalCollege = document.getElementById('modalCollege');
+                const modalRole = document.getElementById('modalRole');
+                const modalInitials = document.getElementById('modalInitials');
+
+                if (modalName) modalName.textContent = name;
+                if (modalCollege) modalCollege.innerHTML = `<i class="fas fa-university"></i> ${u.collegeName || 'Not Assigned'}`;
+                if (modalRole) modalRole.textContent = u.role || 'Admin';
+                if (modalInitials) modalInitials.textContent = initials;
             }
         } catch (err) { console.error('Error fetching profile:', err); }
     }
@@ -1192,21 +1182,18 @@ function renderAllTables() {
                 let sYear = (s.year && String(s.year) !== 'undefined' && String(s.year) !== 'null') ? s.year : '-';
                 let sSem = (s.semester || s.sem);
                 sSem = (sSem && String(sSem) !== 'undefined' && String(sSem) !== 'null') ? sSem : '-';
-                let sCapacity = (s.capacity !== undefined && s.capacity !== null && String(s.capacity) !== '') ? s.capacity : '-';
 
                 return `
                 <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td class="px-6 py-4 text-xs font-medium text-gray-600 dark:text-gray-300">${pName} > ${bName}</td>
-                    <td class="px-6 py-4">Year ${sYear}, Sem ${sSem}</td>
-                    <td class="px-6 py-4">${s.name}</td>
-                    <td class="px-6 py-4">${sCapacity}</td>
+                    <td class="px-6 py-4">Year ${sYear}, Sem ${sSem}</td> <td class="px-6 py-4">${s.name}</td>
                     <td class="px-6 py-4 text-right">
                         <button onclick="openEditModal('section', ${s.id})" class="text-blue-500 hover:text-blue-700 mr-3"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteItem('section', ${s.id})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
                 `;
-            }).join('') : `<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No sections found</td></tr>`;
+            }).join('') : `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No sections found</td></tr>`;
     }
 
     // 4. Subjects (This block handles the screenshot you shared)
@@ -1257,7 +1244,7 @@ function renderAllTables() {
     }
 }
 
-    // --- AUTH ---
+   // --- AUTH ---
     function logoutAdmin() {
         localStorage.removeItem("adminLogin");
         fetch('/auth/logout', { method: 'POST' })

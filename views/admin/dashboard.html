@@ -79,15 +79,17 @@
                     <i class="fas fa-chevron-left transition-transform duration-300"></i>
                 </button>
             </div>
-            <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-2">
-                <a href="/college/dashboard" class="nav-item active"><i class="fas fa-home"></i><span>Home</span></a>
-                <a href="/college/program" class="nav-item"><i class="fa-solid fa-layer-group"></i><span>Programs</span></a>
-                <a href="/college/contest" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
-                <a href="/college/manage_user" class="nav-item"><i class="fa-solid fa-users"></i><span>User</span></a>
-                <a href="/college/report" class="nav-item"><i class="fas fa-file-invoice"></i><span>Reports</span></a>
-                <a href="/college/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
-            </nav>
-
+          <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-2">
+    <a href="/college/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
+    <a href="/college/program" class="nav-item"><i class="fa-solid fa-layer-group"></i><span>Programs</span></a>
+    <a href="/college/contest" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
+    <a href="/college/manage_user" class="nav-item"><i class="fa-solid fa-users"></i><span>User</span></a>
+    
+    <a href="/college/community" class="nav-item active"><i class="fas fa-comments"></i><span>Community</span></a>
+    
+    <a href="/college/report" class="nav-item"><i class="fas fa-file-invoice"></i><span>Reports</span></a>
+    <a href="/college/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+</nav>
             <div class="p-4 space-y-1 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0 bottom-menu">
                 <a href="/college/help_support" class="nav-item"><i class="far fa-question-circle"></i><span>Help & Support</span></a>
                 <a href="/college/setting" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
@@ -467,15 +469,15 @@
                 document.getElementById('statPending').textContent = pendingCount;
 
                 // Render Charts
-                fetchChartData(studentCount, facultyCount);
+              fetchChartData(studentCount, facultyCount);
                 
-                // Fetch dynamic Feed & Alerts
-                fetchActivityFeed();
-                fetchSystemAlerts();
+               // Fetch dynamic Feed & Alerts using the new unified function
+                fetchDashboardWidgets();
 
             } catch (error) {
                 console.error("Dashboard Data Initialization Failed:", error);
             }
+
         }
 
         // --- Render Recent Users Table ---
@@ -663,82 +665,60 @@
             }
         }
 
-        // --- Fetch Dynamic Activity Feed ---
-        async function fetchActivityFeed() {
-            const container = document.getElementById('activityFeed');
-            try {
-                const res = await fetch('/college/api/activity');
-                if (res.ok) {
-                    const activities = await res.json();
-                    
-                    if (!activities || activities.length === 0) {
-                        container.innerHTML = '<p class="text-sm text-gray-500">No recent activity found.</p>';
-                        return;
-                    }
-
-                    let htmlContent = `<div class="absolute top-2 bottom-2 left-[19px] w-[2px] bg-gray-100 dark:bg-gray-700"></div>`;
-                    activities.forEach(item => {
-                        // ✅ FIX: Nicely format the date if available, otherwise display "Recently"
-                        const displayDate = (item.time && item.time !== 'Recently') ? new Date(item.time).toLocaleDateString() : 'Recently';
-                        
-                        htmlContent += `
-                        <div class="relative flex items-start gap-4 group">
-                            <div class="z-10 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-500 ring-4 ring-white dark:ring-gray-800">
-                                <i class="${item.icon || 'fa-solid fa-users'} text-xs"></i>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">${item.message || item.description}</p>
-                                <p class="text-xs text-gray-400 mt-1">${displayDate}</p>
-                            </div>
-                        </div>`;
-                    });
-                    container.innerHTML = htmlContent;
-                } else {
-                    container.innerHTML = '<p class="text-sm text-gray-500">No recent activity.</p>';
-                }
-            } catch (error) {
-                container.innerHTML = '<p class="text-sm text-gray-500">Failed to load activity feed.</p>';
-            }
-        }
-
-        // --- Fetch Dynamic Alerts ---
-        async function fetchSystemAlerts() {
-            const container = document.getElementById('systemAlerts');
-            const notifBadge = document.getElementById('notifBadge'); // Grab the notification badge
+// --- Fetch Dynamic Activity Feed & Alerts from Unified Backend Route ---
+async function fetchDashboardWidgets() {
+    try {
+        const res = await fetch('/college/api/dashboard-data');
+        if (res.ok) {
+            const data = await res.json();
             
-            try {
-                const res = await fetch('/college/api/alerts');
-                if (res.ok) {
-                    const alerts = await res.json();
-                    
-                    if (!alerts || alerts.length === 0) {
-                        container.innerHTML = '<p class="text-sm text-gray-500">No new alerts at the moment.</p>';
-                        // ✅ FIX: Hide badge if 0 alerts
-                        if (notifBadge) notifBadge.classList.add('hidden');
-                        return;
-                    }
+            // 1. Render Activity Feed
+            const feedContainer = document.getElementById('activityFeed');
+            if (data.activityFeed && data.activityFeed.length > 0) {
+                let feedHtml = `<div class="absolute top-2 bottom-2 left-[19px] w-[2px] bg-gray-100 dark:bg-gray-700"></div>`;
+                data.activityFeed.forEach(item => {
+                    const displayDate = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recently';
+                    // Note: Your DB returns "action", not "message" for feeds
+                    feedHtml += `
+                    <div class="relative flex items-start gap-4 group">
+                        <div class="z-10 flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-500 ring-4 ring-white dark:ring-gray-800">
+                            <i class="fa-solid fa-users text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">${item.action}</p>
+                            <p class="text-xs text-gray-400 mt-1">${displayDate}</p>
+                        </div>
+                    </div>`;
+                });
+                feedContainer.innerHTML = feedHtml;
+            } else {
+                feedContainer.innerHTML = '<p class="text-sm text-gray-500">No recent activity.</p>';
+            }
 
-                    // ✅ FIX: Show badge since there are alerts
-                    if (notifBadge) notifBadge.classList.remove('hidden');
-
-                    let htmlContent = '';
-                    alerts.forEach(alert => {
-                        htmlContent += `
-                        <div class="p-3 rounded-lg ${alert.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-100 dark:border-yellow-800' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800'} border flex items-start gap-3">
-                            <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
-                            <p class="text-sm">${alert.message || alert.title}</p>
-                        </div>`;
-                    });
-                    container.innerHTML = htmlContent;
-                } else {
-                    container.innerHTML = '<p class="text-sm text-gray-500">No new alerts at the moment.</p>';
-                    if (notifBadge) notifBadge.classList.add('hidden'); // Ensure badge is hidden on error
-                }
-            } catch (error) {
-                container.innerHTML = '<p class="text-sm text-gray-500">Unable to load alerts.</p>';
-                if (notifBadge) notifBadge.classList.add('hidden'); // Ensure badge is hidden on error
+            // 2. Render System Alerts
+            const alertContainer = document.getElementById('systemAlerts');
+            const notifBadge = document.getElementById('notifBadge');
+            
+            if (data.systemAlerts && data.systemAlerts.length > 0) {
+                if (notifBadge) notifBadge.classList.remove('hidden');
+                let alertHtml = '';
+                data.systemAlerts.forEach(alert => {
+                    alertHtml += `
+                    <div class="p-3 rounded-lg ${alert.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-100 dark:border-yellow-800' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800'} border flex items-start gap-3">
+                        <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                        <p class="text-sm">${alert.message}</p>
+                    </div>`;
+                });
+                alertContainer.innerHTML = alertHtml;
+            } else {
+                alertContainer.innerHTML = '<p class="text-sm text-gray-500">No new alerts at the moment.</p>';
+                if (notifBadge) notifBadge.classList.add('hidden');
             }
         }
+    } catch (error) {
+        console.error("Failed to load widget data:", error);
+    }
+}
 
         window.addEventListener('DOMContentLoaded', fetchDashboardData);
 

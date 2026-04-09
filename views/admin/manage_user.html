@@ -105,18 +105,31 @@
                 fetch('/college/sections').then(r => r.json())
             ]);
 
-            if (progRes.success) programList = [...new Set(progRes.data.map(p => p.name.toUpperCase()))];
-            if (branchRes.success) branchList = [...new Set(branchRes.data.map(b => (b.abbreviation || b.name).toUpperCase()))];
+            let maxYear = 1;
+
+            if (progRes.success && progRes.data.length > 0) {
+                programList = [...new Set(progRes.data.map(p => p.name.toUpperCase()))];
+                // ⭐ Base max year on the highest program duration
+                const programMaxYear = Math.max(...progRes.data.map(p => parseInt(p.duration) || 1));
+                if (programMaxYear > maxYear) maxYear = programMaxYear;
+            }
+
+            if (branchRes.success && branchRes.data.length > 0) {
+                branchList = [...new Set(branchRes.data.map(b => (b.abbreviation || b.name).toUpperCase()))];
+            }
             
-            // ⭐ DYNAMIC YEAR LOGIC: Automatically calculates years from max semester in DB
             if (secRes.success && secRes.data.length > 0) {
                 sectionList = [...new Set(secRes.data.map(s => s.name.toUpperCase()))];
+                // Fallback check just in case sections go beyond program duration
                 const maxSemester = Math.max(...secRes.data.map(s => parseInt(s.semester) || 1));
-                const maxYear = Math.ceil(maxSemester / 2); 
-                const yearLabels = ["1ST", "2ND", "3RD", "4TH", "5TH"];
-                for(let i = 0; i < maxYear; i++) {
-                    yearList.push(yearLabels[i] || `${i+1}TH`);
-                }
+                const secMaxYear = Math.ceil(maxSemester / 2); 
+                if (secMaxYear > maxYear) maxYear = secMaxYear;
+            }
+
+            // Generate the year labels based on the true maximum year (e.g., 4 for B.Tech)
+            const yearLabels = ["1st", "2nd", "3rd", "4th", "5th"];
+            for(let i = 0; i < maxYear; i++) {
+                yearList.push(yearLabels[i] || `${i+1}th`);
             }
 
             if (programList.length === 0 || branchList.length === 0) {
@@ -473,7 +486,7 @@ async function fetchData() {
                 role: u.role,
                 type: (u.role && u.role.toLowerCase() === 'student') ? 'student' : 'faculty',
                 branch: u.branch || '', 
-                is_hod: (String((u.role || '')).toLowerCase() === 'hod') ? 1 : (Number(u.is_hod) || 0),
+                is_hod: u.is_hod || 0,
                 status: u.status || 'Active',
                 last_active: u.last_active || 'N/A',
                 program: u.program || '',
@@ -564,7 +577,9 @@ function updateRowBranch(id, programName) {
     branchSelect.innerHTML = '<option value="" disabled selected>Branch</option>';
     if (program) {
         dbBranches.filter(b => b.program_id === program.id).forEach(b => {
-            branchSelect.innerHTML += `<option value="${b.name}">${b.name}</option>`;
+             // Display abbreviation if available, otherwise fallback to name
+            const displayText = b.abbreviation ? `${b.abbreviation} (${b.name})` : b.name;
+            branchSelect.innerHTML += `<option value="${b.name}">${displayText}</option>`;
         });
     }
 }
@@ -669,14 +684,10 @@ function render() {
                 </td>
             `;
         } else if (activeTab === 'faculty') {
-            const roleLower = String(u.role || '').toLowerCase();
-            const isHod = Number(u.is_hod) === 1 || roleLower === 'hod';
-            const isHos = roleLower === 'hos';
+            const isHod = u.is_hod === 1;
             const roleBadge = isHod 
                 ? `<span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-2 py-1 rounded-md">HOD</span>`
-                : isHos
-                    ? `<span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-md">HOS</span>`
-                    : `<span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-[10px] font-bold px-2 py-1 rounded-md">Faculty</span>`;
+                : `<span class="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 text-[10px] font-bold px-2 py-1 rounded-md">Faculty</span>`;
 
             tr.innerHTML = `
                 <td class="p-4">
@@ -701,7 +712,7 @@ function render() {
                 <td class="p-4 text-center"><span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-md">${u.status}</span></td>
                 <td class="p-4 text-center text-[10px] text-gray-500">${u.last_active}</td>
                 <td class="p-4 text-center">
-                    <button onclick="toggleHOD(${u.id}, ${isHod ? 1 : 0})" class="text-purple-500 hover:text-purple-700 mr-2 transition-colors" title="${isHod ? 'Remove HOD' : 'Make HOD'}"><i class="fas fa-user-tie"></i></button>
+                    <button onclick="toggleHOD(${u.id}, ${u.is_hod})" class="text-purple-500 hover:text-purple-700 mr-2 transition-colors" title="${u.is_hod ? 'Remove HOD' : 'Make HOD'}"><i class="fas fa-user-tie"></i></button>
                     <button onclick="openEditModal(${u.id})" class="text-blue-500 hover:text-blue-700 mr-2 transition-colors"><i class="fas fa-pen"></i></button>
                     <button onclick="deleteUser(${u.id}, 'faculty')" class="text-red-500 hover:text-red-700 transition-colors"><i class="fas fa-trash"></i></button>
                 </td>
@@ -747,7 +758,9 @@ function filterBranches(programName, selectedBranch = '') {
     
     if (program) {
         dbBranches.filter(b => b.program_id === program.id).forEach(b => {
-            branchSelect.innerHTML += `<option value="${b.name}" ${selectedBranch === b.name ? 'selected' : ''}>${b.name}</option>`;
+            // Display abbreviation if available, otherwise fallback to name
+            const displayText = b.abbreviation ? `${b.abbreviation} (${b.name})` : b.name;
+            branchSelect.innerHTML += `<option value="${b.name}" ${selectedBranch === b.name ? 'selected' : ''}>${displayText}</option>`;
         });
     }
 }
@@ -777,24 +790,31 @@ function openAddModal() {
     editingId = null;
     document.getElementById('modalTitle').innerText = 'Onboard Member';
     document.getElementById('modalSaveBtn').innerText = 'Save User';
-    setModalUserType(activeTab === 'requests' ? 'student' : activeTab);
+    
+    // Clear out any previous data from the fields
+    setModalUserType(activeTab === 'requests' ? 'student' : activeTab, {}); 
+    
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('addModal').classList.add('flex');
 }
-
 function closeAddModal() {
     document.getElementById('addModal').classList.add('hidden');
     document.getElementById('addModal').classList.remove('flex');
 }
 
-function openEditModal(id) {
-    const user = users.find(u => u.id === id);
-    if (!user) return;
-    
-    editingId = id;
+function openEditModal(userId) {
+    // Find the user data from the loaded users array
+    const user = users.find(u => u.id === userId);
+    if (!user) {
+        console.error("User not found for editing");
+        return;
+    }
+
+    editingId = userId;
     document.getElementById('modalTitle').innerText = 'Edit Member';
     document.getElementById('modalSaveBtn').innerText = 'Update User';
     
+    // Pass the user data into the render function to pre-fill
     setModalUserType(user.type, user);
     
     document.getElementById('addModal').classList.remove('hidden');
@@ -972,14 +992,14 @@ async function deleteUser(id, type) {
 }
 
 async function toggleHOD(id, currentStatus) {
-    const newStatus = Number(currentStatus) === 1 ? 0 : 1;
+    const newStatus = currentStatus === 1 ? 0 : 1;
     const action = newStatus === 1 ? 'make HOD' : 'remove HOD status';
     
     const user = users.find(u => u.id === id);
 
     if (newStatus === 1 && user) {
         const existingHOD = users.find(u => 
-            (Number(u.is_hod) === 1 || String(u.role || '').toLowerCase() === 'hod') && 
+            u.is_hod === 1 && 
             u.id !== id && 
             u.branch === user.branch && 
             u.program === user.program

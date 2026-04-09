@@ -11,7 +11,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     } else {
         console.log('✅ Connected to SQLite database.');
         
-        db.serialize(() => {
+       db.serialize(() => {
             // 1. USERS TABLE
             // ==========================================
             db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -37,7 +37,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 createdAt DATETIME DEFAULT CURRENT_TIMESTAMP  /* ✅ Added for Activity Feed and Monthly Trends */
             )`, (err) => {
                 if (err) console.error("Error creating users table:", err.message);
-            
+            });
+
+            // 2. ACTIVITY FEED TABLE (NEW)
+            // ==========================================
+            // ✅ Added to power the dashboard notifications
+            db.run(`CREATE TABLE IF NOT EXISTS activity_feed (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                collegeName TEXT,
+                action TEXT NOT NULL,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`, (err) => {
+                if (err) console.error("Error creating activity_feed table:", err.message);
+            });
+
+            // Keep the rest of your table creations (contests, colleges, etc.) below this...     
                 
                 // Idempotent migrations for existing columns
                 const userCols = [
@@ -621,6 +635,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
                     { name: 'problems', type: 'TEXT DEFAULT \'[]\'' },
                     { name: 'contest_class', type: 'TEXT DEFAULT \'E\'' },
                     { name: 'prize', type: 'TEXT DEFAULT \'\'' },
+                    { name: 'reward', type: 'TEXT DEFAULT \'\'' },
+                    { name: 'allowed_roles', type: 'TEXT DEFAULT \'\'' },
                     { name: 'hos_verified', type: 'INTEGER DEFAULT 0' },
                     { name: 'hod_verified', type: 'INTEGER DEFAULT 0' },
                     { name: 'collegeName', type: 'TEXT DEFAULT \'\'' },
@@ -879,6 +895,70 @@ const db = new sqlite3.Database(dbPath, (err) => {
             )`, (err) => {
                 if (err) console.error("Error creating support_tickets table:", err.message);
             });
+
+
+            // ==========================================
+            // 12. DASHBOARD & NEW CONTEST FEATURES
+            // ==========================================
+            
+            // Safely add the new 'target_programs' column to your EXISTING contests table
+            db.run(`ALTER TABLE contests ADD COLUMN target_programs TEXT`, () => {
+                // Ignore error if column already exists
+            });
+
+            // Safely add the new 'reward' column to your EXISTING contests table
+            db.run(`ALTER TABLE contests ADD COLUMN reward TEXT DEFAULT ''`, () => {
+                // Ignore error if column already exists
+            });
+
+            // Safely add the new 'allowed_roles' column to your EXISTING contests table
+            db.run(`ALTER TABLE contests ADD COLUMN allowed_roles TEXT DEFAULT ''`, () => {
+                // Ignore error if column already exists
+            });
+
+            // Safely add the new 'status' column to your EXISTING contest_participants table
+            db.run(`ALTER TABLE contest_participants ADD COLUMN status TEXT DEFAULT 'registered'`, () => {
+                // Ignore error if column already exists
+            });
+            // Create the new tables that didn't exist yet
+            db.run(`CREATE TABLE IF NOT EXISTS contest_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contest_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                score INTEGER DEFAULT 0,
+                submission_data TEXT, /* Details of the submission or repo link */
+                submittedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(contest_id) REFERENCES contests(id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )`, (err) => {
+                if (err) console.error("Error creating contest_submissions table:", err.message);
+            });
+
+            db.run(`CREATE TABLE IF NOT EXISTS system_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT DEFAULT 'warning', /* 'info', 'warning', 'error' */
+                message TEXT NOT NULL,
+                target_role TEXT DEFAULT 'all', /* 'all', 'student', 'faculty', 'hod' */
+                target_college TEXT DEFAULT 'all', /* Specific college or 'all' for global alerts */
+                is_active INTEGER DEFAULT 1,
+                createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`, (err) => {
+                if (err) console.error("Error creating system_alerts table:", err.message);
+            });
+
+            db.run(`CREATE TABLE IF NOT EXISTS dashboard_widgets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                collegeName TEXT NOT NULL,
+                total_students INTEGER DEFAULT 0,
+                total_faculty INTEGER DEFAULT 0,
+                active_contests INTEGER DEFAULT 0,
+                total_submissions INTEGER DEFAULT 0,
+                lastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`, (err) => {
+                if (err) console.error("Error creating dashboard_widgets table:", err.message);
+            });
+
+
 
             // ==========================================
             // 9. DEFAULT SUPERADMIN ACCOUNT
