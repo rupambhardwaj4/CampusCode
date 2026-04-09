@@ -1,695 +1,811 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CampusCode — Code Your Way To The Top 1%</title>
+<title>CampusCode - Code Your Way To The Top 1%</title>
+
+<!-- â”€â”€ FONTS (Premium Typography) â”€â”€ -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Bricolage+Grotesque:wght@400;600;800;900&display=swap" rel="stylesheet"/>
+
+<!-- â”€â”€ LIBRARIES â”€â”€ -->
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+<!-- â”€â”€ TAILWIND CONFIGURATION â”€â”€ -->
 <script>
-tailwind.config = {
+tailwind.config={
   darkMode:"class",
-  theme:{extend:{
-    fontFamily:{
-      display:["Bricolage Grotesque","sans-serif"],
-      body:["Space Grotesk","sans-serif"],
-      mono:["JetBrains Mono","monospace"]
-    },
-    colors:{
-      cloud:"#EEF4FB",
-      steel:"#6B9AC4",
-      navy:"#1A4A8A",
-      midnight:"#08172E",
-      accent:"#00C2FF",
-      glow:"#4FACFE"
+  theme:{
+    extend:{
+      fontFamily:{
+        display:["Bricolage Grotesque","sans-serif"],
+        body:["Space Grotesk","sans-serif"],
+        mono:["JetBrains Mono","monospace"]
+      },
+      colors:{
+        cloud:"#EEF4FB",
+        steel:"#6B9AC4",
+        navy:"#1A4A8A",
+        midnight:"#08172E",
+        accent:"#00C2FF",
+        glow:"#4FACFE"
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
+      animation: {
+        'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'float': 'floatY 6s ease-in-out infinite',
+        'spin-slow': 'spin 12s linear infinite',
+      }
     }
-  }}
+  }
 };
 </script>
+
+<!-- â”€â”€ CUSTOM CSS â”€â”€ -->
 <style>
+/* Base Reset & Smoothness */
 *,*::before,*::after{box-sizing:border-box;font-family:"Space Grotesk",sans-serif;}
+html { scroll-behavior: smooth; }
+body { transition: background-color 0.5s ease; overflow-x: hidden; }
 
-/* Scrollbar */
-::-webkit-scrollbar{width:5px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:#1A4A8A;border-radius:10px;}
+/* Custom Scrollbar */
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-track{background: transparent;}
+::-webkit-scrollbar-thumb{background:#1A4A8A;border-radius:10px;border: 2px solid transparent;background-clip: padding-box;}
+::-webkit-scrollbar-thumb:hover{background:#00C2FF;border: 2px solid transparent;background-clip: padding-box;}
 
-/* Progress bar */
-#pbar{position:fixed;top:0;left:0;height:2px;width:0;z-index:9999;background:linear-gradient(90deg,#00C2FF,#4FACFE,#1A4A8A);}
+/* Progress Bar */
+#pbar{position:fixed;top:0;left:0;height:4px;width:0;z-index:9999;background:linear-gradient(90deg,#00C2FF,#4FACFE,#1A4A8A);box-shadow: 0 0 10px rgba(0,194,255,0.5);}
 
-/* Noise texture */
-.noise{position:relative;}
-.noise::before{content:"";position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.04;}
+/* Grid Background */
+.grid-bg{
+    background-image:linear-gradient(rgba(26,74,138,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(26,74,138,.07) 1px,transparent 1px);
+    background-size:80px 80px;
+}
+.dark .grid-bg{
+    background-image:linear-gradient(rgba(106,154,196,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(106,154,196,.05) 1px,transparent 1px);
+}
 
-/* Grid bg */
-.grid-bg{background-image:linear-gradient(rgba(106,154,196,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(106,154,196,.08) 1px,transparent 1px);background-size:60px 60px;}
-.dark .grid-bg{background-image:linear-gradient(rgba(106,154,196,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(106,154,196,.05) 1px,transparent 1px);}
+/* Typography Gradient */
+.text-grad{
+    background:linear-gradient(135deg,#4FACFE 0%,#00C2FF 40%,#1A4A8A 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+}
 
-/* Text gradient */
-.text-grad{background:linear-gradient(135deg,#4FACFE 0%,#00C2FF 40%,#1A4A8A 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.text-grad-warm{background:linear-gradient(135deg,#f8c96a 0%,#f6a623 60%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+/* Decorative Orbs */
+.orb{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;z-index: 0;opacity: 0.6;}
 
-/* Animated code typing */
-.tw-text{display:inline-block;width:0;white-space:nowrap;overflow:hidden;border-right:3px solid #00C2FF;animation:tw 2.6s steps(12,end) .6s forwards,blink .7s step-end infinite;}
+/* Hero Typewriter Text */
+.tw-text{display:inline-block;width:0;white-space:nowrap;overflow:hidden;border-right:3px solid #00C2FF;animation:tw 3s steps(12,end) 1.5s forwards,blink .8s step-end infinite;}
 @keyframes tw{to{width:100%;}}
 @keyframes blink{50%{border-color:transparent;}}
 
-/* Reveal animations */
-.rv{opacity:0;transform:translateY(28px);transition:.7s cubic-bezier(.22,.97,.39,1);}
-.rv.in{opacity:1;transform:translateY(0);}
-.rv-l{opacity:0;transform:translateX(-30px);transition:.7s cubic-bezier(.22,.97,.39,1);}
-.rv-l.in{opacity:1;transform:translateX(0);}
-.rv-r{opacity:0;transform:translateX(30px);transition:.7s cubic-bezier(.22,.97,.39,1);}
-.rv-r.in{opacity:1;transform:translateX(0);}
+/* Card Interactions */
+.fcard{transition:transform .5s cubic-bezier(.22,1,.36,1),box-shadow .5s, border-color .3s;}
+.fcard:hover{transform:translateY(-15px);box-shadow:0 40px 80px rgba(0,194,255,0.2);border-color: rgba(0,194,255,0.3);}
+.fcard-bar{position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#00C2FF,#1A4A8A);width:0;transition:width .7s ease;}
+.fcard:hover .fcard-bar{width:100%;}
 
-/* Floating animation */
-@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
-@keyframes floatB{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-8px) rotate(2deg);}}
-.float{animation:float 5s ease-in-out infinite;}
-.float-b{animation:floatB 6s ease-in-out infinite;}
+/* FAQ Accordion */
+.faq-item{border-bottom:1px solid rgba(107,154,196,0.1); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);}
+.faq-trigger{cursor:pointer; display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0;}
+.faq-content{max-height:0;overflow:hidden;transition:max-height 0.6s cubic-bezier(0,1,0,1), opacity 0.4s; opacity: 0;}
+.faq-item.active .faq-content{max-height:1200px; opacity: 1; padding-bottom: 2rem;}
+.faq-item.active .faq-icon{transform:rotate(180deg); color:#00C2FF;}
 
-/* Pulse glow */
-@keyframes pulseGlow{0%,100%{box-shadow:0 0 20px rgba(0,194,255,.2);}50%{box-shadow:0 0 50px rgba(0,194,255,.5);}}
-.pulse-glow{animation:pulseGlow 2.5s ease-in-out infinite;}
+/* Animations */
+@keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
-/* Code window */
-.code-win{background:#0d1117;border:1px solid rgba(106,154,196,.18);}
+/* Marquee System */
+.marquee-wrap{overflow:hidden; white-space: nowrap; position: relative;}
+.marquee-inner{display:flex;width:max-content;animation:marqueeScroll 50s linear infinite;}
+@keyframes marqueeScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.marquee-item { font-family: "JetBrains Mono", monospace; }
 
-/* Stat counter animation */
-@keyframes countUp{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
-.count-in{animation:countUp .6s cubic-bezier(.34,1.56,.64,1) forwards;}
-
-/* Card hover */
-.feature-card{transition:all .35s cubic-bezier(.22,.97,.39,1);}
-.feature-card:hover{transform:translateY(-6px);border-color:rgba(0,194,255,.4);}
-.feature-card:hover .card-icon{transform:scale(1.1) rotate(-5deg);}
-.card-icon{transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
-
-/* Step connector */
-.step-line{background:linear-gradient(180deg,#00C2FF,transparent);}
-
-/* Tag pill */
-.tag{display:inline-flex;align-items:center;gap:6px;padding:.3rem .85rem;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;}
-
-/* Testimonial card */
-.testi-card{transition:all .35s ease;}
-.testi-card:hover{transform:translateY(-4px);}
-
-/* Mobile menu */
-#mob{display:none;}
-#mob.open{display:flex;}
-
-/* Auth Modal */
-#authBox{position:relative;overflow:hidden;border-radius:1.25rem;width:100%;max-width:900px;height:600px;background:#fff;box-shadow:0 40px 100px rgba(8,23,46,.6);}
+/* Auth Modal System */
+#authBox{position:relative;overflow:hidden;border-radius:2rem;width:100%;max-width:1000px;height:680px;background:#fff;box-shadow:0 60px 180px rgba(8,23,46,0.6);}
 .dark #authBox{background:#071322;}
-.ac-form{position:absolute;top:0;bottom:0;left:0;width:58%;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;padding:2.5rem;transition:transform .65s cubic-bezier(.68,-.55,.27,1.55),opacity .45s ease;}
+.ac-form{position:absolute;top:0;bottom:0;left:0;width:55%;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;padding:4rem;transition:transform .8s cubic-bezier(.77,0,.175,1),opacity .5s;}
 #panelLogin{z-index:2;transform:translateX(0);opacity:1;}
-#panelSignup{z-index:1;transform:translateX(137%);opacity:0;pointer-events:none;}
-#authBox.active #panelLogin{transform:translateX(-137%);opacity:0;pointer-events:none;}
+#panelSignup{z-index:1;transform:translateX(100%);opacity:0;pointer-events:none;}
+#authBox.active #panelLogin{transform:translateX(-100%);opacity:0;pointer-events:none;}
 #authBox.active #panelSignup{transform:translateX(0);opacity:1;z-index:5;pointer-events:auto;}
-#authOverlayPanel{position:absolute;top:0;right:0;bottom:0;width:42%;z-index:200;overflow:hidden;border-radius:0 1.25rem 1.25rem 0;transition:transform .65s cubic-bezier(.68,-.55,.27,1.55);}
-#authOverlayInner{width:200%;height:100%;display:flex;transform:translateX(0);transition:transform .65s cubic-bezier(.68,-.55,.27,1.55);background:linear-gradient(145deg,#1A4A8A 0%,#08172E 60%,#000c1a 100%);}
-.ac-ovp{width:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:2rem;}
-.ac-input{width:100%;padding:.82rem 1rem;border-radius:.75rem;border:1.5px solid transparent;background:#f0f4f8;color:#0f172a;outline:none;font-family:"Space Grotesk",sans-serif;font-size:.9rem;transition:all .2s;}
-.ac-input:focus{border-color:#1A4A8A;box-shadow:0 0 0 3px rgba(26,74,138,.15);}
-.dark .ac-input{background:#0f2035;color:#daeeff;border-color:rgba(106,154,196,.2);}
-.dark .ac-input:focus{border-color:#00C2FF;box-shadow:0 0 0 3px rgba(0,194,255,.12);}
-.ac-btn{width:100%;border:none;border-radius:.75rem;padding:.9rem 1rem;color:#fff;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(135deg,#00C2FF,#1A4A8A);cursor:pointer;font-family:"Space Grotesk",sans-serif;transition:opacity .2s,transform .15s;font-size:.88rem;}
-.ac-btn:hover{opacity:.9;transform:scale(1.01);}
-.ac-btn:disabled{opacity:.6;cursor:not-allowed;}
-.ac-ovbtn{border:2px solid rgba(255,255,255,.6);background:transparent;color:#fff;border-radius:.75rem;padding:.72rem 2.2rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;font-family:"Space Grotesk",sans-serif;transition:all .25s;}
-.ac-ovbtn:hover{background:rgba(255,255,255,.12);border-color:#fff;}
-.ac-link{background:none;border:none;color:#00C2FF;font-weight:700;text-decoration:underline;cursor:pointer;font-family:"Space Grotesk",sans-serif;}
+
+#authOverlayPanel{position:absolute;top:0;right:0;bottom:0;width:45%;z-index:200;overflow:hidden;border-radius:0 2rem 2rem 0;}
+#authOverlayInner{width:200%;height:100%;display:flex;background:linear-gradient(145deg,#1A4A8A 0%,#08172E 60%,#000c1a 100%); transition: transform 0.8s cubic-bezier(.77,0,.175,1);}
+#authBox.active #authOverlayInner { transform: translateX(-50%); }
+.ac-ovp{width:50%;color:#fff;text-align:center;}
+.ac-ovp h2{color:#fff;text-shadow:0 8px 30px rgba(0,0,0,.35);}
+.ac-ovp p{color:rgba(255,255,255,.82);}
+.ac-ovbtn{
+  border:2px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.14);
+  color:#fff;
+  font-weight:800;
+  border-radius:1rem;
+  backdrop-filter:blur(8px);
+  box-shadow:0 10px 35px rgba(0,0,0,.28);
+  transition:all .25s ease;
+}
+.ac-ovbtn:hover{background:#fff;color:#0b2142;transform:translateY(-1px);}
+
+.ac-input{width:100%;padding:1rem 1.4rem;border-radius:1rem;border:2.5px solid transparent;background:#f1f5f9;color:#0f172a;outline:none;transition:all .3s;}
+.ac-input:focus{border-color:#1A4A8A;background:#fff;box-shadow:0 0 0 5px rgba(26,74,138,0.15);}
+.dark .ac-input{background:#0f1d31;color:#daeeff;border-color:rgba(106,154,196,0.1);}
+.ac-btn{width:100%;padding:1rem 1.25rem;border-radius:1rem;background:linear-gradient(135deg,#1A4A8A,#000c1a);color:#fff;font-weight:800;transition:all .25s ease;box-shadow:0 12px 24px rgba(8,23,46,.28);}
+.ac-btn:hover{transform:translateY(-1px);} 
+.ac-link{color:#1A4A8A;font-weight:700;text-decoration:underline;text-underline-offset:4px;}
 .dark .ac-link{color:#4FACFE;}
+.ac-error{font-size:.875rem;color:#dc2626;font-weight:600;}
+/* Custom Tags & Badges */
+.tag{display:inline-flex;align-items:center;gap:10px;padding:.5rem 1.25rem;border-radius:999px;font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
 .step-hidden{display:none!important;}
-.ac-error{color:#ef4444;font-size:.74rem;}
 
-/* Marquee */
-.marquee-wrap{overflow:hidden;}
-.marquee-inner{display:flex;gap:2rem;animation:marqueeX 25s linear infinite;}
-@keyframes marqueeX{from{transform:translateX(0);}to{transform:translateX(-50%);}}
-
-/* Glowing orbs */
-.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;}
-
-/* Code line highlight */
-@keyframes lineHighlight{0%{background-color:transparent;}50%{background-color:rgba(0,194,255,.08);}100%{background-color:transparent;}}
-.hl{animation:lineHighlight 2.5s ease-in-out infinite;}
-
-@media(max-width:700px){
+@media(max-width:900px){
   #authBox{height:auto;background:transparent;box-shadow:none;}
-  .ac-form{position:static;width:100%;display:none;background:#fff;border-radius:1rem;box-shadow:0 12px 40px rgba(8,23,46,.25);padding:1.5rem;transform:none!important;opacity:1!important;pointer-events:auto!important;}
+  .ac-form{position:static;width:100%;display:none;background:#fff;border-radius:2rem;padding:2.5rem;transform:none!important;opacity:1!important;pointer-events:auto!important;}
   .dark .ac-form{background:#071322;}
   #panelLogin{display:flex;}
   #authBox.active #panelLogin{display:none;}
   #authBox.active #panelSignup{display:flex;}
-  #panelSignup{display:none;}
   #authOverlayPanel{display:none!important;}
 }
 </style>
 </head>
-<body class="bg-cloud text-midnight dark:bg-midnight dark:text-cloud overflow-x-hidden transition-colors duration-300">
+
+<body class="bg-cloud text-midnight dark:bg-midnight dark:text-cloud overflow-x-hidden transition-colors duration-700">
 <div id="pbar"></div>
 
-<!-- NAVBAR -->
-<nav id="navbar" class="fixed top-0 inset-x-0 z-50 bg-cloud/80 dark:bg-midnight/85 backdrop-blur-2xl border-b border-navy/10 dark:border-steel/10 px-4 py-3 transition-all duration-300">
-  <div class="max-w-7xl mx-auto flex items-center gap-3">
-    <a href="#" class="flex items-center gap-2.5 shrink-0 mr-4 no-underline group">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-navy to-midnight flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-        <span class="font-mono font-bold text-white text-sm">&lt;/&gt;</span>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• NAVIGATION â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<nav id="navbar" class="fixed top-0 inset-x-0 z-50 bg-cloud/85 dark:bg-midnight/85 backdrop-blur-2xl border-b border-navy/5 dark:border-steel/5 px-8 py-5 transition-all duration-500">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <!-- Logo Section -->
+    <a href="#" class="flex items-center gap-4 group">
+      <div id="logo-box" class="w-11 h-11 rounded-[1.25rem] bg-gradient-to-br from-navy to-midnight flex items-center justify-center shadow-2xl relative overflow-hidden">
+        <div class="absolute inset-0 bg-accent/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+        <span class="font-mono font-bold text-white text-lg relative z-10">&lt;/&gt;</span>
       </div>
-      <span class="font-display font-extrabold text-lg tracking-tight text-midnight dark:text-cloud">CampusCode</span>
+      <div class="flex flex-col">
+          <span class="font-display font-black text-2xl tracking-tighter leading-none">CampusCode</span>
+          <span class="text-[9px] font-bold tracking-[.3em] uppercase opacity-40">Engineering Excellence</span>
+      </div>
     </a>
-    <div class="hidden md:flex items-center gap-1">
-      <a href="#features" class="text-sm font-medium text-midnight/70 dark:text-cloud/70 px-3 py-2 rounded-lg hover:bg-navy/8 dark:hover:bg-steel/10 transition-colors hover:text-navy dark:hover:text-steel">Features</a>
-      <a href="#how-it-works" class="text-sm font-medium text-midnight/70 dark:text-cloud/70 px-3 py-2 rounded-lg hover:bg-navy/8 dark:hover:bg-steel/10 transition-colors hover:text-navy dark:hover:text-steel">How It Works</a>
-      <a href="#testimonials" class="text-sm font-medium text-midnight/70 dark:text-cloud/70 px-3 py-2 rounded-lg hover:bg-navy/8 dark:hover:bg-steel/10 transition-colors hover:text-navy dark:hover:text-steel">Stories</a>
-      <a href="#about" class="text-sm font-medium text-midnight/70 dark:text-cloud/70 px-3 py-2 rounded-lg hover:bg-navy/8 dark:hover:bg-steel/10 transition-colors hover:text-navy dark:hover:text-steel">About</a>
+
+    <!-- Desktop Navigation -->
+    <div class="hidden lg:flex items-center gap-4">
+      <a href="#features" class="text-sm font-bold px-5 py-2.5 rounded-2xl hover:bg-navy/5 dark:hover:bg-steel/10 transition-all hover:scale-105 active:scale-95">Features</a>
+      <a href="#how-it-works" class="text-sm font-bold px-5 py-2.5 rounded-2xl hover:bg-navy/5 dark:hover:bg-steel/10 transition-all hover:scale-105 active:scale-95">Workflow</a>
+      <a href="#faq" class="text-sm font-bold px-5 py-2.5 rounded-2xl hover:bg-navy/5 dark:hover:bg-steel/10 transition-all hover:scale-105 active:scale-95">Resources</a>
+      <a href="#contact" class="text-sm font-bold px-5 py-2.5 rounded-2xl hover:bg-navy/5 dark:hover:bg-steel/10 transition-all hover:scale-105 active:scale-95">Contact</a>
     </div>
-    <div class="hidden md:flex items-center gap-2 ml-auto">
-      <button onclick="openAuth('login')" class="text-sm font-semibold text-midnight dark:text-cloud/80 px-4 py-2 rounded-lg hover:bg-navy/8 dark:hover:bg-steel/10 transition-colors border border-navy/20 dark:border-steel/20 bg-transparent cursor-pointer">Login</button>
-      <button onclick="openAuth('register')" class="text-sm font-bold text-white bg-gradient-to-br from-navy to-midnight px-5 py-2.5 rounded-xl shadow-lg cursor-pointer border-none hover:shadow-[0_0_20px_rgba(0,194,255,.3)] transition-all">Get Started →</button>
+
+    <!-- Right Side Actions -->
+    <div class="flex items-center gap-4">
+      <button onclick="toggleTheme()" id="themeBtn" class="w-11 h-11 rounded-2xl flex items-center justify-center bg-navy/5 dark:bg-steel/10 text-navy dark:text-steel hover:rotate-12 transition-all shadow-sm">◐</button>
+      <div class="hidden sm:flex items-center gap-3">
+        <a href="/college-register" class="text-sm font-black px-5 py-3 rounded-2xl border-2 border-navy/10 dark:border-steel/10 hover:border-navy/40 dark:hover:border-steel/40 transition-all active:scale-95">Register Institute</a>
+        <button onclick="openAuth('login')" class="text-sm font-black px-6 py-3 rounded-2xl border-2 border-navy/10 dark:border-steel/10 hover:border-navy/40 dark:hover:border-steel/40 transition-all active:scale-95">Login</button>
+        <button onclick="openAuth('register')" class="text-sm font-black text-white bg-gradient-to-br from-navy to-midnight px-7 py-3 rounded-2xl shadow-xl hover:shadow-accent/30 transition-all active:scale-95">Get Started</button>
+      </div>
+      <button onclick="toggleMob()" class="lg:hidden w-11 h-11 rounded-2xl flex items-center justify-center bg-navy/5 dark:bg-steel/10 text-midnight dark:text-cloud">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+      </button>
     </div>
-    <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl flex items-center justify-center bg-navy/8 dark:bg-steel/10 text-navy dark:text-steel border-none cursor-pointer hover:scale-110 transition-transform" id="themeBtn">☽</button>
-    <button onclick="toggleMob()" class="md:hidden w-9 h-9 rounded-xl flex items-center justify-center bg-navy/8 dark:bg-steel/10 text-navy dark:text-steel border-none cursor-pointer">☰</button>
   </div>
-  <div id="mob" class="flex-col gap-1 px-1 pb-4 mt-2 md:hidden border-t border-steel/20">
-    <a href="#features" onclick="closeMob()" class="block text-sm font-medium text-midnight dark:text-cloud/80 px-3 py-2.5 rounded-lg hover:bg-navy/10 transition-colors">Features</a>
-    <a href="#how-it-works" onclick="closeMob()" class="block text-sm font-medium text-midnight dark:text-cloud/80 px-3 py-2.5 rounded-lg hover:bg-navy/10 transition-colors">How It Works</a>
-    <a href="#testimonials" onclick="closeMob()" class="block text-sm font-medium text-midnight dark:text-cloud/80 px-3 py-2.5 rounded-lg hover:bg-navy/10 transition-colors">Stories</a>
-    <a href="#about" onclick="closeMob()" class="block text-sm font-medium text-midnight dark:text-cloud/80 px-3 py-2.5 rounded-lg hover:bg-navy/10 transition-colors">About</a>
-    <div class="flex gap-2 mt-2">
-      <button onclick="closeMob();openAuth('login')" class="flex-1 text-sm font-medium text-navy dark:text-steel border border-navy/25 dark:border-steel/25 rounded-xl py-2.5 bg-transparent cursor-pointer">Login</button>
-      <button onclick="closeMob();openAuth('register')" class="flex-1 text-sm font-bold text-white bg-gradient-to-br from-navy to-midnight rounded-xl py-2.5 cursor-pointer border-none">Get Started</button>
+
+  <!-- Mobile Dropdown -->
+  <div id="mob" class="hidden flex-col gap-3 mt-6 lg:hidden animate-fade-in pb-4">
+    <a href="#features" onclick="closeMob()" class="p-4 font-black rounded-2xl bg-navy/5 dark:bg-steel/5 transition-colors">Platform Features</a>
+    <a href="#how-it-works" onclick="closeMob()" class="p-4 font-black rounded-2xl bg-navy/5 dark:bg-steel/5 transition-colors">How it Works</a>
+    <a href="#faq" onclick="closeMob()" class="p-4 font-black rounded-2xl bg-navy/5 dark:bg-steel/5 transition-colors">Help Center</a>
+    <a href="#contact" onclick="closeMob()" class="p-4 font-black rounded-2xl bg-navy/5 dark:bg-steel/5 transition-colors">Get in Touch</a>
+    <div class="grid grid-cols-2 gap-4 mt-2">
+        <a href="/college-register" class="p-4 rounded-2xl border-2 border-navy/10 dark:border-steel/10 font-black text-center">Register Institute</a>
+        <button onclick="openAuth('login')" class="p-4 rounded-2xl border-2 border-navy/10 dark:border-steel/10 font-black">Login</button>
+        <button onclick="openAuth('register')" class="p-4 rounded-2xl bg-midnight text-white font-black shadow-lg">Join Now</button>
     </div>
   </div>
 </nav>
 
-<!-- HERO -->
-<section class="min-h-screen flex items-center pt-28 pb-24 px-4 relative overflow-hidden grid-bg">
-  <!-- Orbs -->
-  <div class="orb w-96 h-96 bg-navy/20 dark:bg-navy/30 top-20 -right-24"></div>
-  <div class="orb w-72 h-72 bg-accent/10 bottom-12 -left-16"></div>
-  <div class="orb w-48 h-48 bg-steel/20 top-1/2 left-1/3"></div>
-
-  <div class="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center relative z-10">
-    <div class="rv-l">
-      <div class="tag bg-navy/10 dark:bg-steel/10 border border-navy/20 dark:border-steel/20 text-navy dark:text-accent mb-6">
-        <span class="w-2 h-2 rounded-full bg-accent inline-block animate-pulse"></span>
-        Public Beta · 5,000+ Students Enrolled
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HERO SECTION â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section id="hero" class="relative min-h-[calc(100vh-96px)] flex items-center pt-20 pb-10 px-8 grid-bg overflow-hidden">
+  <!-- Dynamic Background Elements -->
+  <div class="orb w-[700px] h-[700px] bg-navy/15 -top-40 -right-40 animate-pulse-slow"></div>
+  <div class="orb w-[500px] h-[500px] bg-accent/10 bottom-40 -left-40 animate-pulse-slow" style="animation-delay: 3s"></div>
+  <div class="orb w-[300px] h-[300px] bg-glow/5 top-1/2 left-1/2 -translate-x-1/2 animate-pulse-slow" style="animation-delay: 1.5s"></div>
+  
+  <div class="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-10 items-center relative z-10">
+    <div class="hero-content space-y-6">
+      <div id="hero-badge" class="tag bg-white/50 dark:bg-steel/10 border border-navy/10 dark:border-steel/20 text-navy dark:text-accent backdrop-blur-md">
+        <span class="flex h-3 w-3 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+        </span>
+        Public Beta &bull; Open for Tier 1-3 Institutions
       </div>
-      <h1 class="font-display font-black leading-[1.05] tracking-tight mb-6 text-midnight dark:text-cloud" style="font-size:clamp(2.6rem,5vw,4rem)">
-        Code Your Way<br/>To The&nbsp;<span class="tw-text text-grad">Top 1%</span>
-      </h1>
-      <p class="text-base leading-relaxed max-w-[480px] mb-8 text-midnight/60 dark:text-cloud/60">CampusCode unites Students, Faculty, HODs and Administrators in one powerful coding ecosystem — built for Indian colleges, designed for world-class outcomes.</p>
       
-      <!-- Trust badges -->
-      <div class="flex flex-wrap gap-3 mb-8">
-        <div class="flex items-center gap-2 bg-white/70 dark:bg-midnight/40 border border-steel/20 rounded-full px-3 py-1.5 text-xs font-semibold text-midnight/70 dark:text-cloud/60">
-          <span class="text-green-500">✓</span> Free for Students
-        </div>
-        <div class="flex items-center gap-2 bg-white/70 dark:bg-midnight/40 border border-steel/20 rounded-full px-3 py-1.5 text-xs font-semibold text-midnight/70 dark:text-cloud/60">
-          <span class="text-green-500">✓</span> AI-Powered Hints
-        </div>
-        <div class="flex items-center gap-2 bg-white/70 dark:bg-midnight/40 border border-steel/20 rounded-full px-3 py-1.5 text-xs font-semibold text-midnight/70 dark:text-cloud/60">
-          <span class="text-green-500">✓</span> Placement Prep
-        </div>
+      <div class="space-y-6">
+        <h1 id="hero-h1" class="font-display font-black text-4xl md:text-5xl lg:text-[4.1rem] leading-[1.03] tracking-tight">
+          Code the <br/>Future. Be the <span class="tw-text text-grad">Top 1%.</span>
+        </h1>
+        
+        <p id="hero-sub" class="text-base md:text-lg text-midnight/60 dark:text-cloud/60 leading-relaxed max-w-2xl font-medium">
+          The comprehensive coding ecosystem for students, faculty, and recruiters. From initial learning to advanced mastery, we guide you through every milestone.
+        </p>
       </div>
-
-      <div class="flex flex-wrap items-center gap-3">
-        <button onclick="openAuth('register')" class="inline-flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-br from-navy to-midnight px-7 py-3.5 rounded-xl shadow-xl hover:shadow-[0_0_30px_rgba(0,194,255,.35)] transition-all hover:scale-[1.02] border-none cursor-pointer">
-          Join as Student <span>→</span>
+      
+      <div id="hero-ctas" class="flex flex-wrap gap-4">
+        <button onclick="openAuth('register')" class="group relative px-8 py-4 bg-gradient-to-br from-navy via-midnight to-black text-white font-black rounded-3xl shadow-[0_20px_50px_rgba(8,23,46,0.3)] hover:scale-105 active:scale-95 transition-all overflow-hidden">
+          <div class="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+          <span class="relative z-10">Start Coding Journey -></span>
         </button>
-        <a href="#how-it-works" class="inline-flex items-center gap-2 text-sm font-semibold text-navy dark:text-steel border-2 border-navy/30 dark:border-steel/30 px-6 py-3 rounded-xl hover:bg-navy/5 transition-colors">
-          See How It Works ↓
+        <a href="/college-register" class="inline-flex items-center justify-center px-8 py-4 border-2 border-navy/10 dark:border-steel/20 font-black rounded-3xl hover:bg-white/40 dark:hover:bg-white/5 transition-all backdrop-blur-sm active:scale-95">
+          Register Institute
         </a>
       </div>
 
-      <!-- Social proof -->
-      <div class="flex items-center gap-3 mt-8">
-        <div class="flex -space-x-2">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-navy to-steel border-2 border-cloud dark:border-midnight flex items-center justify-center text-white text-xs font-bold">A</div>
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-steel to-accent border-2 border-cloud dark:border-midnight flex items-center justify-center text-white text-xs font-bold">R</div>
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-midnight to-navy border-2 border-cloud dark:border-midnight flex items-center justify-center text-white text-xs font-bold">S</div>
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-navy border-2 border-cloud dark:border-midnight flex items-center justify-center text-white text-xs font-bold">P</div>
+      <!-- Trust Badges / Stats -->
+      <div id="hero-stats" class="pt-5 border-t border-navy/5 dark:border-steel/5 grid grid-cols-3 gap-6">
+        <div>
+            <p id="statActiveCoders" class="font-black text-3xl text-midnight dark:text-cloud">0</p>
+            <p class="text-[10px] font-black uppercase tracking-[.2em] opacity-40">Active Coders</p>
         </div>
-        <p class="text-xs text-midnight/50 dark:text-cloud/50"><span class="font-bold text-midnight dark:text-cloud">1,200+</span> students joined this month</p>
-      </div>
-    </div>
-
-    <!-- Code Window -->
-    <div class="rv-r float">
-      <div class="code-win w-full max-w-[500px] ml-auto rounded-2xl overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,.4)] pulse-glow">
-        <!-- Titlebar -->
-        <div class="bg-[#161b22] flex items-center gap-2 px-4 py-3 border-b border-steel/10">
-          <span class="w-3 h-3 rounded-full bg-[#ff5f57] cursor-pointer hover:brightness-110"></span>
-          <span class="w-3 h-3 rounded-full bg-[#febc2e]"></span>
-          <span class="w-3 h-3 rounded-full bg-[#28c840]"></span>
-          <div class="ml-3 flex items-center gap-2">
-            <span class="text-[11px] text-[#6e7681] font-mono">campus_challenge.py</span>
-            <span class="text-[9px] bg-[#238636] text-white px-1.5 py-0.5 rounded font-bold">LIVE</span>
-          </div>
-          <span class="ml-auto text-[11px] text-[#6e7681]">Python 3.11</span>
+        <div>
+            <p id="statCampusesJoined" class="font-black text-3xl text-midnight dark:text-cloud">0</p>
+            <p class="text-[10px] font-black uppercase tracking-[.2em] opacity-40">Campuses Joined</p>
         </div>
-        <!-- Code -->
-        <div class="px-5 py-4 font-mono text-[13px] leading-7">
-          <div class="text-[#6e7681]"># 🎯 Daily Challenge: Two Sum · Difficulty: Easy</div>
-          <div class="text-[#6e7681]"># Points: +50 XP · Deadline: 11:59 PM</div>
-          <div>&nbsp;</div>
-          <div><span class="text-[#ff7b72]">def</span> <span class="text-[#d2a8ff]">two_sum</span><span class="text-[#c9d1d9]">(nums, target):</span></div>
-          <div class="hl"><span class="text-[#c9d1d9]">&nbsp;&nbsp;seen = </span><span class="text-[#79c0ff]">{}</span></div>
-          <div><span class="text-[#ff7b72]">&nbsp;&nbsp;for</span> <span class="text-[#c9d1d9]">i, num</span> <span class="text-[#ff7b72]">in</span> <span class="text-[#79c0ff]">enumerate</span><span class="text-[#c9d1d9]">(nums):</span></div>
-          <div><span class="text-[#c9d1d9]">&nbsp;&nbsp;&nbsp;&nbsp;diff = target - num</span></div>
-          <div><span class="text-[#ff7b72]">&nbsp;&nbsp;&nbsp;&nbsp;if</span> <span class="text-[#c9d1d9]">diff </span><span class="text-[#ff7b72]">in</span><span class="text-[#c9d1d9]"> seen:</span></div>
-          <div><span class="text-[#ff7b72]">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return</span> <span class="text-[#c9d1d9]">[seen[diff], i]</span></div>
-          <div><span class="text-[#c9d1d9]">&nbsp;&nbsp;&nbsp;&nbsp;seen[num] = i</span></div>
-        </div>
-        <!-- Output -->
-        <div class="bg-[#010409] px-5 py-3 border-t border-steel/10 space-y-1.5">
-          <div class="flex items-center gap-3">
-            <span class="text-[10px] text-[#3d444d] font-mono uppercase tracking-wider">Output</span>
-            <span class="text-[12px] text-[#79c0ff] font-mono">[0, 1]</span>
-            <span class="ml-auto text-[11px] text-[#3fb950] font-semibold">✓ Accepted</span>
-          </div>
-          <div class="flex items-center gap-4 text-[10px] text-[#6e7681] font-mono">
-            <span>Runtime: 42ms</span>
-            <span>Memory: 14.3 MB</span>
-            <span class="text-[#f8c96a]">+50 XP earned</span>
-          </div>
-        </div>
-        <!-- Leaderboard mini -->
-        <div class="bg-[#0d1117] px-5 py-3 border-t border-steel/10">
-          <div class="text-[10px] text-[#6e7681] font-mono uppercase tracking-wider mb-2">🏆 Today's Leaderboard</div>
-          <div class="space-y-1">
-            <div class="flex items-center gap-2 text-[11px]">
-              <span class="text-[#f8c96a]">1.</span><span class="text-[#c9d1d9]">Arjun S.</span><span class="ml-auto text-[#3fb950] font-mono">2,840 XP</span>
-            </div>
-            <div class="flex items-center gap-2 text-[11px]">
-              <span class="text-[#c9d1d9]">2.</span><span class="text-[#c9d1d9]">Priya K.</span><span class="ml-auto text-[#79c0ff] font-mono">2,610 XP</span>
-            </div>
-            <div class="flex items-center gap-2 text-[11px] bg-[#1c2128] rounded px-1.5">
-              <span class="text-[#c9d1d9]">3.</span><span class="text-[#c9d1d9]">You</span><span class="ml-auto text-[#d2a8ff] font-mono">2,540 XP</span>
-            </div>
-          </div>
+        <div>
+            <p id="statAcceptedRuns" class="font-black text-3xl text-midnight dark:text-cloud">0</p>
+            <p class="text-[10px] font-black uppercase tracking-[.2em] opacity-40">Accepted Runs</p>
         </div>
       </div>
     </div>
-  </div>
-</section>
 
-<!-- MARQUEE / TECH STRIP -->
-<div class="py-5 border-y border-steel/15 bg-white/50 dark:bg-midnight/50 overflow-hidden">
-  <div class="marquee-inner whitespace-nowrap text-sm font-semibold text-midnight/40 dark:text-cloud/30 select-none">
-    <span class="mx-6">Python</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Java</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">C++</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Data Structures</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Algorithms</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Dynamic Programming</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Graphs</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Trees</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">SQL</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">System Design</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">JavaScript</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">React</span><span class="mx-2 text-accent">✦</span>
-    <!-- Duplicate for seamless -->
-    <span class="mx-6">Python</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Java</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">C++</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Data Structures</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Algorithms</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Dynamic Programming</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Graphs</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">Trees</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">SQL</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">System Design</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">JavaScript</span><span class="mx-2 text-accent">✦</span>
-    <span class="mx-6">React</span><span class="mx-2 text-accent">✦</span>
-  </div>
-</div>
-
-<!-- STATS -->
-<section id="about" class="py-20 px-4 relative overflow-hidden">
-  <div class="orb w-80 h-80 bg-navy/10 dark:bg-navy/20 -right-20 top-0"></div>
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-14 rv">
-      <div class="tag bg-navy/10 dark:bg-steel/10 border border-navy/20 dark:border-steel/20 text-navy dark:text-accent mb-4">Our Impact</div>
-      <h2 class="font-display font-black tracking-tight text-3xl sm:text-4xl mb-4 text-midnight dark:text-cloud">Where Academia Meets<br/><span class="text-grad">Real-World Engineering</span></h2>
-      <p class="text-midnight/60 dark:text-cloud/60 max-w-xl mx-auto text-base">CampusCode closes the gap between theory and industry expectations — with measurable coding outcomes that get students placed.</p>
-    </div>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
-      <div class="rv bg-gradient-to-br from-navy to-midnight rounded-2xl p-7 text-white group hover:scale-[1.03] transition-transform cursor-default">
-        <div class="text-4xl font-display font-black mb-1 stat-num" data-target="5000" data-suffix="+">0</div>
-        <p class="text-sm opacity-70">Active Students</p>
-        <div class="mt-4 text-xs opacity-50 group-hover:opacity-80 transition-opacity">Across 200+ colleges</div>
-      </div>
-      <div class="rv bg-gradient-to-br from-navy/80 to-midnight rounded-2xl p-7 text-white group hover:scale-[1.03] transition-transform cursor-default" style="transition-delay:.1s">
-        <div class="text-4xl font-display font-black mb-1 stat-num" data-target="200" data-suffix="+">0</div>
-        <p class="text-sm opacity-70">Colleges Onboarded</p>
-        <div class="mt-4 text-xs opacity-50 group-hover:opacity-80 transition-opacity">Tier-1 to Tier-3</div>
-      </div>
-      <div class="rv bg-gradient-to-br from-navy/70 to-midnight rounded-2xl p-7 text-white group hover:scale-[1.03] transition-transform cursor-default" style="transition-delay:.2s">
-        <div class="text-4xl font-display font-black mb-1 stat-num" data-target="1200000" data-suffix="+">0</div>
-        <p class="text-sm opacity-70">Code Submissions</p>
-        <div class="mt-4 text-xs opacity-50 group-hover:opacity-80 transition-opacity">1.2M+ and counting</div>
-      </div>
-      <div class="rv bg-gradient-to-br from-navy/60 to-midnight rounded-2xl p-7 text-white group hover:scale-[1.03] transition-transform cursor-default" style="transition-delay:.3s">
-        <div class="text-4xl font-display font-black mb-1 stat-num" data-target="3800" data-suffix="+">0</div>
-        <p class="text-sm opacity-70">Contests Hosted</p>
-        <div class="mt-4 text-xs opacity-50 group-hover:opacity-80 transition-opacity">Monthly + special events</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FEATURES / ROLES -->
-<section id="features" class="py-20 px-4 bg-white/40 dark:bg-midnight/50">
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-14 rv">
-      <div class="tag bg-navy/10 dark:bg-steel/10 border border-navy/20 dark:border-steel/20 text-navy dark:text-accent mb-4">Roles & Capabilities</div>
-      <h2 class="font-display font-black tracking-tight text-3xl sm:text-4xl text-midnight dark:text-cloud">One Platform, <span class="text-grad">Every Role</span></h2>
-      <p class="text-midnight/60 dark:text-cloud/60 max-w-xl mx-auto text-base mt-4">Designed from the ground up for every stakeholder in your college's coding journey.</p>
-    </div>
-    <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-5">
-      <div class="feature-card rv rounded-2xl p-6 border border-steel/20 bg-white/80 dark:bg-midnight/60 relative overflow-hidden group" style="transition-delay:.0s">
-        <div class="card-icon w-12 h-12 rounded-xl bg-gradient-to-br from-navy/20 to-accent/20 flex items-center justify-center text-2xl mb-4">🎓</div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Student</h3>
-        <ul class="text-sm text-midnight/65 dark:text-cloud/65 space-y-1.5">
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Daily challenges & streaks</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> AI-powered hints & code review</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> College & open contests</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> XP, badges & leaderboards</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Placement-ready roadmap</li>
-        </ul>
-        <div class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent to-navy opacity-0 group-hover:opacity-100 transition-opacity rounded-b-2xl"></div>
-      </div>
-      <div class="feature-card rv rounded-2xl p-6 border border-steel/20 bg-white/80 dark:bg-midnight/60 relative overflow-hidden group" style="transition-delay:.1s">
-        <div class="card-icon w-12 h-12 rounded-xl bg-gradient-to-br from-navy/20 to-accent/20 flex items-center justify-center text-2xl mb-4">👨‍🏫</div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Faculty</h3>
-        <ul class="text-sm text-midnight/65 dark:text-cloud/65 space-y-1.5">
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Create timed assignments</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Auto-graded submissions</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Student progress tracking</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Plagiarism detection</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Batch performance reports</li>
-        </ul>
-        <div class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent to-navy opacity-0 group-hover:opacity-100 transition-opacity rounded-b-2xl"></div>
-      </div>
-      <div class="feature-card rv rounded-2xl p-6 border border-steel/20 bg-white/80 dark:bg-midnight/60 relative overflow-hidden group" style="transition-delay:.2s">
-        <div class="card-icon w-12 h-12 rounded-xl bg-gradient-to-br from-navy/20 to-accent/20 flex items-center justify-center text-2xl mb-4">📊</div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Head of Dept.</h3>
-        <ul class="text-sm text-midnight/65 dark:text-cloud/65 space-y-1.5">
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Department-wide analytics</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Faculty oversight panel</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Semester reports & exports</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> At-risk student alerts</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Curriculum alignment tools</li>
-        </ul>
-        <div class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent to-navy opacity-0 group-hover:opacity-100 transition-opacity rounded-b-2xl"></div>
-      </div>
-      <div class="feature-card rv rounded-2xl p-6 border border-steel/20 bg-white/80 dark:bg-midnight/60 relative overflow-hidden group" style="transition-delay:.3s">
-        <div class="card-icon w-12 h-12 rounded-xl bg-gradient-to-br from-navy/20 to-accent/20 flex items-center justify-center text-2xl mb-4">🏛️</div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Administrator</h3>
-        <ul class="text-sm text-midnight/65 dark:text-cloud/65 space-y-1.5">
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Institution-wide dashboard</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Role & access management</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Multi-department oversight</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Placement stats & reports</li>
-          <li class="flex items-start gap-1.5"><span class="text-accent mt-0.5">✓</span> Custom branding options</li>
-        </ul>
-        <div class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent to-navy opacity-0 group-hover:opacity-100 transition-opacity rounded-b-2xl"></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section id="how-it-works" class="py-24 px-4 relative overflow-hidden">
-  <div class="orb w-96 h-96 bg-navy/10 dark:bg-accent/5 -left-20 top-1/3"></div>
-  <div class="max-w-5xl mx-auto">
-    <div class="text-center mb-16 rv">
-      <div class="tag bg-navy/10 dark:bg-steel/10 border border-navy/20 dark:border-steel/20 text-navy dark:text-accent mb-4">Simple Onboarding</div>
-      <h2 class="font-display font-black tracking-tight text-3xl sm:text-4xl text-midnight dark:text-cloud">Get Started in <span class="text-grad">3 Minutes</span></h2>
-    </div>
-    <div class="grid md:grid-cols-3 gap-8 relative">
-      <!-- Step connector line (desktop) -->
-      <div class="hidden md:block absolute top-10 left-[22%] right-[22%] h-px bg-gradient-to-r from-navy/30 via-accent/50 to-navy/30"></div>
+    <!-- Advanced Code Visualizer -->
+    <div id="hero-visual" class="relative group perspective-1000">
+      <!-- Glow Effect -->
+      <div class="absolute inset-0 bg-accent/20 blur-[120px] opacity-10 group-hover:opacity-30 transition-opacity duration-1000 rounded-full"></div>
       
-      <div class="rv text-center relative" style="transition-delay:.0s">
-        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-navy to-midnight flex items-center justify-center text-white text-3xl mx-auto mb-5 shadow-xl hover:scale-110 transition-transform cursor-default">
-          01
+      <div class="code-win relative bg-[#0d1117] rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_50px_120px_rgba(0,0,0,0.6)] transform-gpu hover:rotate-x-2 transition-transform duration-700 scale-[0.9] lg:scale-[0.86] origin-center">
+        <!-- Window Header -->
+        <div class="bg-[#161b22] px-7 py-4 flex items-center justify-between border-b border-white/5">
+          <div class="flex gap-2.5">
+            <span class="w-4 h-4 rounded-full bg-[#ff5f57] shadow-lg shadow-red-500/20"></span>
+            <span class="w-4 h-4 rounded-full bg-[#febc2e] shadow-lg shadow-yellow-500/20"></span>
+            <span class="w-4 h-4 rounded-full bg-[#28c840] shadow-lg shadow-green-500/20"></span>
+          </div>
+          <div class="flex items-center gap-3">
+              <span class="px-3 py-1 bg-white/5 rounded-lg text-[10px] text-white/50 font-mono">Algorithm_Visualizer.ts</span>
+              <span class="animate-pulse w-2 h-2 rounded-full bg-green-500"></span>
+          </div>
         </div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Sign Up</h3>
-        <p class="text-sm text-midnight/60 dark:text-cloud/60">Create your free account in seconds. Verify your college email and choose your role.</p>
-      </div>
-      <div class="rv text-center relative" style="transition-delay:.15s">
-        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-navy to-midnight flex items-center justify-center text-white text-3xl mx-auto mb-5 shadow-xl hover:scale-110 transition-transform cursor-default">
-          02
-        </div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Join Your College</h3>
-        <p class="text-sm text-midnight/60 dark:text-cloud/60">Connect to your institution's workspace. Your faculty assignments and leaderboard await.</p>
-      </div>
-      <div class="rv text-center relative" style="transition-delay:.3s">
-        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/80 to-navy flex items-center justify-center text-white text-3xl mx-auto mb-5 shadow-xl hover:scale-110 transition-transform cursor-default">
-          03
-        </div>
-        <h3 class="font-display font-bold text-lg mb-2 text-midnight dark:text-cloud">Start Coding</h3>
-        <p class="text-sm text-midnight/60 dark:text-cloud/60">Solve daily challenges, earn XP, climb the leaderboard, and build your coding portfolio.</p>
-      </div>
-    </div>
 
-    <!-- CTA inside how it works -->
-    <div class="rv text-center mt-14">
-      <button onclick="openAuth('register')" class="inline-flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-br from-navy to-midnight px-8 py-4 rounded-xl shadow-xl hover:shadow-[0_0_30px_rgba(0,194,255,.3)] transition-all hover:scale-[1.02] border-none cursor-pointer">
-        Start Your Coding Journey →
-      </button>
-      <p class="text-xs text-midnight/40 dark:text-cloud/40 mt-3">No credit card required. Free forever for students.</p>
-    </div>
-  </div>
-</section>
+        <!-- Code Content -->
+        <div class="p-7 font-mono text-[14px] leading-8 text-[#c9d1d9] overflow-hidden">
+          <p><span class="text-[#ff7b72]">interface</span> <span class="text-[#ffa657]">RankingMetrics</span> {</p>
+          <p class="pl-6">accuracy: <span class="text-[#ff7b72]">number</span>;</p>
+          <p class="pl-6">speed: <span class="text-[#ff7b72]">number</span>;</p>
+          <p class="pl-6">consistency: <span class="text-[#ff7b72]">number</span>;</p>
+          <p>}</p>
+          <p>&nbsp;</p>
+          <p><span class="text-[#ff7b72]">async function</span> <span class="text-[#d2a8ff]">evaluateTopRank</span>(uid: <span class="text-[#ff7b72]">string</span>) {</p>
+          <p class="pl-6"><span class="text-[#ff7b72]">const</span> metrics = <span class="text-[#ff7b72]">await</span> db.getMetrics(uid);</p>
+          <p class="pl-6 hl bg-white/5 py-1 px-4 rounded-lg"><span class="text-[#ff7b72]">if</span> (metrics.score >= <span class="text-[#79c0ff]">99.5</span>) {</p>
+          <p class="pl-12 text-[#a5d6ff]">console.log(<span class="text-[#a5d6ff]">"Welcome to the Elite 1%"</span>);</p>
+          <p class="pl-12">promoteToRole(<span class="text-[#a5d6ff]">'MASTER_CODER'</span>);</p>
+          <p class="pl-6">}</p>
+          <p class="pl-6"><span class="text-[#ff7b72]">return</span> calculateRoadmap(metrics);</p>
+          <p>}</p>
+        </div>
 
-<!-- PLACEMENT FEATURES -->
-<section class="py-20 px-4 bg-gradient-to-br from-navy to-midnight text-white relative overflow-hidden">
-  <div class="orb w-80 h-80 bg-accent/10 top-0 right-0"></div>
-  <div class="orb w-64 h-64 bg-white/5 bottom-0 left-10"></div>
-  <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-14 items-center relative z-10">
-    <div class="rv-l">
-      <div class="tag bg-white/10 border border-white/20 text-white/80 mb-6">Placement Ready</div>
-      <h2 class="font-display font-black text-3xl sm:text-4xl leading-tight mb-6">
-        Built to Get You <span class="text-grad-warm">Placed at</span><br/>Top Companies
-      </h2>
-      <p class="text-white/65 leading-relaxed mb-8 max-w-lg">CampusCode's placement track mirrors real interview rounds at product-based companies — from DSA to system design to mock interviews.</p>
-      <div class="grid grid-cols-2 gap-4">
-        <div class="bg-white/8 rounded-xl p-4 border border-white/10 hover:border-white/25 transition-colors">
-          <div class="text-2xl mb-2">🎯</div>
-          <div class="font-bold text-sm mb-1">Topic-wise Tracks</div>
-          <div class="text-xs text-white/55">Arrays → DP → Graphs</div>
-        </div>
-        <div class="bg-white/8 rounded-xl p-4 border border-white/10 hover:border-white/25 transition-colors">
-          <div class="text-2xl mb-2">🤖</div>
-          <div class="font-bold text-sm mb-1">AI Code Review</div>
-          <div class="text-xs text-white/55">Instant feedback & hints</div>
-        </div>
-        <div class="bg-white/8 rounded-xl p-4 border border-white/10 hover:border-white/25 transition-colors">
-          <div class="text-2xl mb-2">🏆</div>
-          <div class="font-bold text-sm mb-1">Mock Contests</div>
-          <div class="text-xs text-white/55">Weekly timed assessments</div>
-        </div>
-        <div class="bg-white/8 rounded-xl p-4 border border-white/10 hover:border-white/25 transition-colors">
-          <div class="text-2xl mb-2">📈</div>
-          <div class="font-bold text-sm mb-1">Progress Reports</div>
-          <div class="text-xs text-white/55">Share with recruiters</div>
-        </div>
-      </div>
-    </div>
-    <div class="rv-r">
-      <!-- Skill radar visualization (CSS only) -->
-      <div class="bg-white/5 border border-white/15 rounded-2xl p-6 float-b">
-        <div class="text-sm font-bold text-white/70 mb-4 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-          Your Skill Progress
-        </div>
-        <div class="space-y-3">
-          <div>
-            <div class="flex justify-between text-xs text-white/60 mb-1"><span>Data Structures</span><span class="font-bold text-white">82%</span></div>
-            <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-accent to-glow rounded-full" style="width:82%;animation:growBar 1.5s ease-out .3s both"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-xs text-white/60 mb-1"><span>Algorithms</span><span class="font-bold text-white">75%</span></div>
-            <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-accent to-glow rounded-full" style="width:75%;animation:growBar 1.5s ease-out .5s both"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-xs text-white/60 mb-1"><span>Dynamic Programming</span><span class="font-bold text-white">58%</span></div>
-            <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-accent to-glow rounded-full" style="width:58%;animation:growBar 1.5s ease-out .7s both"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-xs text-white/60 mb-1"><span>Graphs & Trees</span><span class="font-bold text-white">64%</span></div>
-            <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-accent to-glow rounded-full" style="width:64%;animation:growBar 1.5s ease-out .9s both"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-xs text-white/60 mb-1"><span>System Design</span><span class="font-bold text-white">40%</span></div>
-            <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-accent to-glow rounded-full" style="width:40%;animation:growBar 1.5s ease-out 1.1s both"></div></div>
-          </div>
-        </div>
-        <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between">
-          <div class="text-xs text-white/50">Overall Placement Readiness</div>
-          <div class="text-lg font-display font-black text-accent">64%</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <style>@keyframes growBar{from{width:0;}}</style>
-</section>
-
-<!-- TESTIMONIALS -->
-<section id="testimonials" class="py-20 px-4 relative overflow-hidden">
-  <div class="orb w-72 h-72 bg-navy/10 right-0 top-1/4"></div>
-  <div class="max-w-7xl mx-auto">
-    <div class="text-center mb-14 rv">
-      <div class="tag bg-navy/10 dark:bg-steel/10 border border-navy/20 dark:border-steel/20 text-navy dark:text-accent mb-4">Student Stories</div>
-      <h2 class="font-display font-black tracking-tight text-3xl sm:text-4xl text-midnight dark:text-cloud">What Our <span class="text-grad">Students Say</span></h2>
-    </div>
-    <div class="grid md:grid-cols-3 gap-5">
-      <div class="testi-card rv bg-white/80 dark:bg-midnight/60 border border-steel/20 rounded-2xl p-6 relative" style="transition-delay:.0s">
-        <div class="text-3xl mb-4">"</div>
-        <p class="text-sm text-midnight/70 dark:text-cloud/65 leading-relaxed mb-5">CampusCode's daily challenges helped me crack TCS NQT with a 98 percentile. The AI hints never give away the answer — they make you think.</p>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-navy to-accent flex items-center justify-center text-white font-bold">A</div>
-          <div>
-            <div class="font-bold text-sm text-midnight dark:text-cloud">Arjun Sharma</div>
-            <div class="text-xs text-midnight/50 dark:text-cloud/50">CSE, SRMIST · Placed at TCS</div>
-          </div>
-        </div>
-        <div class="absolute top-5 right-5 flex gap-0.5">
-          <span class="text-yellow-400 text-xs">★★★★★</span>
-        </div>
-      </div>
-      <div class="testi-card rv bg-white/80 dark:bg-midnight/60 border border-steel/20 rounded-2xl p-6 relative" style="transition-delay:.12s">
-        <div class="text-3xl mb-4">"</div>
-        <p class="text-sm text-midnight/70 dark:text-cloud/65 leading-relaxed mb-5">As a faculty member, I can finally track which students are actually coding and who needs help. The plagiarism detection alone saves hours every week.</p>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-steel to-midnight flex items-center justify-center text-white font-bold">D</div>
-          <div>
-            <div class="font-bold text-sm text-midnight dark:text-cloud">Dr. Deepika Nair</div>
-            <div class="text-xs text-midnight/50 dark:text-cloud/50">Associate Prof., VJTI Mumbai</div>
-          </div>
-        </div>
-        <div class="absolute top-5 right-5 flex gap-0.5">
-          <span class="text-yellow-400 text-xs">★★★★★</span>
-        </div>
-      </div>
-      <div class="testi-card rv bg-white/80 dark:bg-midnight/60 border border-steel/20 rounded-2xl p-6 relative" style="transition-delay:.24s">
-        <div class="text-3xl mb-4">"</div>
-        <p class="text-sm text-midnight/70 dark:text-cloud/65 leading-relaxed mb-5">I went from solving 0 problems to being in the top 100 of my college leaderboard in 6 weeks. The streak system is genuinely addictive.</p>
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-navy flex items-center justify-center text-white font-bold">P</div>
-          <div>
-            <div class="font-bold text-sm text-midnight dark:text-cloud">Priya Krishnan</div>
-            <div class="text-xs text-midnight/50 dark:text-cloud/50">IT, Amrita University</div>
-          </div>
-        </div>
-        <div class="absolute top-5 right-5 flex gap-0.5">
-          <span class="text-yellow-400 text-xs">★★★★★</span>
+        <!-- Submission Status Bar -->
+        <div class="bg-[#010409] px-7 py-4 border-t border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <span class="text-xs font-black text-green-500 uppercase tracking-widest">Code Accepted</span>
+                </div>
+                <div class="h-4 w-[1px] bg-white/10"></div>
+                <div class="text-[11px] text-white/40 font-mono">Process time: <span class="text-white">12ms</span></div>
+            </div>
+            <div class="flex -space-x-3">
+                <div class="w-8 h-8 rounded-full border-2 border-[#0d1117] bg-navy flex items-center justify-center text-[10px] font-bold">JD</div>
+                <div class="w-8 h-8 rounded-full border-2 border-[#0d1117] bg-accent flex items-center justify-center text-[10px] font-bold">AS</div>
+                <div class="w-8 h-8 rounded-full border-2 border-[#0d1117] bg-steel flex items-center justify-center text-[10px] font-bold">+12</div>
+            </div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- INSTITUTION CTA -->
-<section class="py-20 px-4 bg-white/40 dark:bg-midnight/50">
-  <div class="max-w-4xl mx-auto">
-    <div class="rv bg-gradient-to-br from-navy to-midnight rounded-3xl p-10 text-white text-center relative overflow-hidden">
-      <div class="orb w-64 h-64 bg-accent/10 -top-16 -right-10"></div>
-      <div class="orb w-48 h-48 bg-white/5 -bottom-10 -left-10"></div>
-      <div class="relative z-10">
-        <div class="tag bg-white/10 border border-white/20 text-white/80 mb-6 mx-auto">For Institutions</div>
-        <h2 class="font-display font-black text-3xl sm:text-4xl mb-4">Register Your College<br/>on CampusCode</h2>
-        <p class="text-white/65 max-w-xl mx-auto mb-8">Give your students a competitive edge. Get detailed analytics, faculty tools, and a private leaderboard for your institution — all free to start.</p>
-        <div class="flex flex-wrap gap-4 justify-center">
-          <a href="/college-register" class="inline-flex items-center gap-2 text-sm font-bold text-midnight bg-white px-7 py-3.5 rounded-xl shadow-xl hover:scale-[1.02] transition-all">
-            Register Institution →
-          </a>
-          <a href="mailto:partnerships@campuscode.in" class="inline-flex items-center gap-2 text-sm font-semibold text-white border-2 border-white/40 px-6 py-3 rounded-xl hover:border-white/80 transition-colors">
-            Contact Sales
-          </a>
-        </div>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TECH MARQUEE (Advanced) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="bg-midnight py-7 border-y border-white/5 overflow-hidden relative">
+  <div class="absolute inset-y-0 left-0 w-40 bg-gradient-to-r from-midnight to-transparent z-10"></div>
+  <div class="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-midnight to-transparent z-10"></div>
+  
+  <div class="marquee-wrap">
+    <div class="marquee-inner flex gap-16 items-center">
+      <!-- Full Set -->
+      <div class="flex gap-16 items-center px-8 marquee-item">
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">C++ Standard Template Library</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Python for Data Science</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">Java Virtual Machine</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Scalable System Design</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">Competitive Programming</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Distributed Systems</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">React Architecture</span>
+      </div>
+      <!-- Duplicate for infinite loop -->
+      <div class="flex gap-16 items-center px-8 marquee-item">
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">C++ Standard Template Library</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Python for Data Science</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">Java Virtual Machine</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Scalable System Design</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">Competitive Programming</span>
+        <span class="text-accent/40 font-black text-2xl uppercase tracking-[0.25em]">Distributed Systems</span>
+        <span class="text-white/30 font-black text-2xl uppercase tracking-[0.25em]">React Architecture</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
-<footer class="bg-midnight text-cloud px-4 pt-14 pb-8 border-t border-steel/10">
-  <div class="max-w-7xl mx-auto">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-      <div class="col-span-2 md:col-span-1">
-        <div class="flex items-center gap-2.5 mb-4">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-navy to-midnight flex items-center justify-center border border-steel/20">
-            <span class="font-mono font-bold text-white text-sm">&lt;/&gt;</span>
-          </div>
-          <span class="font-display font-extrabold text-lg">CampusCode</span>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• FEATURES GRID (Deep Content) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section id="features" class="py-14 md:py-16 lg:py-20 px-8 relative overflow-hidden bg-white/40 dark:bg-midnight/30">
+  <!-- Decorative Grid Overlay -->
+  <div class="absolute inset-0 opacity-10 pointer-events-none grid-bg"></div>
+
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="flex flex-col lg:flex-row items-end justify-between mb-14 gap-8" data-anim="fade-up">
+        <div class="max-w-3xl">
+            <span class="tag bg-navy/5 text-navy dark:text-accent mb-6 font-black">Platform Ecosystem</span>
+            <h2 class="font-display font-black text-3xl md:text-4xl lg:text-5xl mb-6 leading-tight">Every Role. <br/>One <span class="text-grad">Command Center.</span></h2>
+            <p class="text-base md:text-lg opacity-60 leading-relaxed font-medium">CampusCode isn't just a coding platform; it's a centralized nervous system for institutional technical development, managing the entire lifecycle of an engineering student.</p>
         </div>
-        <p class="text-xs text-cloud/40 leading-relaxed">Bridging India's college-to-industry coding gap, one submission at a time.</p>
-      </div>
-      <div>
-        <div class="text-xs font-bold text-cloud/40 uppercase tracking-widest mb-4">Product</div>
-        <div class="space-y-2.5">
-          <a href="#features" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">Features</a>
-          <a href="#how-it-works" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">How It Works</a>
-          <a href="/college-register" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">For Colleges</a>
+        <div class="flex gap-4">
+            <div class="p-6 bg-white dark:bg-white/5 rounded-3xl border border-navy/5 text-center w-32 shadow-xl">
+                <p class="font-black text-2xl">99%</p>
+                <p class="text-[10px] uppercase opacity-40 font-bold">Uptime</p>
+            </div>
+            <div class="p-6 bg-white dark:bg-white/5 rounded-3xl border border-navy/5 text-center w-32 shadow-xl">
+                <p class="font-black text-2xl">256-bit</p>
+                <p class="text-[10px] uppercase opacity-40 font-bold">Secure</p>
+            </div>
         </div>
-      </div>
-      <div>
-        <div class="text-xs font-bold text-cloud/40 uppercase tracking-widest mb-4">Company</div>
-        <div class="space-y-2.5">
-          <a href="#about" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">About</a>
-          <a href="mailto:hello@campuscode.in" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">Contact</a>
-          <a href="#" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">Blog</a>
-        </div>
-      </div>
-      <div>
-        <div class="text-xs font-bold text-cloud/40 uppercase tracking-widest mb-4">Legal</div>
-        <div class="space-y-2.5">
-          <a href="#" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">Privacy Policy</a>
-          <a href="#" class="block text-sm text-cloud/60 hover:text-cloud transition-colors">Terms of Use</a>
-        </div>
-      </div>
     </div>
-    <div class="border-t border-steel/10 pt-6 flex flex-wrap items-center justify-between gap-3">
-      <p class="text-xs text-cloud/30">© 2026 CampusCode. All rights reserved.</p>
-      <p class="text-xs text-cloud/25">Made with ❤️ for Indian Engineering Students</p>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <!-- Role Card 1: Student -->
+      <div class="fcard bg-white dark:bg-midnight/50 p-10 rounded-[2.5rem] border border-navy/5 dark:border-steel/5 relative overflow-hidden flex flex-col h-full" data-anim="fade-up" data-delay="0">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-glow/20 flex items-center justify-center text-4xl mb-8 shadow-inner">🎓</div>
+        <h3 class="font-display font-black text-2xl mb-6">Learner Elite</h3>
+        <p class="text-sm opacity-50 mb-8 flex-grow">A gamified environment where every semicolon counts. Level up, earn XP, and unlock hidden roles.</p>
+        <ul class="space-y-4 mb-8">
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-accent"></span> AI-Powered Hint Engine</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-accent"></span> Real-time Global Duel</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-accent"></span> Auto-Gen Resume</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-accent"></span> Daily Streak Rewards</li>
+        </ul>
+        <div class="fcard-bar"></div>
+      </div>
+
+      <!-- Role Card 2: Faculty -->
+      <div class="fcard bg-white dark:bg-midnight/50 p-10 rounded-[2.5rem] border border-navy/5 dark:border-steel/5 relative overflow-hidden flex flex-col h-full" data-anim="fade-up" data-delay="100">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-navy/20 to-midnight/20 flex items-center justify-center text-4xl mb-8 shadow-inner">👨‍🏫</div>
+        <h3 class="font-display font-black text-2xl mb-6">Faculty Hub</h3>
+        <p class="text-sm opacity-50 mb-8 flex-grow">Zero-effort grading. Focus on teaching while our automated systems handle the evaluation.</p>
+        <ul class="space-y-4 mb-8">
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-navy"></span> Batch Grading Analytics</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-navy"></span> MOSS Plagiarism Check</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-navy"></span> Custom Test Case Lab</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-navy"></span> Lab Attendance Sync</li>
+        </ul>
+        <div class="fcard-bar"></div>
+      </div>
+
+      <!-- Role Card 3: HOD -->
+      <div class="fcard bg-white dark:bg-midnight/50 p-10 rounded-[2.5rem] border border-navy/5 dark:border-steel/5 relative overflow-hidden flex flex-col h-full" data-anim="fade-up" data-delay="200">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-glow/20 to-navy/20 flex items-center justify-center text-4xl mb-8 shadow-inner">📊</div>
+        <h3 class="font-display font-black text-2xl mb-6">Department Lead</h3>
+        <p class="text-sm opacity-50 mb-8 flex-grow">Bird's-eye view of your entire department's technical health and faculty performance.</p>
+        <ul class="space-y-4 mb-8">
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-glow"></span> Strategic Competency Maps</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-glow"></span> Inter-Section Analytics</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-glow"></span> Semester Growth Report</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-glow"></span> Career-Ready Forecasts</li>
+        </ul>
+        <div class="fcard-bar"></div>
+      </div>
+
+      <!-- Role Card 4: Admin -->
+      <div class="fcard bg-white dark:bg-midnight/50 p-10 rounded-[2.5rem] border border-navy/5 dark:border-steel/5 relative overflow-hidden flex flex-col h-full" data-anim="fade-up" data-delay="300">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-black/10 to-white/10 flex items-center justify-center text-4xl mb-8 shadow-inner">🏛️</div>
+        <h3 class="font-display font-black text-2xl mb-6">Institution Head</h3>
+        <p class="text-sm opacity-50 mb-8 flex-grow">Control institution-wide branding, user roles, and large-scale data integrations.</p>
+        <ul class="space-y-4 mb-8">
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-black dark:bg-white"></span> Multi-Dept Governance</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-black dark:bg-white"></span> Vendor API Connectivity</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-black dark:bg-white"></span> White-label Dashboard</li>
+          <li class="flex items-center gap-3 text-sm font-bold opacity-80"><span class="w-2 h-2 rounded-full bg-black dark:bg-white"></span> Financial Oversight</li>
+        </ul>
+        <div class="fcard-bar"></div>
+      </div>
     </div>
   </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• HOW IT WORKS (Interactive Canvas) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section id="how-it-works" class="py-14 md:py-16 lg:py-20 px-8 bg-gray-50 dark:bg-midnight/40 border-y border-navy/5 relative overflow-hidden">
+    <!-- SVG Background Connections -->
+    <div class="absolute inset-0 z-0 pointer-events-none opacity-20 dark:opacity-10">
+        <svg class="w-full h-full" viewBox="0 0 1440 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 400C300 100 600 700 900 400C1200 100 1440 400" stroke="#00C2FF" stroke-width="2" stroke-dasharray="10 10"/>
+            <path d="M0 600C400 300 800 900 1440 600" stroke="#1A4A8A" stroke-width="2" stroke-dasharray="10 10"/>
+        </svg>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div data-anim="fade-left">
+            <span class="tag bg-accent/10 text-accent mb-6 font-black tracking-widest">Growth Engine</span>
+            <h2 class="font-display font-black text-3xl md:text-4xl lg:text-5xl mb-8 leading-[1.1]">Iterate. Master.<br/><span class="text-grad">Dominate.</span></h2>
+            <p class="text-base md:text-lg opacity-60 mb-10 leading-relaxed font-medium">Technical mastery is a marathon, not a sprint. Our structured loop ensures you don't just solve problemsâ€”you build a technical legacy that recruiters can't ignore.</p>
+            
+            <div class="space-y-12">
+                <div class="flex gap-8 group">
+                    <div class="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center font-black text-xl text-accent shrink-0 group-hover:bg-accent group-hover:text-white transition-all duration-500 shadow-lg">01</div>
+                    <div>
+                        <h4 class="font-black text-2xl mb-3">Targeted Practice</h4>
+                        <p class="text-base opacity-50 leading-relaxed">Daily curated problems adapted to your skill gap. No more solving what you already know.</p>
+                    </div>
+                </div>
+                <div class="flex gap-8 group">
+                    <div class="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center font-black text-xl text-accent shrink-0 group-hover:bg-accent group-hover:text-white transition-all duration-500 shadow-lg">02</div>
+                    <div>
+                        <h4 class="font-black text-2xl mb-3">Elite Contests</h4>
+                        <p class="text-base opacity-50 leading-relaxed">Compete in high-stakes environments. Weekly college-wide and global tournaments.</p>
+                    </div>
+                </div>
+                <div class="flex gap-8 group">
+                    <div class="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center font-black text-xl text-accent shrink-0 group-hover:bg-accent group-hover:text-white transition-all duration-500 shadow-lg">03</div>
+                    <div>
+                        <h4 class="font-black text-2xl mb-3">Open Merit Recognition</h4>
+                        <p class="text-base opacity-50 leading-relaxed">Top performers are highlighted through transparent coding stats and validated progress.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Visual -->
+        <div class="relative h-[560px] lg:h-[620px] flex items-center justify-center" data-anim="fade-right">
+            <!-- Animated Rings -->
+            <div class="absolute w-[550px] h-[550px] border-[3px] border-dashed border-navy/10 rounded-full animate-spin-slow"></div>
+            <div class="absolute w-[350px] h-[350px] border-[2px] border-dashed border-accent/20 rounded-full animate-spin" style="animation-duration: 15s; animation-direction: reverse;"></div>
+            
+            <!-- Core Component -->
+            <div class="relative group cursor-pointer">
+                <div class="absolute inset-0 bg-accent/30 blur-[60px] opacity-20 group-hover:opacity-60 transition-opacity"></div>
+                <div class="relative w-32 h-32 bg-gradient-to-br from-navy to-black rounded-[2rem] flex items-center justify-center shadow-2xl z-10 border border-white/10 group-hover:scale-110 transition-transform">
+                    <span class="font-mono text-white font-black text-4xl tracking-tighter">&lt;/&gt;</span>
+                </div>
+            </div>
+
+            <!-- Orbiting Nodes -->
+            <div class="orbit-node absolute top-0 bg-white dark:bg-midnight border border-navy/10 rounded-3xl p-6 shadow-[0_20px_40px_rgba(0,0,0,0.1)] flex items-center gap-4 animate-float">
+                <span class="text-2xl font-black">&lt;/&gt;</span>
+                <div class="flex flex-col">
+                    <span class="font-black text-xs uppercase tracking-widest opacity-40">Phase 01</span>
+                    <span class="font-black text-lg">SOLVE</span>
+                </div>
+            </div>
+            
+            <div class="orbit-node absolute bottom-12 right-0 bg-white dark:bg-midnight border border-navy/10 rounded-3xl p-6 shadow-[0_20px_40px_rgba(0,0,0,0.1)] flex items-center gap-4" style="animation: floatY 6s infinite 1.5s">
+                <span class="text-2xl font-black">CT</span>
+                <div class="flex flex-col">
+                    <span class="font-black text-xs uppercase tracking-widest opacity-40">Phase 02</span>
+                    <span class="font-black text-lg">BATTLE</span>
+                </div>
+            </div>
+            
+            <div class="orbit-node absolute bottom-12 left-0 bg-white dark:bg-midnight border border-navy/10 rounded-3xl p-6 shadow-[0_20px_40px_rgba(0,0,0,0.1)] flex items-center gap-4" style="animation: floatY 6s infinite 3s">
+                <span class="text-2xl font-black">UP</span>
+                <div class="flex flex-col">
+                    <span class="font-black text-xs uppercase tracking-widest opacity-40">Phase 03</span>
+                    <span class="font-black text-lg">GROW</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• LEADERBOARD VISUAL â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section class="py-14 md:py-16 lg:py-20 px-8">
+    <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        <div class="relative" data-anim="fade-left">
+            <div class="bg-white dark:bg-midnight/60 rounded-[2.5rem] border border-navy/5 p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-8">
+                    <span class="text-[10px] font-black uppercase tracking-widest opacity-20">Live Rankings</span>
+                </div>
+                <h4 class="font-display font-black text-3xl mb-10">Top Active Coders</h4>
+                
+                <div id="topCodersList" class="space-y-6">
+                    <div class="flex items-center justify-between p-5 bg-navy/5 dark:bg-white/5 rounded-2xl border-l-4 border-accent">
+                        <div class="flex items-center gap-5">
+                            <span class="font-black text-2xl text-accent italic">#01</span>
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-navy to-midnight flex items-center justify-center font-bold">--</div>
+                            <div><p class="font-black">Loading...</p><p class="text-[10px] uppercase opacity-40">Please wait</p></div>
+                        </div>
+                        <span class="font-mono text-accent font-bold">--</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative Glow -->
+            <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-accent/20 blur-[80px]"></div>
+        </div>
+
+        <div data-anim="fade-right">
+            <span class="tag bg-navy/5 text-navy dark:text-accent mb-6 font-black tracking-widest">Competitive Spirit</span>
+            <h2 class="font-display font-black text-3xl md:text-4xl lg:text-5xl mb-8 leading-[1.1]">Prove Your <br/><span class="text-grad">Excellence.</span></h2>
+            <p class="text-base md:text-lg opacity-60 mb-10 leading-relaxed font-medium">Competition fuels growth. Our leaderboard is a live merit snapshot built from accepted runs and solved counts across campuses.</p>
+            <div class="grid grid-cols-2 gap-8">
+                <div class="space-y-2">
+                    <p class="font-black text-2xl">Institutional Pride</p>
+                    <p class="text-sm opacity-50">Represent your college and climb the campus-tier rankings.</p>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-black text-2xl">Verified Stats</p>
+                    <p class="text-sm opacity-50">Every submission is recorded and verified via our anti-cheat engine.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• FAQ SECTION (Deep Logic) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section id="faq" class="py-14 md:py-16 lg:py-20 px-8 bg-cloud/30 dark:bg-midnight/50">
+    <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-14" data-anim="fade-up">
+            <span class="tag bg-accent/10 text-accent mb-6 font-black">Help Center</span>
+            <h2 class="font-display font-black text-3xl md:text-4xl lg:text-5xl mb-6">Got Questions?</h2>
+            <p class="text-base md:text-lg opacity-50 font-medium">Everything you need to know about the CampusCode ecosystem.</p>
+        </div>
+
+        <div class="space-y-6">
+            <!-- FAQ Item 1 -->
+            <div class="faq-item group bg-white dark:bg-midnight/60 rounded-[2rem] border border-navy/5 px-10" data-anim="fade-up">
+                <div class="faq-trigger" onclick="toggleFaq(this)">
+                    <h3 class="font-black text-xl">Can I join CampusCode individually if my institution isn't registered?</h3>
+                    <span class="faq-icon text-2xl transition-transform duration-500">v</span>
+                </div>
+                <div class="faq-content">
+                    <p class="opacity-60 leading-relaxed text-lg">Absolutely. CampusCode is built on an open-merit system. Individual students can join, solve problems, and compete in global contests. While you won't have access to your college-specific lab assignments or dashboards, your global ranking and XP will still be visible to all recruiters.</p>
+                </div>
+            </div>
+
+            <!-- FAQ Item 2 -->
+            <div class="faq-item group bg-white dark:bg-midnight/60 rounded-[2rem] border border-navy/5 px-10" data-anim="fade-up">
+                <div class="faq-trigger" onclick="toggleFaq(this)">
+                    <h3 class="font-black text-xl">How does the automated grading and plagiarism system work?</h3>
+                    <span class="faq-icon text-2xl transition-transform duration-500">v</span>
+                </div>
+                <div class="faq-content">
+                    <p class="opacity-60 leading-relaxed text-lg">Our system uses a sophisticated sandbox environment to run code against multiple hidden test cases. For plagiarism, we use AST (Abstract Syntax Tree) comparison via MOSS algorithms combined with AI analysis to detect structural similarities, even if variables and logic are slightly altered.</p>
+                </div>
+            </div>
+
+            <!-- FAQ Item 3 -->
+            <div class="faq-item group bg-white dark:bg-midnight/60 rounded-[2rem] border border-navy/5 px-10" data-anim="fade-up">
+                <div class="faq-trigger" onclick="toggleFaq(this)">
+                    <h3 class="font-black text-xl">How is merit measured on the platform?</h3>
+                    <span class="faq-icon text-2xl transition-transform duration-500">v</span>
+                </div>
+                <div class="faq-content">
+                    <p class="opacity-60 leading-relaxed text-lg">Merit is measured using solved problem count, accepted runs, consistency, and contest outcomes. Rankings update from real submissions, so performance remains transparent and current.</p>
+                </div>
+            </div>
+
+            <!-- FAQ Item 4 -->
+            <div class="faq-item group bg-white dark:bg-midnight/60 rounded-[2rem] border border-navy/5 px-10" data-anim="fade-up">
+                <div class="faq-trigger" onclick="toggleFaq(this)">
+                    <h3 class="font-black text-xl">What languages are supported on the platform?</h3>
+                    <span class="faq-icon text-2xl transition-transform duration-500">v</span>
+                </div>
+                <div class="faq-content">
+                    <p class="opacity-60 leading-relaxed text-lg">We currently support 24+ languages including C++, Java, Python, JavaScript (Node.js), TypeScript, Go, Rust, Ruby, and SQL. Each language is provided with its standard industry libraries and a real-time execution environment.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CTA for Support -->
+        <div class="mt-20 text-center" data-anim="fade-up">
+            <p class="text-lg opacity-50 mb-6">Didn't find your answer?</p>
+            <a href="mailto:support@campuscode.in" class="inline-flex items-center gap-3 font-black text-navy dark:text-accent hover:underline decoration-2 underline-offset-8">
+                Chat with our Academic Team ->
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• CONTACT SECTION â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<section id="contact" class="py-14 md:py-16 lg:py-20 px-8 bg-gradient-to-br from-navy to-black text-white relative overflow-hidden">
+    <!-- SVG Decorator -->
+    <div class="absolute top-0 right-0 p-20 opacity-10">
+        <svg class="w-64 h-64" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="white" stroke-width="2" fill="none"/></svg>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div data-anim="fade-left">
+            <h2 class="font-display font-black text-3xl md:text-4xl lg:text-5xl mb-8 leading-[1.05]">Let's Build the <br/><span class="text-accent">Future.</span></h2>
+            <p class="text-base md:text-lg text-white/60 mb-10 max-w-lg leading-relaxed font-medium">Ready to onboard your college or have a technical query? Our engineers and campus specialists are available for consultation.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-2xl">📧</div>
+                    <p class="text-xs font-black uppercase tracking-widest opacity-40">Primary Contact</p>
+                    <p class="font-black text-lg">hello@campuscode.in</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-2xl">🏛️</div>
+                    <p class="text-xs font-black uppercase tracking-widest opacity-40">Institution Support</p>
+                    <p class="font-black text-lg">campuses@campuscode.in</p>
+                </div>
+            </div>
+
+            <!-- Global Support Status -->
+            <div class="mt-16 inline-flex items-center gap-4 px-6 py-3 bg-white/5 rounded-2xl border border-white/10">
+                <span class="w-3 h-3 rounded-full bg-green-500 animate-ping"></span>
+                <span class="text-xs font-black uppercase tracking-widest">Support Response: <span class="text-green-500">~12 Minutes</span></span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2.2rem] p-8 text-midnight shadow-[0_50px_150px_rgba(0,0,0,0.4)]" data-anim="fade-right">
+            <form id="contactForm" class="space-y-8" onsubmit="handleContact(event)">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="space-y-3">
+                        <label class="text-xs font-black uppercase opacity-40 tracking-widest ml-1">Your Name</label>
+                        <input type="text" required placeholder="Alexander Pierce" class="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-navy focus:bg-white transition-all font-bold"/>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="text-xs font-black uppercase opacity-40 tracking-widest ml-1">Email Address</label>
+                        <input type="email" required placeholder="alex@campus.edu" class="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-navy focus:bg-white transition-all font-bold"/>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-black uppercase opacity-40 tracking-widest ml-1">Institution / Company</label>
+                    <input type="text" placeholder="Optional" class="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-navy focus:bg-white transition-all font-bold"/>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-black uppercase opacity-40 tracking-widest ml-1">Tell us more</label>
+                    <textarea required rows="4" placeholder="How can we help your technical journey?" class="w-full p-5 rounded-2xl border-2 border-slate-100 bg-slate-50 outline-none focus:border-navy focus:bg-white transition-all font-bold resize-none"></textarea>
+                </div>
+                <button type="submit" id="c_btn" class="w-full py-6 bg-midnight text-white font-black rounded-[1.5rem] hover:scale-[1.03] active:scale-95 transition-all shadow-xl">
+                    Dispatch Inquiry ->
+                </button>
+                <p id="c_feedback" class="text-center text-sm font-black hidden text-green-600 animate-fade-in">✓ Transmission Received. We'll be in touch.</p>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• FOOTER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<footer class="py-14 px-8 bg-black text-white/50 border-t border-white/5">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 mb-20 text-left">
+        <div class="col-span-1 md:col-span-1 space-y-8">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-mono text-white text-base">&lt;/&gt;</div>
+                <span class="font-display font-black text-2xl text-white">CampusCode</span>
+            </div>
+            <p class="text-sm leading-relaxed font-medium">Transforming the engineering education landscape through merit-driven development and transparent technical progression.</p>
+        </div>
+        
+        <div class="space-y-6">
+            <h5 class="text-white font-black uppercase text-xs tracking-widest">Platform</h5>
+            <div class="flex flex-col gap-3 text-sm font-bold">
+                <a href="#" class="hover:text-accent transition-colors">Contests</a>
+                <a href="#" class="hover:text-accent transition-colors">Roadmaps</a>
+                <a href="#" class="hover:text-accent transition-colors">Lab Automation</a>
+                <a href="#" class="hover:text-accent transition-colors">Job Board</a>
+            </div>
+        </div>
+        
+        <div class="space-y-6">
+            <h5 class="text-white font-black uppercase text-xs tracking-widest">Legal</h5>
+            <div class="flex flex-col gap-3 text-sm font-bold">
+                <a href="#" class="hover:text-accent transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-accent transition-colors">Terms of Service</a>
+                <a href="#" class="hover:text-accent transition-colors">Cookie Policy</a>
+                <a href="#" class="hover:text-accent transition-colors">Ethics Protocol</a>
+            </div>
+        </div>
+
+        <div class="space-y-8">
+            <h5 class="text-white font-black uppercase text-xs tracking-widest">Stay Updated</h5>
+            <div class="flex gap-2">
+                <input type="email" placeholder="Join Newsletter" class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-accent w-full"/>
+                <button class="bg-white/10 hover:bg-white text-white hover:text-black transition-all px-4 rounded-xl">→</button>
+            </div>
+            <div class="flex gap-4">
+                <a href="#" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-accent hover:text-white transition-all">TW</a>
+                <a href="#" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-accent hover:text-white transition-all">LI</a>
+                <a href="#" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-accent hover:text-white transition-all">GH</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 border-t border-white/5 pt-10">
+        <p class="text-[10px] font-black uppercase tracking-[.3em]">&copy; 2026 CampusCode Ecosystems (Global)</p>
+        <div class="flex gap-8 items-center">
+            <span class="text-[10px] font-black uppercase tracking-widest">ISO 27001 Certified</span>
+            <div class="w-1 h-1 rounded-full bg-white/20"></div>
+            <span class="text-[10px] font-black uppercase tracking-widest text-accent">Tier 1 Cloud Infrastructure</span>
+        </div>
+    </div>
 </footer>
 
-<!-- AUTH MODAL -->
-<div id="authModal" class="fixed inset-0 z-[2000] hidden opacity-0 transition-opacity duration-300">
-  <div class="absolute inset-0 bg-black/70 backdrop-blur-md" onclick="closeAuthModal()"></div>
-  <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-6 pointer-events-none">
-    <div class="pointer-events-auto relative w-full max-w-[900px]">
-      <button onclick="closeAuthModal()" class="absolute -top-4 -right-4 z-[300] w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-xl text-gray-500 hover:text-red-500 transition-all flex items-center justify-center cursor-pointer text-sm">✕</button>
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTH MODAL SYSTEM â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<div id="authModal" class="fixed inset-0 z-[2000] hidden opacity-0 transition-opacity duration-500">
+  <div class="absolute inset-0 bg-black/90 backdrop-blur-xl" onclick="closeAuthModal()"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
+    <div class="pointer-events-auto relative w-full max-w-[1000px] scale-90 transition-transform duration-500" id="modalContainer">
+      <!-- Close Button -->
+      <button onclick="closeAuthModal()" class="absolute -top-6 -right-6 z-[300] w-14 h-14 rounded-full bg-white dark:bg-midnight shadow-2xl flex items-center justify-center cursor-pointer text-2xl hover:text-red-500 transition-all hover:scale-110 active:scale-90">×</button>
+      
       <div id="authBox">
-        <!-- LOGIN PANEL -->
+        <!-- â”€â”€ LOGIN PANEL â”€â”€ -->
         <div id="panelLogin" class="ac-form">
-          <form action="/auth/login" method="POST" class="w-full flex flex-col gap-4">
-            <div class="text-center mb-2">
-              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-navy to-midnight mx-auto mb-3 flex items-center justify-center">
-                <span class="font-mono font-bold text-white">&lt;/&gt;</span>
-              </div>
-              <h2 class="font-display font-black text-2xl text-gray-900 dark:text-white">Welcome Back</h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to your CampusCode account</p>
+          <div class="mb-10">
+            <h2 class="font-display font-black text-4xl mb-4">Welcome Back</h2>
+            <p class="text-lg opacity-40 font-medium">Continue your streak and climb the ranks.</p>
+          </div>
+          <form id="loginForm" class="space-y-6" action="/auth/login" method="POST">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-40">Identifier</label>
+                <input type="email" name="email" placeholder="Email or Username" required class="ac-input font-bold"/>
             </div>
-            <input type="email" name="email" placeholder="Email Address" required class="ac-input"/>
-            <input type="password" name="password" placeholder="Password" required class="ac-input"/>
-            <button type="submit" class="ac-btn">Sign In →</button>
-            <p class="text-center text-sm text-gray-500 dark:text-gray-400">Don't have an account? <button type="button" onclick="acGoSignup()" class="ac-link">Sign Up</button></p>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black uppercase tracking-widest ml-1 opacity-40">Security Key</label>
+                <input type="password" name="password" placeholder="********" required class="ac-input font-bold"/>
+            </div>
+            <div class="flex justify-between items-center px-1">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" class="w-5 h-5 accent-navy rounded-lg"/>
+                    <span class="text-xs font-bold opacity-60 group-hover:opacity-100 transition-opacity">Stay authenticated</span>
+                </label>
+                <a href="#" class="text-xs font-black text-navy dark:text-accent hover:underline decoration-2 underline-offset-4">Reset Credentials?</a>
+            </div>
+            <button type="submit" class="w-full py-5 bg-gradient-to-br from-navy to-black text-white font-black rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all text-lg">
+                Sign In ->
+            </button>
+            
+            <div class="relative py-4 flex items-center justify-center">
+                <div class="absolute inset-x-0 h-[1px] bg-slate-100 dark:bg-white/5"></div>
+                <span class="relative z-10 bg-white dark:bg-[#071322] px-4 text-[10px] font-black opacity-30 tracking-widest uppercase">Third-party access</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button type="button" class="flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-bold">
+                    <span class="text-lg">G</span> Google
+                </button>
+                <button type="button" class="flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-bold">
+                    <span class="text-lg">GH</span> GitHub
+                </button>
+            </div>
+            
+            <p class="text-center text-sm mt-8 font-medium">New to the ecosystem? <button type="button" onclick="acGoSignup()" class="text-navy dark:text-accent font-black underline decoration-2 underline-offset-4">Create Account</button></p>
           </form>
         </div>
 
-        <!-- SIGNUP PANEL -->
+                <!-- â”€â”€ SIGNUP PANEL â”€â”€ -->
         <div id="panelSignup" class="ac-form">
           <form id="signupForm" class="w-full flex flex-col gap-3">
             <div id="su-step1" class="w-full flex flex-col gap-3">
@@ -725,225 +841,443 @@ tailwind.config = {
             </div>
           </form>
         </div>
-
-        <!-- OVERLAY PANEL -->
+        <!-- â”€â”€ OVERLAY SYSTEM â”€â”€ -->
         <div id="authOverlayPanel">
           <div id="authOverlayInner">
-            <div class="ac-ovp">
-              <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center font-mono font-bold text-white text-xl mb-4">&lt;/&gt;</div>
-              <h2 id="overlayTitle" class="font-display font-black text-3xl mb-3">New Here?</h2>
-              <p id="overlayDesc" class="text-white/65 text-sm leading-relaxed mb-8 px-2">Sign up and join your college coding platform today.</p>
-              <button id="overlaySwitchBtn" onclick="acGoSignup()" class="ac-ovbtn">Sign Up</button>
+            <!-- Left Side Overlay -->
+            <div class="ac-ovp flex flex-col items-center justify-center p-16">
+              <div class="w-24 h-24 rounded-[2rem] bg-white/10 flex items-center justify-center mb-10 shadow-2xl border border-white/5">
+                <span class="text-5xl">CC</span>
+              </div>
+              <h2 id="overlayTitle" class="font-display font-black text-5xl mb-8 leading-tight">Start Your <br/>Legend.</h2>
+              <p id="overlayDesc" class="text-white/60 text-lg mb-12 max-w-sm font-medium">Unlock daily streaks, global duels, and institution-wide fame.</p>
+              <button id="overlaySwitchBtn" onclick="acGoSignup()" class="ac-ovbtn px-12 py-5 text-lg">Initialize Account</button>
+            </div>
+            <!-- Right Side Overlay -->
+            <div class="ac-ovp flex flex-col items-center justify-center p-16">
+                <div class="w-24 h-24 rounded-[2rem] bg-white/10 flex items-center justify-center mb-10 shadow-2xl border border-white/5">
+                    <span class="text-5xl">ID</span>
+                </div>
+                <h2 class="font-display font-black text-5xl mb-8 leading-tight">Verify <br/>Identify.</h2>
+                <p class="text-white/60 text-lg mb-12 max-w-sm font-medium">Returning to the command center? Securely authorize access.</p>
+                <button onclick="acGoLogin()" class="ac-ovbtn px-12 py-5 text-lg">Secure Login</button>
             </div>
           </div>
         </div>
-      </div>
-      <!-- Mobile toggle strip -->
-      <div class="sm:hidden mt-3 bg-white dark:bg-[#071322] rounded-xl p-4 text-center shadow-lg border border-gray-100 dark:border-slate-800">
-        <p id="mobTxt" class="text-sm text-gray-500 dark:text-gray-400 mb-1">Don't have an account?</p>
-        <button onclick="acMobToggle()" id="mobBtn" class="ac-link text-sm">Sign Up instead</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• SCRIPTS (Full Logic Restored) â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
 <script>
-// Theme
-let dark = false;
-if(localStorage.theme==="dark"||(!("theme" in localStorage)&&window.matchMedia("(prefers-color-scheme: dark)").matches)){
-  document.documentElement.classList.add("dark"); dark = true;
+// Register Plugins
+gsap.registerPlugin(ScrollTrigger);
+
+/* â”€â”€ THEME CORE â”€â”€ */
+let dark = localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+function applyTheme() {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.theme = dark ? "dark" : "light";
+    document.getElementById("themeBtn").textContent = dark ? "◑" : "◐";
 }
-function toggleTheme(){
-  dark=!dark;
-  document.documentElement.classList.toggle("dark",dark);
-  localStorage.theme=dark?"dark":"light";
-  document.getElementById("themeBtn").textContent=dark?"☀":"☽";
+applyTheme();
+
+function toggleTheme() {
+  dark = !dark;
+  applyTheme();
 }
-if(dark) document.getElementById("themeBtn").textContent="☀";
 
-// Nav
-function toggleMob(){document.getElementById("mob").classList.toggle("open");}
-function closeMob(){document.getElementById("mob").classList.remove("open");}
+/* â”€â”€ UI HELPERS â”€â”€ */
+function toggleMob() { 
+    const mob = document.getElementById("mob");
+    mob.classList.toggle("hidden"); 
+    mob.classList.toggle("flex"); 
+}
+function closeMob() { 
+    document.getElementById("mob").classList.add("hidden"); 
+    document.getElementById("mob").classList.remove("flex"); 
+}
 
-// Progress bar
-const pbar=document.getElementById("pbar");
-const navbar=document.getElementById("navbar");
-window.addEventListener("scroll",()=>{
-  pbar.style.width=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+"%";
-  navbar.classList.toggle("shadow-[0_4px_30px_rgba(8,23,46,.15)]",window.scrollY>50);
-},{passive:true});
+// Global Scroll Listener
+window.addEventListener("scroll", () => {
+  const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const scrollPos = window.scrollY / scrollHeight;
+  document.getElementById("pbar").style.width = (scrollPos * 100) + "%";
+  
+  // Navbar Shrink Effect
+  const nav = document.getElementById("navbar");
+  if (window.scrollY > 100) {
+      nav.classList.add("py-3", "shadow-2xl");
+      nav.classList.remove("py-5");
+  } else {
+      nav.classList.remove("py-3", "shadow-2xl");
+      nav.classList.add("py-5");
+  }
+}, { passive: true });
 
-// Reveal on scroll
-const revObs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){e.target.classList.add("in");revObs.unobserve(e.target);}
+/* â”€â”€ GSAP ANIMATION ENGINE â”€â”€ */
+function initScrollAnimations() {
+  const elements = document.querySelectorAll("[data-anim]");
+  elements.forEach(el => {
+    const type = el.getAttribute("data-anim");
+    const delay = parseInt(el.getAttribute("data-delay") || "0");
+    
+    // Initial State
+    if(type === "fade-up") gsap.set(el, { opacity: 0, y: 70 });
+    if(type === "fade-left") gsap.set(el, { opacity: 0, x: -80 });
+    if(type === "fade-right") gsap.set(el, { opacity: 0, x: 80 });
+
+    ScrollTrigger.create({
+      trigger: el, 
+      start: "top 90%", 
+      once: true,
+      onEnter: () => {
+        if(type === "fade-up") gsap.to(el, { opacity: 1, y: 0, duration: 1.2, delay: delay/1000, ease: "power4.out" });
+        if(type === "fade-left") gsap.to(el, { opacity: 1, x: 0, duration: 1.4, delay: delay/1000, ease: "power4.out" });
+        if(type === "fade-right") gsap.to(el, { opacity: 1, x: 0, duration: 1.4, delay: delay/1000, ease: "power4.out" });
+      }
+    });
   });
-},{threshold:0.1});
-document.querySelectorAll(".rv,.rv-l,.rv-r").forEach(el=>revObs.observe(el));
+}
 
-// Staggered delays for feature cards
-document.querySelectorAll(".feature-card").forEach((c,i)=>c.style.transitionDelay=(i*0.09)+"s");
+function initHeroAnimations() {
+  const tl = gsap.timeline({ defaults: { ease: "power4.out" }});
+  tl.from("#hero-badge", { opacity: 0, y: 40, duration: 1, delay: 0.6 })
+    .from("#hero-h1", { opacity: 0, y: 60, duration: 1.2 }, "-=0.8")
+    .from("#hero-sub", { opacity: 0, y: 40, duration: 1 }, "-=0.9")
+    .from("#hero-ctas", { opacity: 0, scale: 0.95, y: 30, duration: 1 }, "-=0.8")
+    .from("#hero-stats", { opacity: 0, duration: 1.5 }, "-=0.8")
+    .from("#hero-visual", { opacity: 0, x: 120, rotateY: -15, scale: 0.8, duration: 2 }, "-=2");
+}
 
-// Stat counter animation
-const statObs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      const el=e.target;
-      const target=parseInt(el.dataset.target);
-      const suffix=el.dataset.suffix||"";
-      let start=0;
-      const dur=1800;
-      const step=16;
-      const inc=target/(dur/step);
-      const timer=setInterval(()=>{
-        start=Math.min(start+inc,target);
-        if(target>=1000000) el.textContent=(start/1000000).toFixed(1)+"M"+suffix;
-        else if(target>=1000) el.textContent=Math.floor(start/1000)+(target>=1000?"k":"")+suffix;
-        else el.textContent=Math.floor(start)+suffix;
-        if(start>=target){
-          if(target>=1000000) el.textContent="1.2M+";
-          else if(target>=1000) el.textContent=(target/1000)+"k+";
-          else el.textContent=target+suffix;
-          clearInterval(timer);
+/* â”€â”€ COMPONENT LOGIC â”€â”€ */
+function toggleFaq(el) {
+  const item = el.parentElement;
+  const isActive = item.classList.contains("active");
+  
+  // Close others for focus
+  document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("active"));
+  
+  if(!isActive) {
+      item.classList.add("active");
+      // Scroll to item slightly
+      const top = item.getBoundingClientRect().top + window.pageYOffset - 150;
+      window.scrollTo({ top, behavior: 'smooth' });
+  }
+}
+
+// How it Works Typewriter
+let hiwStarted = false;
+function initHIWTypewriter() {
+    if(hiwStarted) return; hiwStarted = true;
+    const phrases = ["CODE", "COMPETE", "COLLABORATE", "BUILD PROJECTS", "MASTER THE STACK"];
+    const target = document.getElementById("hiw-typewriter");
+    let currentPhrase = 0, currentChar = 0, isDeleting = false, typingSpeed = 150;
+    
+    function tick() {
+        const fullTxt = phrases[currentPhrase];
+        if(isDeleting) {
+            target.textContent = fullTxt.substring(0, currentChar - 1);
+            currentChar--; typingSpeed = 70;
+        } else {
+            target.textContent = fullTxt.substring(0, currentChar + 1);
+            currentChar++; typingSpeed = 200;
         }
-      },step);
-      statObs.unobserve(el);
+        
+        if(!isDeleting && currentChar === fullTxt.length) { isDeleting = true; typingSpeed = 3000; }
+        else if(isDeleting && currentChar === 0) { 
+            isDeleting = false; 
+            currentPhrase = (currentPhrase + 1) % phrases.length; 
+            typingSpeed = 600; 
+        }
+        setTimeout(tick, typingSpeed);
     }
-  });
-},{threshold:0.4});
-document.querySelectorAll(".stat-num").forEach(el=>statObs.observe(el));
-
-// Fix stat display
-document.querySelectorAll(".stat-num").forEach(el=>{
-  const t=parseInt(el.dataset.target),s=el.dataset.suffix||"";
-  if(t>=1000000) el.textContent="0";
-  else if(t>=1000) el.textContent="0";
-  else el.textContent="0";
-});
-
-// Auth Modal
-const _modal=document.getElementById("authModal");
-const _authBox=document.getElementById("authBox");
-window.openAuth=(mode)=>openAuthModal(mode==="register");
-
-function openAuthModal(signup){
-  _modal.classList.remove("hidden");
-  requestAnimationFrame(()=>_modal.classList.remove("opacity-0"));
-  _authBox.classList.toggle("active",!!signup);
-  updateAuthModeUI();updateMobStrip();
-  document.body.style.overflow="hidden";
+    tick();
 }
-function closeAuthModal(){
-  _modal.classList.add("opacity-0");
-  document.body.style.overflow="";
-  setTimeout(()=>{_modal.classList.add("hidden");acBackStep1();},300);
-}
-function acGoSignup(){_authBox.classList.add("active");updateAuthModeUI();updateMobStrip();}
-function acGoLogin(){_authBox.classList.remove("active");updateAuthModeUI();updateMobStrip();}
-function acMobToggle(){_authBox.classList.toggle("active");updateAuthModeUI();updateMobStrip();}
+ScrollTrigger.create({ trigger: "#how-it-works", start: "top 75%", once: true, onEnter: initHIWTypewriter });
 
-function updateAuthModeUI(){
-  const su=_authBox.classList.contains("active");
-  const title=document.getElementById("overlayTitle");
-  const desc=document.getElementById("overlayDesc");
-  const btn=document.getElementById("overlaySwitchBtn");
-  if(!title||!desc||!btn)return;
-  if(su){title.textContent="Hello, Friend!";desc.textContent="Pick up right where you left off.";btn.textContent="Sign In";btn.onclick=acGoLogin;}
-  else{title.textContent="New Here?";desc.textContent="Sign up and join your college coding platform today.";btn.textContent="Sign Up";btn.onclick=acGoSignup;}
-}
-function updateMobStrip(){
-  const su=_authBox.classList.contains("active");
-  const t=document.getElementById("mobTxt"),b=document.getElementById("mobBtn");
-  if(t)t.textContent=su?"Already have an account?":"Don't have an account?";
-  if(b)b.textContent=su?"Sign In instead":"Sign Up instead";
+function formatCompactNumber(num) {
+    const n = Number(num || 0);
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace('.0', '')}M+`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
+    return `${n}`;
 }
 
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"&&!_modal.classList.contains("hidden"))closeAuthModal();
-});
-
-async function acSendOTP(){
-  const name=document.getElementById("su_name").value.trim();
-  const email=document.getElementById("su_email").value.trim();
-  const password=document.getElementById("su_pw").value;
-  const role=document.getElementById("su_role").value;
-  const college=document.getElementById("su_college").value;
-  const error=document.getElementById("su_error");
-  const btn=document.getElementById("btnSendOTP");
-  error.classList.add("hidden");
-  const collegeRequired=role==="faculty";
-  if(!name||!email||!password||!role||(collegeRequired&&!college)){
-    error.textContent=collegeRequired?"Please fill all fields.":"Please fill all required fields.";
-    error.classList.remove("hidden");return;
-  }
-  btn.disabled=true;btn.textContent="Sending OTP...";
-  try{
-    const res=await fetch("/auth/send-signup-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
-    const data=await res.json();
-    if(data.success){
-      document.getElementById("su-step1").classList.add("step-hidden");
-      document.getElementById("su-step2").style.display="flex";
-    }else{error.textContent=data.message||"Failed to send OTP.";error.classList.remove("hidden");}
-  }catch(err){error.textContent="Network error. Please try again.";error.classList.remove("hidden");}
-  finally{btn.disabled=false;btn.textContent="Send OTP to Email →";}
+function initials(name) {
+    const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '--';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function acBackStep1(){
-  document.getElementById("su-step1").classList.remove("step-hidden");
-  document.getElementById("su-step2").style.display="none";
-  document.getElementById("su_otp").value="";
-}
+async function initLandingDynamicData() {
+    try {
+        const res = await fetch('/api/public/landing-data');
+        const data = await res.json();
+        if (!res.ok || !data?.success) return;
 
-async function acResendOTP(){
-  const btn=document.getElementById("btnResend");
-  btn.disabled=true;btn.textContent="Sending...";
-  try{
-    await fetch("/auth/send-signup-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("su_email").value.trim()})});
-    btn.textContent="Sent ✓";
-    setTimeout(()=>{btn.disabled=false;btn.textContent="Resend OTP";},3000);
-  }catch(err){btn.disabled=false;btn.textContent="Resend OTP";}
-}
+        const activeCodersEl = document.getElementById('statActiveCoders');
+        const campusesEl = document.getElementById('statCampusesJoined');
+        const acceptedEl = document.getElementById('statAcceptedRuns');
+        if (activeCodersEl) activeCodersEl.textContent = formatCompactNumber(data.stats?.activeCoders);
+        if (campusesEl) campusesEl.textContent = formatCompactNumber(data.stats?.campusesJoined);
+        if (acceptedEl) acceptedEl.textContent = formatCompactNumber(data.stats?.acceptedRuns);
 
-document.getElementById("signupForm").addEventListener("submit",async e=>{
-  e.preventDefault();
-  const btn=document.getElementById("btnComplete");
-  btn.disabled=true;btn.textContent="Registering...";
-  const payload={
-    name:document.getElementById("su_name").value.trim(),
-    email:document.getElementById("su_email").value.trim(),
-    password:document.getElementById("su_pw").value,
-    role:document.getElementById("su_role").value,
-    collegeName:document.getElementById("su_college").value,
-    otp:document.getElementById("su_otp").value.trim()
-  };
-  try{
-    const response=await fetch("/auth/signup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const html=await response.text();
-    document.open();document.write(html);document.close();
-  }catch(err){
-    btn.disabled=false;btn.textContent="Complete Registration ✓";
-    const error=document.getElementById("su_error");
-    error.textContent="Registration failed. Please try again.";
-    error.classList.remove("hidden");
-  }
-});
+        const list = document.getElementById('topCodersList');
+        if (!list) return;
+        const rows = Array.isArray(data.topCoders) ? data.topCoders : [];
+        if (!rows.length) {
+            list.innerHTML = `
+                <div class="p-5 bg-white/60 dark:bg-white/5 rounded-2xl border border-navy/10">
+                    <p class="font-black">No live coder data yet</p>
+                    <p class="text-xs uppercase opacity-40 mt-1">Data appears after active student submissions</p>
+                </div>
+            `;
+            return;
+        }
 
-document.addEventListener("DOMContentLoaded",async()=>{
-  updateAuthModeUI();updateMobStrip();
-  const select=document.getElementById("su_college");
-  try{
-    const response=await fetch("/api/public/colleges");
-    const data=await response.json();
-    if(data.success&&data.colleges.length){
-      select.innerHTML="<option value='' selected>Optional: Skip college selection</option>";
-      data.colleges.forEach(college=>{
-        const option=document.createElement("option");
-        option.value=college.name;option.textContent=college.name;
-        select.appendChild(option);
-      });
+        list.innerHTML = rows.map((row, idx) => {
+            const rank = idx + 1;
+            const badgeClass = rank === 1 ? 'text-accent' : 'opacity-40';
+            const rowBg = rank === 1 ? 'bg-navy/5 dark:bg-white/5 border-l-4 border-accent' : 'bg-transparent border-l-4 border-transparent';
+            const score = Number(row.solved || 0);
+            return `
+                <div class="flex items-center justify-between p-5 ${rowBg} rounded-2xl">
+                    <div class="flex items-center gap-5">
+                        <span class="font-black text-2xl ${badgeClass} italic">#${String(rank).padStart(2, '0')}</span>
+                        <div class="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center font-bold text-midnight dark:text-cloud">${initials(row.fullName)}</div>
+                        <div>
+                            <p class="font-black">${row.fullName || 'Anonymous'}</p>
+                            <p class="text-[10px] uppercase opacity-40">${(row.collegeName || 'Independent')} Â· ${score} solved</p>
+                        </div>
+                    </div>
+                    <span class="font-mono ${rank === 1 ? 'text-accent font-bold' : 'opacity-50'}">${formatCompactNumber(row.points || 0)} XP</span>
+                </div>
+            `;
+        }).join('');
+    } catch (_) {
+        // Keep static fallback UI on network failure
     }
-  }catch(e){select.innerHTML="<option value='' selected>Could not load colleges</option>";}
+}
+
+/* â”€â”€ AUTH MODAL CONTROLLER â”€â”€ */
+const authModal = document.getElementById("authModal");
+const authBoxContainer = document.getElementById("authBox");
+const modalContainer = document.getElementById("modalContainer");
+
+window.openAuth = (mode) => {
+    authModal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+    setTimeout(() => {
+        authModal.classList.remove("opacity-0");
+        modalContainer.classList.remove("scale-90");
+    }, 20);
+    
+    if(mode === 'register') authBoxContainer.classList.add("active");
+    else authBoxContainer.classList.remove("active");
+}
+
+function closeAuthModal() {
+    authModal.classList.add("opacity-0");
+    modalContainer.classList.add("scale-90");
+    setTimeout(() => {
+        authModal.classList.add("hidden");
+        document.body.style.overflow = "auto";
+        acBackStep1(); // Reset step
+    }, 500);
+}
+
+function acGoSignup() { authBoxContainer.classList.add("active"); }
+function acGoLogin() { authBoxContainer.classList.remove("active"); }
+
+let signupDraft = { name: "", email: "", password: "", collegeName: "", role: "student" };
+
+async function loadSignupColleges() {
+    const sel = document.getElementById('su_college');
+    if (!sel) return;
+    try {
+        const res = await fetch('/api/public/colleges');
+        const data = await res.json();
+        if (!res.ok || !data?.success) return;
+        const options = ['<option value="" selected>Optional: Skip college selection</option>']
+            .concat((data.colleges || []).map(c => `<option value="${String(c.name).replace(/"/g, '&quot;')}">${c.name}</option>`));
+        sel.innerHTML = options.join('');
+    } catch (_) {}
+}
+
+function setSignupError(msg) {
+    const err = document.getElementById('su_error');
+    if (!err) return;
+    if (!msg) {
+        err.classList.add('hidden');
+        err.textContent = '';
+        return;
+    }
+    err.textContent = msg;
+    err.classList.remove('hidden');
+}
+
+function acGoSignup() { authBoxContainer.classList.add("active"); }
+function acGoLogin() { authBoxContainer.classList.remove("active"); }
+
+async function acSendOTP(isResend = false) {
+    setSignupError('');
+    const name = (document.getElementById('su_name')?.value || '').trim();
+    const email = (document.getElementById('su_email')?.value || '').trim();
+    const password = document.getElementById('su_pw')?.value || '';
+    const roleRaw = (document.getElementById('su_role')?.value || '').trim().toLowerCase();
+    const collegeNameRaw = (document.getElementById('su_college')?.value || '').trim();
+
+    if (!name || !email || !password || !roleRaw) {
+        setSignupError('Please fill all required fields.');
+        return;
+    }
+    if (password.length < 6) {
+        setSignupError('Password must be at least 6 characters.');
+        return;
+    }
+
+    const role = roleRaw === 'individual' ? 'student' : roleRaw;
+    const collegeName = roleRaw === 'individual' ? '' : collegeNameRaw;
+
+    signupDraft = { name, email, password, role, collegeName };
+
+    const otpBtn = document.getElementById('btnSendOTP');
+    const resendBtn = document.getElementById('btnResend');
+    if (otpBtn) otpBtn.disabled = true;
+    if (resendBtn && isResend) resendBtn.disabled = true;
+
+    try {
+        const resp = await fetch('/auth/send-signup-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.success) throw new Error(data.message || 'Failed to send OTP');
+
+        document.getElementById('su-step1').style.display = 'none';
+        const step2 = document.getElementById('su-step2');
+        step2.style.display = 'flex';
+        step2.style.opacity = '1';
+    } catch (err) {
+        setSignupError(err.message || 'Could not send OTP.');
+    } finally {
+        if (otpBtn) otpBtn.disabled = false;
+        if (resendBtn) resendBtn.disabled = false;
+    }
+}
+
+function acResendOTP() {
+    acSendOTP(true);
+}
+
+async function acFinalizeSignup() {
+    setSignupError('');
+    const otp = (document.getElementById('su_otp')?.value || '').trim();
+    if (!/^\d{6}$/.test(otp)) {
+        setSignupError('Please enter a valid 6-digit OTP.');
+        return;
+    }
+    if (!signupDraft.email || !signupDraft.password || !signupDraft.name || !signupDraft.role) {
+        setSignupError('Signup details missing. Please restart registration.');
+        acBackStep1();
+        return;
+    }
+
+    const btn = document.getElementById('btnComplete');
+    const oldText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Finalizing...';
+    }
+
+    try {
+        const formBody = new URLSearchParams({
+            name: signupDraft.name,
+            email: signupDraft.email,
+            password: signupDraft.password,
+            collegeName: signupDraft.collegeName || '',
+            role: signupDraft.role,
+            otp
+        }).toString();
+
+        const resp = await fetch('/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formBody
+        });
+        const html = await resp.text();
+        document.open();
+        document.write(html);
+        document.close();
+    } catch (_) {
+        setSignupError('Signup failed. Please try again.');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = oldText || 'Complete Registration ✓';
+        }
+    }
+}
+
+function acBackStep1() {
+    document.getElementById('su-step2').style.display = 'none';
+    document.getElementById('su-step1').style.display = 'flex';
+}
+
+document.getElementById('signupForm')?.addEventListener('submit', function (e) {
+    e.preventDefault();
+    acFinalizeSignup();
 });
+/* â”€â”€ FORM HANDLING â”€â”€ */
+function handleContact(e) {
+    e.preventDefault();
+    const btn = document.getElementById("c_btn");
+    const feedback = document.getElementById("c_feedback");
+    
+    // Visual Feedback Logic
+    btn.disabled = true;
+    btn.textContent = "Negotiating Transmission...";
+    btn.classList.add("opacity-50");
+    
+    setTimeout(() => {
+        btn.textContent = "Dispatch Successful ✓";
+        btn.classList.remove("bg-midnight");
+        btn.classList.add("bg-green-600");
+        feedback.classList.remove("hidden");
+        
+        // Anime.js success wiggle
+        anime({
+            targets: "#contactForm",
+            translateX: [0, -5, 5, -5, 5, 0],
+            duration: 400,
+            easing: 'easeInOutSine'
+        });
+
+        document.getElementById("contactForm").reset();
+    }, 2000);
+}
+
+// Initialize Everything on Load
+window.onload = () => {
+    initHeroAnimations();
+    initScrollAnimations();
+    initLandingDynamicData();
+    loadSignupColleges();
+    
+    // Logo Ambient Rotation
+    anime({
+        targets: '#logo-box',
+        rotateY: '360deg',
+        duration: 15000,
+        loop: true,
+        easing: 'linear'
+    });
+};
 </script>
 </body>
 </html>
+
+
+

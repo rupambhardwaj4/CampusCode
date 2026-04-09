@@ -35,5 +35,72 @@ module.exports = (db) => {
         });
     });
 
+    // Landing page live metrics (no hardcoded numbers)
+    router.get('/api/public/landing-data', (req, res) => {
+        const out = {
+            success: false,
+            stats: {
+                activeCoders: 0,
+                campusesJoined: 0,
+                acceptedRuns: 0
+            },
+            topCoders: []
+        };
+
+        db.get(
+            `SELECT COUNT(*) AS count
+             FROM account_users
+             WHERE LOWER(COALESCE(role, '')) = 'student'
+               AND LOWER(COALESCE(status, 'active')) != 'inactive'`,
+            [],
+            (err, studentsRow) => {
+                if (err) return res.status(500).json({ success: false, error: err.message });
+                out.stats.activeCoders = Number(studentsRow?.count || 0);
+
+                db.get(
+                    `SELECT COUNT(*) AS count
+                     FROM colleges
+                     WHERE LOWER(COALESCE(status, 'active')) = 'active'`,
+                    [],
+                    (err2, collegesRow) => {
+                        if (err2) return res.status(500).json({ success: false, error: err2.message });
+                        out.stats.campusesJoined = Number(collegesRow?.count || 0);
+
+                        db.get(
+                            `SELECT COUNT(*) AS count
+                             FROM submissions
+                             WHERE LOWER(COALESCE(status, '')) IN ('accepted', 'ac', 'pass')`,
+                            [],
+                            (err3, acceptedRow) => {
+                                if (err3) return res.status(500).json({ success: false, error: err3.message });
+                                out.stats.acceptedRuns = Number(acceptedRow?.count || 0);
+
+                                db.all(
+                                    `SELECT
+                                        fullName,
+                                        collegeName,
+                                        COALESCE(solvedCount, 0) AS solved,
+                                        COALESCE(points, 0) AS points
+                                     FROM account_users
+                                     WHERE LOWER(COALESCE(role, '')) = 'student'
+                                       AND LOWER(COALESCE(status, 'active')) != 'inactive'
+                                     ORDER BY COALESCE(solvedCount, 0) DESC, COALESCE(points, 0) DESC, id ASC
+                                     LIMIT 3`,
+                                    [],
+                                    (err4, topRows) => {
+                                        if (err4) return res.status(500).json({ success: false, error: err4.message });
+                                        out.topCoders = Array.isArray(topRows) ? topRows : [];
+                                        out.success = true;
+                                        return res.json(out);
+                                    }
+                                );
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    });
+
     return router;
 };

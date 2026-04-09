@@ -50,24 +50,29 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans transition-colors duration-300 dark:bg-darkBg dark:text-gray-200 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gray-50 text-gray-800 font-sans transition-colors duration-300 dark:bg-darkBg dark:text-gray-200 min-h-screen flex items-center justify-center p-3 md:p-4">
 
-    <button onclick="toggleTheme()" class="absolute top-6 right-6 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full p-3 transition bg-white dark:bg-darkCard shadow-md z-50">
+    <a href="/" class="absolute top-4 left-4 z-50 inline-flex items-center gap-2 bg-white dark:bg-darkCard text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-blue-400 px-4 py-2 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 transition">
+        <i class="fas fa-arrow-left"></i>
+        <span class="font-semibold">Back to Main Page</span>
+    </a>
+
+    <button onclick="toggleTheme()" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full p-3 transition bg-white dark:bg-darkCard shadow-md z-50">
         <i id="theme-toggle-light-icon" class="fas fa-sun hidden text-xl"></i>
         <i id="theme-toggle-dark-icon" class="fas fa-moon hidden text-xl"></i>
     </button>
 
-    <div class="max-w-5xl w-full bg-white dark:bg-darkCard rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-colors duration-300 border border-gray-100 dark:border-gray-800">
+    <div class="max-w-5xl w-full bg-white dark:bg-darkCard rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row transition-colors duration-300 border border-gray-100 dark:border-gray-800 md:max-h-[92vh]">
         
-        <div class="md:w-5/12 bg-gradient-to-br from-[#1E4A7A] to-blue-800 p-10 text-white flex flex-col justify-between relative overflow-hidden">
+        <div class="md:w-5/12 bg-gradient-to-br from-[#1E4A7A] to-blue-800 p-8 md:p-9 text-white flex flex-col justify-between relative overflow-hidden">
             <div class="relative z-10">
                 <div class="flex items-center gap-2 mb-12">
                     <i class="fas fa-code text-3xl"></i>
                     <span class="text-2xl font-bold tracking-wide">CampusCode</span>
                 </div>
                 
-                <h1 class="text-4xl font-bold mb-4 leading-tight">Empower Your<br>Institution</h1>
-                <p class="text-blue-100 text-lg mb-8 opacity-90">Join the premier platform for managing coding contests, student progress, and faculty collaboration.</p>
+                <h1 class="text-3xl md:text-4xl font-bold mb-4 leading-tight">Empower Your<br>Institution</h1>
+                <p class="text-blue-100 text-base md:text-lg mb-8 opacity-90">Join the premier platform for managing coding contests, student progress, and faculty collaboration.</p>
                 
                 <ul class="space-y-4 text-blue-50">
                     <li class="flex items-center gap-3"><i class="fas fa-check-circle text-blue-300"></i> Seamless Student Management</li>
@@ -84,14 +89,14 @@
             <div class="absolute -top-24 -right-24 w-80 h-80 bg-blue-400 opacity-10 rounded-full blur-3xl"></div>
         </div>
 
-        <div class="md:w-7/12 p-10 md:p-14 relative">
+        <div class="md:w-7/12 p-8 md:p-9 relative overflow-y-auto">
             
             <div class="flex items-center justify-center gap-2 mb-10">
                 <div id="ind-1" class="h-2 w-12 rounded-full bg-[#1E4A7A] dark:bg-blue-500 transition-colors"></div>
                 <div id="ind-2" class="h-2 w-12 rounded-full bg-gray-200 dark:bg-gray-700 transition-colors"></div>
             </div>
 
-            <form id="registrationForm" action="/auth/register-institution" method="POST" class="relative min-h-[400px]">
+            <form id="registrationForm" action="/auth/register-institution" method="POST" class="relative">
                 
                 <div id="step-1" class="step-transition active-step">
                     <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Institution Setup</h2>
