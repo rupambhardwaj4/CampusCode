@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CampusCode ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Visual Profile</title>
+    <title>CampusCode </title>
+    <link rel="icon" href="/campuscode-logo.jpeg" type="image/jpeg" />
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -153,14 +154,14 @@
             </header>
             <main class="flex-1 p-4 grid grid-cols-1 md:grid-cols-12 grid-rows-auto gap-4 overflow-y-auto">
                 
-                <div class="col-span-12 md:col-span-4 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-4 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[320px]">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Skill Proficiency</h3>
                     <div class="flex-1 min-h-0 relative">
                         <canvas id="skillRadar"></canvas>
                     </div>
                 </div>
 
-                <div class="col-span-12 md:col-span-5 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-5 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[320px]">
                     <div class="flex justify-between items-start mb-2">
                         <h3 class="text-xs font-bold text-gray-400 uppercase">Rating History</h3>
                         <span id="topScoreValue" class="text-lg font-bold text-primary-600 dark:text-primary-400">0</span>
@@ -170,28 +171,28 @@
                     </div>
                 </div>
 
-                <div class="col-span-12 md:col-span-3 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-3 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[320px]">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Difficulty</h3>
                     <div class="flex-1 min-h-0 relative">
                         <canvas id="difficultyPie"></canvas>
                     </div>
                 </div>
 
-                <div class="col-span-12 md:col-span-4 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-4 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[320px]">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Submission Verdicts</h3>
                     <div class="flex-1 min-h-0 relative">
                         <canvas id="verdictDoughnut"></canvas>
                     </div>
                 </div>
 
-                <div class="col-span-12 md:col-span-5 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-5 row-span-1 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col h-[320px]">
                     <h3 class="text-xs font-bold text-gray-400 uppercase mb-2">Languages Used</h3>
                     <div class="flex-1 min-h-0 relative">
                         <canvas id="languageBar"></canvas>
                     </div>
                 </div>
 
-                <div class="col-span-12 md:col-span-3 row-span-1 bg-primary-50 dark:bg-gray-800 rounded-xl p-5 border border-primary-100 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center text-center h-[300px] md:h-auto">
+                <div class="col-span-12 md:col-span-3 row-span-1 bg-primary-50 dark:bg-gray-800 rounded-xl p-5 border border-primary-100 dark:border-gray-700 shadow-sm flex flex-col justify-center items-center text-center h-[320px]">
                     <div class="p-4 bg-white dark:bg-gray-700 rounded-full shadow-sm mb-3">
                         <i class="fas fa-trophy text-2xl text-yellow-500"></i>
                     </div>
@@ -431,7 +432,7 @@
         const ratingChart = new Chart(document.getElementById('ratingLine'), {
           type: 'line',
           data: { labels: ['Jan','Feb','Mar','Apr','May','Jun'], datasets: [{ label: 'Rating', data: [1000,1000,1000,1000,1000,1000], borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4, pointRadius: 3 }] },
-          options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor() }, ticks: { font: { size: 9 } } }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
+          options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor() }, ticks: { font: { size: 9 } }, beginAtZero: false }, x: { grid: { display: false }, ticks: { font: { size: 9 } } } } }
         });
 
         const diffChart = new Chart(document.getElementById('difficultyPie'), {
@@ -525,23 +526,28 @@
             Number(verdicts['runtime error'] || 0) + Number(verdicts.re || 0)
           ];
 
-          ratingChart.data.labels = charts.ratingLabels || [];
-          ratingChart.data.datasets[0].data = charts.ratingData || [];
+          const fallbackMonths = ['Jan','Feb','Mar','Apr','May','Jun'];
+          const ratingLabels = Array.isArray(charts.ratingLabels) && charts.ratingLabels.length ? charts.ratingLabels : fallbackMonths;
+          const ratingData = Array.isArray(charts.ratingData) && charts.ratingData.length ? charts.ratingData.map(x => Number(x || 0)) : [1000,1000,1000,1000,1000,1000];
+          ratingChart.data.labels = ratingLabels;
+          ratingChart.data.datasets[0].data = ratingData;
+          const minScore = Math.min(...ratingData);
+          const maxScore = Math.max(...ratingData);
+          ratingChart.options.scales.y.suggestedMin = Math.max(0, minScore - 20);
+          ratingChart.options.scales.y.suggestedMax = maxScore + 20;
 
           const langs = Array.isArray(charts.languages) ? charts.languages : [];
           langChart.data.labels = langs.length ? langs.map(x => String(x.language || '-')) : ['-'];
           langChart.data.datasets[0].data = langs.length ? langs.map(x => Number(x.count || 0)) : [0];
 
           const topics = Array.isArray(charts.topics) ? charts.topics.slice(0,6) : [];
-          const topicMap = new Map(topics.map(t => [String(t.topic || '').toLowerCase(), Number(t.solved || 0)]));
-          skillChart.data.datasets[0].data = [
-            topicMap.get('arrays') || 0,
-            topicMap.get('dp') || topicMap.get('dynamic programming') || 0,
-            topicMap.get('graph') || topicMap.get('graphs') || 0,
-            topicMap.get('math') || 0,
-            topicMap.get('string') || topicMap.get('strings') || 0,
-            topicMap.get('greedy') || 0
-          ];
+          if (topics.length) {
+            skillChart.data.labels = topics.map((t) => String(t.topic || 'General'));
+            skillChart.data.datasets[0].data = topics.map((t) => Number(t.solved || 0));
+          } else {
+            skillChart.data.labels = ['Arrays','DP','Graph','Math','String','Greedy'];
+            skillChart.data.datasets[0].data = [0,0,0,0,0,0];
+          }
 
           window.updateCharts();
         }
@@ -551,3 +557,4 @@
     </script>
 </body>
 </html>
+

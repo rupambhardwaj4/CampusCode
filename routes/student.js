@@ -7,7 +7,8 @@ const otpStore = new Map();
 
 module.exports = (db, transporter) => {
     const router = express.Router();
-    const RANK_ORDER = ['E', 'D', 'C', 'B', 'A', 'S'];
+const RANK_ORDER = ['E', 'D', 'C', 'B', 'A', 'S'];
+const GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK = 0.3;
 
     const dbGet = (query, params = []) => new Promise((resolve, reject) => {
         db.get(query, params, (err, row) => err ? reject(err) : resolve(row));
@@ -241,6 +242,57 @@ module.exports = (db, transporter) => {
         return counts;
     };
 
+    const getCollegeWeightedRankMeta = async (userId, collegeName) => {
+        const normalizedCollege = String(collegeName || '').trim();
+        if (!normalizedCollege) {
+            return { score: 0, rank: '-' };
+        }
+
+        const rows = await dbAll(`
+            WITH solved_distinct AS (
+                SELECT
+                    s.user_id,
+                    s.problem_id,
+                    LOWER(COALESCE(NULLIF(p.scope, ''), NULLIF(p.visibility_scope, ''),
+                        CASE
+                            WHEN LOWER(COALESCE(creator.role, '')) = 'superadmin' THEN 'global'
+                            ELSE 'college'
+                        END
+                    )) AS scope_norm,
+                    LOWER(COALESCE(creator.collegeName, '')) AS creator_college
+                FROM submissions s
+                JOIN problems p ON p.id = s.problem_id
+                LEFT JOIN account_users creator ON creator.id = COALESCE(p.created_by, p.faculty_id)
+                WHERE s.status = 'accepted'
+                GROUP BY s.user_id, s.problem_id
+            )
+            SELECT
+                sd.user_id,
+                SUM(
+                    CASE
+                        WHEN sd.scope_norm = 'global' THEN ?
+                        WHEN sd.scope_norm IN ('college', 'department', 'internal')
+                             AND sd.creator_college = LOWER(?) THEN 1
+                        ELSE 0
+                    END
+                ) AS weighted_score
+            FROM solved_distinct sd
+            JOIN account_users u ON u.id = sd.user_id
+            WHERE LOWER(COALESCE(u.role, '')) = 'student'
+              AND LOWER(COALESCE(u.collegeName, '')) = LOWER(?)
+            GROUP BY sd.user_id
+        `, [GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK, normalizedCollege, normalizedCollege]);
+
+        const scoreMap = new Map(rows.map((row) => [Number(row.user_id), Number(row.weighted_score || 0)]));
+        const myScore = scoreMap.get(Number(userId)) || 0;
+        const higherCount = Array.from(scoreMap.values()).filter((score) => score > myScore).length;
+
+        return {
+            score: myScore,
+            rank: `#${higherCount + 1}`
+        };
+    };
+
     const buildContestVisibilityData = async (sessionUser, userRow, solvedDifficultyCounts, yearFilter = '') => {
         const displayUser = await buildDisplayUser(sessionUser, userRow, solvedDifficultyCounts);
         const rows = await dbAll(`
@@ -286,11 +338,7 @@ module.exports = (db, transporter) => {
         const mixCapRankClass = getDifficultyMixClassCap(solvedDifficultyCounts);
         const rankClass = minRankClass(xpRankClass, mixCapRankClass);
         const classProgress = getClassProgressMeta(points);
-        const higherRankRow = await dbGet(`
-            SELECT COUNT(*) as cnt
-            FROM account_users
-            WHERE LOWER(role) = 'student' AND collegeName = ? AND points > ?
-        `, [sessionUser.collegeName || '', points]);
+        const collegeRankMeta = await getCollegeWeightedRankMeta(sessionUser.id, sessionUser.collegeName || '');
         const globalHigherRankRow = await dbGet(`
             SELECT COUNT(*) as cnt
             FROM account_users
@@ -307,7 +355,8 @@ module.exports = (db, transporter) => {
             level: Math.max(1, Math.floor(points / 150) + 1),
             xp_percentage: classProgress.progressPercent,
             global_rank: `#${Number(globalHigherRankRow?.cnt || 0) + 1}`,
-            college_rank: sessionUser.collegeName ? `#${Number(higherRankRow?.cnt || 0) + 1}` : '-',
+            college_rank: sessionUser.collegeName ? collegeRankMeta.rank : '-',
+            college_weighted_score: Number(collegeRankMeta.score || 0),
             rank_class: rankClass,
             xp_rank_class: xpRankClass,
             mix_cap_rank_class: mixCapRankClass,
