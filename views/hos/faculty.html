@@ -382,10 +382,26 @@
     </div>
 
 
+    <!-- Faculty Edit Modal (Fixed Structure) -->
+    <div id="editFacultyModal" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden p-6 animate-[fadeIn_0.2s_ease-out]">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white">Edit Faculty</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" id="editingFacultyName">Update details</p>
+                </div>
+                <button id="closeEditFacultyModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <form id="editFacultyStatusForm" class="space-y-6">
+                <input type="hidden" name="facultyId" id="editFacultyId">
+                <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
-                        <select id="editFacultyStatus"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm p-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                        <select name="status" id="editFacultyStatus"
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm p-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-shadow">
                             <option value="Active">Active</option>
                             <option value="On Leave">On Leave</option>
                             <option value="Inactive">Inactive</option>
@@ -397,8 +413,9 @@
                     <button type="button" id="cancelEditFaculty"
                         class="px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Cancel</button>
                     <button type="submit"
-                        class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm">Save
-                        Changes</button>
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Save Changes
+                    </button>
                 </div>
             </form>
         </div>
@@ -454,6 +471,54 @@
             if (subjectFilter) subjectFilter.addEventListener('change', applyFacultyFilters);
             if (searchInput) searchInput.addEventListener('input', applyFacultyFilters);
             applyFacultyFilters();
+
+            // Edit Faculty Modal Logic
+            const editModal = document.getElementById('editFacultyModal');
+            const editForm = document.getElementById('editFacultyStatusForm');
+            const editIdInput = document.getElementById('editFacultyId');
+            const editStatusSelect = document.getElementById('editFacultyStatus');
+            const editingNameText = document.getElementById('editingFacultyName');
+
+            document.querySelectorAll('.faculty-name-trigger').forEach(trigger => {
+                trigger.addEventListener('click', (e) => {
+                    const id = trigger.dataset.facultyId;
+                    const name = trigger.dataset.name;
+                    // Populate and show
+                    if (editIdInput) editIdInput.value = id;
+                    if (editingNameText) editingNameText.textContent = `Update status for ${name}`;
+                    if (editModal) editModal.classList.remove('hidden');
+                });
+            });
+
+            const closeModal = () => { if (editModal) editModal.classList.add('hidden'); };
+            if (document.getElementById('closeEditFacultyModal')) document.getElementById('closeEditFacultyModal').addEventListener('click', closeModal);
+            if (document.getElementById('cancelEditFaculty')) document.getElementById('cancelEditFaculty').addEventListener('click', closeModal);
+
+            if (editForm) {
+                editForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const facultyId = editIdInput.value;
+                    const status = editStatusSelect.value;
+
+                    try {
+                        const response = await fetch('/hos/api/faculty/update', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ facultyId, status })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert('Faculty status updated successfully!');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (result.message || 'Unknown error'));
+                        }
+                    } catch (err) {
+                        alert('An error occurred during save.');
+                        console.error(err);
+                    }
+                });
+            }
         });
     </script>
 
