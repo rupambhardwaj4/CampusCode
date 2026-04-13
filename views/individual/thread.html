@@ -385,7 +385,7 @@
             document.getElementById('downvoteBtn').onclick = () => handleThreadVote(thread.id, 'downvote');
 
             // Populate Replies
-            renderReplies(thread.replies || []);
+            renderReplies(data.replies || []);
 
             loadingState.classList.add('hidden');
             contentArea.classList.remove('hidden');
