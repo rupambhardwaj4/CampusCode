@@ -941,5 +941,182 @@ module.exports = (db) => {
         }
     });
 
+    // ==========================================
+    // CONTEST VIEW & LEADERBOARD
+    // ==========================================
+    const parseContestProblemIds = (rawProblems) => {
+        let parsed = [];
+        if (Array.isArray(rawProblems)) {
+            parsed = rawProblems;
+        } else if (typeof rawProblems === 'string' && rawProblems.trim()) {
+            try {
+                const fromJson = JSON.parse(rawProblems);
+                parsed = Array.isArray(fromJson) ? fromJson : [];
+            } catch {
+                parsed = [];
+            }
+        }
+        return parsed
+            .map((item) => Number(typeof item === 'object' && item !== null ? item.id : item))
+            .filter((id) => Number.isInteger(id) && id > 0);
+    };
+
+    const getContestProblemIds = async (contest) => {
+        const fromJson = parseContestProblemIds(contest?.problems);
+        if (fromJson.length) return fromJson;
+        const rows = await runQuery(`SELECT problem_id FROM contest_problems WHERE contest_id = ?`, [contest.id]);
+        return rows.map((row) => Number(row.problem_id)).filter((id) => Number.isInteger(id) && id > 0);
+    };
+
+    const buildContestLeaderboard = async (contest) => {
+        const contestProblemIds = await getContestProblemIds(contest);
+        if (!contestProblemIds.length) return [];
+
+        const participantRows = await runQuery(`
+            SELECT cp.user_id, cp.joined_at, u.fullName
+            FROM contest_participants cp
+            JOIN account_users u ON u.id = cp.user_id
+            WHERE cp.contest_id = ?
+        `, [contest.id]);
+
+        const acceptedRows = await runQuery(`
+            SELECT s.user_id, s.problem_id, MAX(s.points_earned) as best_points, MIN(s.createdAt) as first_solved_at
+            FROM submissions s
+            WHERE s.contest_id = ? AND s.status = 'accepted'
+            GROUP BY s.user_id, s.problem_id
+        `, [contest.id]);
+
+        const records = new Map();
+        participantRows.forEach((row) => {
+            records.set(Number(row.user_id), {
+                user_id: Number(row.user_id),
+                fullName: row.fullName || 'Student',
+                score: 0,
+                solved: 0,
+                firstSolvedAt: null
+            });
+        });
+
+        for (const row of acceptedRows) {
+            const problemId = Number(row.problem_id);
+            if (!contestProblemIds.includes(problemId)) continue;
+            const userId = Number(row.user_id);
+            if (!records.has(userId)) {
+                const user = await getSingle(`SELECT fullName FROM account_users WHERE id = ?`, [userId]);
+                records.set(userId, {
+                    user_id: userId,
+                    fullName: user?.fullName || 'Student',
+                    score: 0,
+                    solved: 0,
+                    firstSolvedAt: null
+                });
+            }
+            const target = records.get(userId);
+            target.score += Number(row.best_points || 0);
+            target.solved += 1;
+            if (!target.firstSolvedAt || new Date(row.first_solved_at).getTime() < new Date(target.firstSolvedAt).getTime()) {
+                target.firstSolvedAt = row.first_solved_at;
+            }
+        }
+
+        const leaderboard = Array.from(records.values()).sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.solved !== a.solved) return b.solved - a.solved;
+            const aTime = a.firstSolvedAt ? new Date(a.firstSolvedAt).getTime() : Number.MAX_SAFE_INTEGER;
+            const bTime = b.firstSolvedAt ? new Date(b.firstSolvedAt).getTime() : Number.MAX_SAFE_INTEGER;
+            return aTime - bTime;
+        });
+
+        const total = leaderboard.length || 1;
+        return leaderboard.map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+            percentile: Math.max(1, Math.round(((total - index) / total) * 100))
+        }));
+    };
+
+    const normalizeContestRecord = (contest) => ({
+        ...contest,
+        startTime: contest.startTime || contest.startDate || contest.date || null,
+        endTime: contest.endTime || contest.endDate || null,
+        deadline: contest.deadline || contest.registrationEndDate || null,
+        date: contest.date || contest.startDate || contest.startTime || null
+    });
+
+    router.get('/contest/view/:id', requireRole(['faculty', 'hos', 'hod']), checkScope, async (req, res) => {
+        const user = req.session.user;
+        const contestId = req.params.id;
+
+        try {
+            const contestRaw = await getSingle(
+                `SELECT c.*, u.fullName as creatorName, u.role as creatorRole 
+                 FROM contests c 
+                 LEFT JOIN account_users u ON c.createdBy = u.id 
+                 WHERE c.id = ?`, 
+                [contestId]
+            );
+
+            if (!contestRaw) return res.status(404).send('Contest not found');
+            const contest = normalizeContestRecord(contestRaw);
+
+            // Fetch problems
+            const problemIds = await getContestProblemIds(contest);
+            let contestProblems = [];
+            if (problemIds.length) {
+                const placeholders = problemIds.map(() => '?').join(',');
+                contestProblems = await runQuery(`SELECT * FROM problems WHERE id IN (${placeholders})`, problemIds);
+            }
+
+            // Leaderboard preview (top 5)
+            const fullLeaderboard = await buildContestLeaderboard(contest);
+            const leaderboardPreview = fullLeaderboard.slice(0, 5);
+
+            res.render('faculty/contest_view.html', {
+                user,
+                contest,
+                contestProblems,
+                leaderboardPreview,
+                backPath: '/faculty/contest',
+                currentPage: 'contest'
+            });
+        } catch (error) {
+            console.error('Contest View Error:', error);
+            res.status(500).send(error.message);
+        }
+    });
+
+    router.get('/contest/leaderboard/:id', requireRole(['faculty', 'hos', 'hod']), checkScope, async (req, res) => {
+        const user = req.session.user;
+        const contestId = req.params.id;
+
+        try {
+            const contestRaw = await getSingle(`SELECT * FROM contests WHERE id = ?`, [contestId]);
+            if (!contestRaw) return res.status(404).send('Contest not found');
+            const contest = normalizeContestRecord(contestRaw);
+
+            const leaderboard = await buildContestLeaderboard(contest);
+
+            // Summary stats
+            const summary = {
+                participants: leaderboard.length,
+                submissions: (await getSingle(`SELECT COUNT(*) as count FROM submissions WHERE contest_id = ?`, [contestId])).count,
+                totalSolved: leaderboard.reduce((acc, curr) => acc + curr.solved, 0),
+                topScore: leaderboard.length ? leaderboard[0].score : 0
+            };
+
+            res.render('faculty/contest_leaderboard.html', {
+                user,
+                contest,
+                leaderboard,
+                summary,
+                backPath: '/faculty/contest',
+                currentPage: 'contest'
+            });
+        } catch (error) {
+            console.error('Leaderboard View Error:', error);
+            res.status(500).send(error.message);
+        }
+    });
+
     return router;
 };

@@ -27,50 +27,21 @@ function initHodShell() {
         });
     }
 
-    function applyThemeCompat(theme) {
-        if (typeof window.applyTheme === 'function' && window.applyTheme !== applyThemeCompat) {
-            window.applyTheme(theme);
-            syncThemeIcons();
-            return;
-        }
-
-        const wantsDark =
-            theme === 'dark' ||
-            (theme !== 'light' &&
-                window.matchMedia &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-        html.classList.toggle('dark', wantsDark);
-
-        try {
-            if (theme === 'system') {
-                localStorage.setItem('theme', 'system');
-            } else {
-                localStorage.setItem('theme', wantsDark ? 'dark' : 'light');
-            }
-        } catch (_) {}
-
+    function syncThemeState() {
         syncThemeIcons();
     }
-
-    function toggleThemeOnce(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-
-        if (typeof window.toggleTheme === 'function') {
-            window.toggleTheme();
-            syncThemeIcons();
-            return;
-        }
-
-        applyThemeCompat(html.classList.contains('dark') ? 'light' : 'dark');
-    }
+    syncThemeState();
 
     themeButtons.forEach((btn) => {
-        btn.addEventListener('click', toggleThemeOnce, true);
+        btn.addEventListener('click', () => {
+            window.setTimeout(syncThemeState, 0);
+        });
     });
-    syncThemeIcons();
+
+    if (window.MutationObserver) {
+        const observer = new MutationObserver(syncThemeState);
+        observer.observe(html, { attributes: true, attributeFilter: ['class'] });
+    }
 
     if (sidebarToggleBtn && sidebar) {
         sidebarToggleBtn.addEventListener('click', (event) => {
@@ -168,11 +139,8 @@ function initHodShell() {
     }
 
     window.hodShell = {
-        applyTheme: applyThemeCompat
+        syncTheme: syncThemeState
     };
-    if (typeof window.applyTheme !== 'function') {
-        window.applyTheme = applyThemeCompat;
-    }
 }
 
 if (document.readyState === 'loading') {

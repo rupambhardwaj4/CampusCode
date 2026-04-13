@@ -142,7 +142,7 @@
                                 <div class="mb-4">
                                     <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                                         Filters</h3>
-                                    <input type="text" placeholder="Filter..."
+                                    <input type="text" id="problemFilterSearch" placeholder="Filter..."
                                         class="w-full text-sm border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-1 focus:ring-primary-500 mb-4">
                                 </div>
                                 <div class="space-y-4">
@@ -151,23 +151,23 @@
                                         <div class="space-y-1">
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">DSA
+                                                <input type="checkbox" value="DSA"
+                                                    class="problem-filter-subject mr-2 rounded border-gray-300 text-primary-600">DSA
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">OOPS
+                                                <input type="checkbox" value="OOPS"
+                                                    class="problem-filter-subject mr-2 rounded border-gray-300 text-primary-600">OOPS
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">DBMS
+                                                <input type="checkbox" value="DBMS"
+                                                    class="problem-filter-subject mr-2 rounded border-gray-300 text-primary-600">DBMS
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">CN
+                                                <input type="checkbox" value="CN"
+                                                    class="problem-filter-subject mr-2 rounded border-gray-300 text-primary-600">CN
                                             </label>
                                         </div>
                                     </div>
@@ -176,18 +176,18 @@
                                         <div class="space-y-1">
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">Easy
+                                                <input type="checkbox" value="Easy"
+                                                    class="problem-filter-difficulty mr-2 rounded border-gray-300 text-primary-600">Easy
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">Medium
+                                                <input type="checkbox" value="Medium"
+                                                    class="problem-filter-difficulty mr-2 rounded border-gray-300 text-primary-600">Medium
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">Hard
+                                                <input type="checkbox" value="Hard"
+                                                    class="problem-filter-difficulty mr-2 rounded border-gray-300 text-primary-600">Hard
                                             </label>
                                         </div>
                                     </div>
@@ -196,13 +196,13 @@
                                         <div class="space-y-1">
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">Arrays
+                                                <input type="checkbox" value="Arrays"
+                                                    class="problem-filter-tag mr-2 rounded border-gray-300 text-primary-600">Arrays
                                             </label>
                                             <label
                                                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 p-1 rounded cursor-pointer">
-                                                <input type="checkbox"
-                                                    class="mr-2 rounded border-gray-300 text-primary-600">DP
+                                                <input type="checkbox" value="DP"
+                                                    class="problem-filter-tag mr-2 rounded border-gray-300 text-primary-600">DP
                                             </label>
                                         </div>
                                     </div>
@@ -241,6 +241,10 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.forEach(p => { %>
                                                 <tr data-problem-id="<%= p.id %>"
+                                                    data-problem-title="<%- (p.title || '').toLowerCase() %>"
+                                                    data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
+                                                    data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
+                                                    data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                                                     <td class="px-6 py-4">
                                                         <div class="text-sm font-medium text-gray-900 dark:text-white"><%= p.title %></div>
@@ -318,6 +322,10 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.filter(p => p.faculty_id == user.id).forEach(p => { %>
                                                  <tr data-problem-id="<%= p.id %>"
+                                                     data-problem-title="<%- (p.title || '').toLowerCase() %>"
+                                                     data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
+                                                     data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
+                                                     data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
                                                      class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                                                      <td class="px-6 py-4">
                                                          <div class="text-sm font-medium text-gray-900 dark:text-white"><%= p.title %></div>
@@ -379,6 +387,10 @@
                                             </thead>
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <tr data-problem-id="max-subarray"
+                                                    data-problem-title="maximum subarray"
+                                                    data-problem-subject=""
+                                                    data-problem-tags="arrays, dp"
+                                                    data-problem-difficulty="medium"
                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
 
                                                     <td class="px-6 py-4">

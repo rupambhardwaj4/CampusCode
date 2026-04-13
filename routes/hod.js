@@ -3,6 +3,17 @@ const { requireRole } = require('../middleware/auth');
 const { checkScope } = require('../middleware/authMiddleware');
 
 module.exports = (db) => {
+    function dbGet(query, params = []) {
+        return new Promise((resolve, reject) => {
+            db.get(query, params, (err, row) => err ? reject(err) : resolve(row));
+        });
+    }
+    function dbAll(query, params = []) {
+        return new Promise((resolve, reject) => {
+            db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows));
+        });
+    }
+
     const router = express.Router();
     const normalizeSql = (expr) => `
         LOWER(
@@ -36,6 +47,98 @@ module.exports = (db) => {
         const minutes = totalMinutes % 60;
         return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
     };
+
+    const parseContestProblemIds = (rawProblems) => {
+        let parsed = [];
+        if (Array.isArray(rawProblems)) {
+            parsed = rawProblems;
+        } else if (typeof rawProblems === 'string' && rawProblems.trim()) {
+            try {
+                const fromJson = JSON.parse(rawProblems);
+                parsed = Array.isArray(fromJson) ? fromJson : [];
+            } catch {
+                parsed = [];
+            }
+        }
+        return parsed
+            .map((item) => Number(typeof item === 'object' && item !== null ? item.id : item))
+            .filter((id) => Number.isInteger(id) && id > 0);
+    };
+
+    const getContestProblemIds = async (contest) => {
+        const fromJson = parseContestProblemIds(contest?.problems);
+        if (fromJson.length) return fromJson;
+        const rows = await dbAll(`SELECT problem_id FROM contest_problems WHERE contest_id = ?`, [contest.id]);
+        return rows.map((row) => Number(row.problem_id)).filter((id) => Number.isInteger(id) && id > 0);
+    };
+
+    const buildContestLeaderboard = async (contest) => {
+        const contestProblemIds = await getContestProblemIds(contest);
+        if (!contestProblemIds.length) return [];
+
+        const participantRows = await dbAll(`
+            SELECT cp.user_id, cp.joined_at, u.fullName
+            FROM contest_participants cp
+            JOIN account_users u ON u.id = cp.user_id
+            WHERE cp.contest_id = ?
+        `, [contest.id]);
+
+        const acceptedRows = await dbAll(`
+            SELECT s.user_id, s.problem_id, MAX(s.points_earned) as best_points, MIN(s.createdAt) as first_solved_at
+            FROM submissions s
+            WHERE s.contest_id = ? AND s.status = 'accepted'
+            GROUP BY s.user_id, s.problem_id
+        `, [contest.id]);
+
+        const records = new Map();
+        participantRows.forEach((row) => {
+            records.set(Number(row.user_id), {
+                user_id: Number(row.user_id),
+                fullName: row.fullName || 'Student',
+                score: 0,
+                solved: 0,
+                firstSolvedAt: null
+            });
+        });
+
+        for (const row of acceptedRows) {
+            const problemId = Number(row.problem_id);
+            if (!contestProblemIds.includes(problemId)) continue;
+            const userId = Number(row.user_id);
+            if (!records.has(userId)) {
+                const user = await dbGet(`SELECT fullName FROM account_users WHERE id = ?`, [userId]);
+                records.set(userId, {
+                    user_id: userId,
+                    fullName: user?.fullName || 'Student',
+                    score: 0,
+                    solved: 0,
+                    firstSolvedAt: null
+                });
+            }
+            const target = records.get(userId);
+            target.score += Number(row.best_points || 0);
+            target.solved += 1;
+            if (!target.firstSolvedAt || new Date(row.first_solved_at).getTime() < new Date(target.firstSolvedAt).getTime()) {
+                target.firstSolvedAt = row.first_solved_at;
+            }
+        }
+
+        const leaderboard = Array.from(records.values()).sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.solved !== a.solved) return b.solved - a.solved;
+            const aTime = a.firstSolvedAt ? new Date(a.firstSolvedAt).getTime() : Number.MAX_SAFE_INTEGER;
+            const bTime = b.firstSolvedAt ? new Date(b.firstSolvedAt).getTime() : Number.MAX_SAFE_INTEGER;
+            return aTime - bTime;
+        });
+
+        const total = leaderboard.length || 1;
+        return leaderboard.map((entry, index) => ({
+            ...entry,
+            rank: index + 1,
+            percentile: Math.max(1, Math.round(((total - index) / total) * 100))
+        }));
+    };
+
 
     const getUsersManagedByHod = (hodId, collegeName) => {
         return new Promise((resolve, reject) => {
@@ -299,6 +402,33 @@ module.exports = (db) => {
         // Recently Pending Items
         const questionsQuery = `SELECT * FROM problems WHERE department = ? AND status = 'pending' ORDER BY id DESC LIMIT 5`;
         const contestsQuery  = `SELECT * FROM contests WHERE department = ? AND status = 'pending' ORDER BY id DESC LIMIT 5`;
+        const recentActivityQuery = `
+            SELECT *
+            FROM (
+                SELECT
+                    'problem' AS kind,
+                    p.title AS title,
+                    p.createdAt AS activityAt,
+                    'Submitted problem' AS actionLabel,
+                    'bg-blue-500' AS colorClass
+                FROM problems p
+                WHERE p.department = ?
+
+                UNION ALL
+
+                SELECT
+                    'contest' AS kind,
+                    c.title AS title,
+                    COALESCE(c.createdAt, c.startDate, c.date) AS activityAt,
+                    'Created contest' AS actionLabel,
+                    'bg-purple-500' AS colorClass
+                FROM contests c
+                WHERE c.department = ?
+            ) recent_items
+            WHERE activityAt IS NOT NULL
+            ORDER BY datetime(activityAt) DESC
+            LIMIT 6
+        `;
 
         // Chart 1: Difficulty Spread
         const difficultyQuery = `
@@ -327,11 +457,14 @@ module.exports = (db) => {
                 db.all(contestsQuery, [dept], (err, pendingContests) => {
                     if (err) return res.status(500).send(err.message);
 
-                    db.all(difficultyQuery, [dept], (err, diffRows) => {
-                        if (err) return res.status(500).send(err.message);
+                    db.all(recentActivityQuery, [dept, dept], (recentErr, recentActivity) => {
+                        if (recentErr) return res.status(500).send(recentErr.message);
 
-                        db.all(trendQuery, [dept], (err, trendRows) => {
+                        db.all(difficultyQuery, [dept], (err, diffRows) => {
                             if (err) return res.status(500).send(err.message);
+
+                            db.all(trendQuery, [dept], (err, trendRows) => {
+                                if (err) return res.status(500).send(err.message);
 
                             // Build difficulty spread object
                             const difficultySpread = { Easy: 0, Medium: 0, Hard: 0 };
@@ -354,13 +487,15 @@ module.exports = (db) => {
 
                             const graphData = { difficultySpread, trendLabels, trendCounts };
 
-                            res.render('hod/dashboard.html', {
-                                user: req.session.user,
-                                stats,
-                                pendingQuestions,
-                                pendingContests,
-                                graphData,
-                                currentPage: 'dashboard'
+                                res.render('hod/dashboard.html', {
+                                    user: req.session.user,
+                                    stats,
+                                    pendingQuestions,
+                                    pendingContests,
+                                    recentActivity: recentActivity || [],
+                                    graphData,
+                                    currentPage: 'dashboard'
+                                });
                             });
                         });
                     });
@@ -581,6 +716,92 @@ module.exports = (db) => {
     });
 
     // Community Forum
+
+    // HOD: Contest View (Details)
+    router.get('/hod/contest/view/:id', requireRole('hod'), checkScope, async (req, res) => {
+        const contestId = Number(req.params.id);
+        const college = req.session.user.collegeName;
+        const dept = req.session.user.department;
+
+        try {
+            const contest = await dbGet(`
+                SELECT c.*, u.fullName as creatorName, u2.fullName as approverName
+                FROM contests c
+                LEFT JOIN account_users u ON c.createdBy = u.id
+                LEFT JOIN account_users u2 ON c.approved_by = u2.id
+                WHERE c.id = ? AND (c.collegeName = ? OR c.department = ?)
+            `, [contestId, college, dept]);
+
+            if (!contest) return res.status(404).send("Contest not found or access denied.");
+
+            const problemIds = await getContestProblemIds(contest);
+            let contestProblems = [];
+            if (problemIds.length) {
+                const placeholders = problemIds.map(() => '?').join(',');
+                contestProblems = await dbAll(`
+                    SELECT id, title, subject, difficulty, status
+                    FROM problems
+                    WHERE id IN (${placeholders})
+                `, problemIds);
+            }
+
+            const leaderboard = await buildContestLeaderboard(contest);
+            const leaderboardPreview = leaderboard.slice(0, 5);
+
+            res.render('hod/contest_view.html', {
+                user: req.session.user,
+                contest: normalizeContestRecord(contest),
+                contestProblems,
+                leaderboardPreview,
+                backPath: '/college/hod/contest',
+                currentPage: 'contest'
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).send(err.message);
+        }
+    });
+
+    // HOD: Contest Leaderboard
+    router.get('/hod/contest/leaderboard/:id', requireRole('hod'), checkScope, async (req, res) => {
+        const contestId = Number(req.params.id);
+        const college = req.session.user.collegeName;
+        const dept = req.session.user.department;
+
+        try {
+            const contest = await dbGet(`
+                SELECT * FROM contests WHERE id = ? AND (collegeName = ? OR department = ?)
+            `, [contestId, college, dept]);
+
+            if (!contest) return res.status(404).send("Contest not found or access denied.");
+
+            const leaderboard = await buildContestLeaderboard(contest);
+            
+            // Calculate summary stats
+            const participants = leaderboard.length;
+            const submissionsRow = await dbGet(`SELECT COUNT(*) as cnt FROM submissions WHERE contest_id = ?`, [contestId]);
+            const totalSolved = leaderboard.reduce((acc, entry) => acc + entry.solved, 0);
+            const topScore = leaderboard.length > 0 ? leaderboard[0].score : 0;
+
+            res.render('hod/contest_leaderboard.html', {
+                user: req.session.user,
+                contest: normalizeContestRecord(contest),
+                leaderboard,
+                summary: {
+                    participants,
+                    submissions: submissionsRow?.cnt || 0,
+                    totalSolved,
+                    topScore
+                },
+                backPath: '/college/hod/contest',
+                currentPage: 'contest'
+            });
+        } catch (err) {
+            console.error(err);
+            res.status(500).send(err.message);
+        }
+    });
+
     router.get('/hod/community', requireRole('hod'), checkScope, (req, res) => {
         res.render('hod/community.html', { user: req.session.user, currentPage: 'community' });
     });

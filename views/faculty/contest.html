@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1012,9 +1015,9 @@
                     const currentUserId = Number(<%= user.id %>);
                     const myContests = allContests.filter(c => Number(c.createdBy) === currentUserId);
 
-                    renderContestList(contestListUpcoming, upcoming, 'No upcoming contests found.');
-                    renderContestList(contestListPast, past, 'No past contests found.');
-                    renderContestList(contestListMyContests, myContests, 'No contests created yet.');
+                    renderContestList(contestListUpcoming, upcoming, 'No upcoming contests found.', 'upcoming');
+                    renderContestList(contestListPast, past, 'No past contests found.', 'past');
+                    renderContestList(contestListMyContests, myContests, 'No contests created yet.', 'created');
                 }
 
                 function closeLiveModal() {
@@ -1048,7 +1051,7 @@
                     `).join('');
                 }
 
-                function renderContestList(container, contests, emptyMsg) {
+                function renderContestList(container, contests, emptyMsg, listType) {
                     if (!container) return;
                     container.innerHTML = '';
 
@@ -1063,12 +1066,12 @@
                     }
 
                     contests.forEach(contest => {
-                        const card = createContestCard(contest);
+                        const card = createContestCard(contest, listType);
                         container.appendChild(card);
                     });
                 }
 
-                function createContestCard(contest) {
+                function createContestCard(contest, listType) {
                     const div = document.createElement('div');
                     div.className = "bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-all animate-fadeIn group";
 
@@ -1122,22 +1125,23 @@
                                 ${isGlobalContest ? '<span class="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-300"><i class="fas fa-globe"></i> Global Level</span>' : ''}
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="viewContestDetails(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-500 hover:bg-blue-500 hover:text-white transition-all" title="View Preview">
+                        <div class="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
+                            <button onclick="window.location.href='/faculty/contest/view/${contest.id}'" class="flex-1 md:flex-none p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-500 hover:bg-blue-500 hover:text-white transition-all" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            ${isOwner ? `
-                            ${contest.status === 'accepted'
-                                ? `<button onclick="${isVisibleLive ? `unliveContest(${contest.id})` : `openLiveContestModal(${contest.id})`}" class="flex-1 md:flex-none p-2 rounded-xl ${isVisibleLive ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800 text-emerald-600'} border hover:brightness-95 transition-all" title="${isVisibleLive ? 'Move Out Of Live' : 'Go Live'}">
-                                    <i class="fas ${isVisibleLive ? 'fa-stop-circle' : 'fa-play-circle'}"></i>
-                                </button>`
-                                : ''
-                            }
+                            <button onclick="window.location.href='/faculty/contest/leaderboard/${contest.id}'" class="flex-1 md:flex-none p-2 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white transition-all" title="Leaderboard">
+                                <i class="fas fa-trophy"></i>
+                            </button>
+                            ${listType === 'created' && isOwner ? `
                             <button onclick="editContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button onclick="deleteContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Delete">
                                 <i class="fas fa-trash-alt"></i>
+                            </button>` : ''}
+                            ${listType === 'past' ? `
+                            <button onclick="openResultsModal()" class="flex-1 md:flex-none p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all" title="Results">
+                                <i class="fas fa-chart-bar"></i>
                             </button>` : ''}
                         </div>
                     </div>
@@ -1726,20 +1730,24 @@
                 function switchTab(activeTabEl, activeListEl) {
                     allTabs.forEach(tab => {
                         if (tab) {
-                            tab.classList.remove('border-primary-500', 'text-primary-600', 'active');
-                            tab.classList.add('border-transparent', 'text-gray-500');
+                            tab.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'active');
+                            tab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                         }
                     });
                     allLists.forEach(list => list.classList.add('hidden'));
 
-                    activeTabEl.classList.add('border-primary-500', 'text-primary-600', 'active');
-                    activeTabEl.classList.remove('border-transparent', 'text-gray-500');
+                    activeTabEl.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400', 'active');
+                    activeTabEl.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
                     activeListEl.classList.remove('hidden');
                 }
 
                 if (tabUpcoming) tabUpcoming.addEventListener('click', () => switchTab(tabUpcoming, listUpcoming));
                 if (tabMyContests) tabMyContests.addEventListener('click', () => switchTab(tabMyContests, listMyContests));
                 if (tabPast) tabPast.addEventListener('click', () => switchTab(tabPast, listPast));
+
+                if (tabUpcoming && listUpcoming) {
+                    switchTab(tabUpcoming, listUpcoming);
+                }
 
 
             });

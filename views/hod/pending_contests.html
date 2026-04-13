@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="<%= user.theme === 'dark' ? 'dark' : '' %>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,9 +23,20 @@
             }
         }
     </script>
+    <script>
+        try {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        } catch (_) {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
         .glass-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -34,40 +45,44 @@
         .dark .glass-card {
             background: rgba(15, 23, 42, 0.4);
         }
+        html.dark body { background: #111827; color: #e5e7eb; }
+        html.dark .hod-dark-main { background: #111827 !important; }
+        html.dark .hod-dark-surface { background: #1f2937 !important; }
+        html.dark .hod-dark-surface-alt { background: #111827 !important; }
+        html.dark .hod-dark-muted { background: #374151 !important; }
+        html.dark .hod-dark-border { border-color: #374151 !important; }
+        html:not(.dark) body { background: #f8fafc; color: #0f172a; }
+        html:not(.dark) .hod-dark-main,
+        html:not(.dark) .hod-dark-surface,
+        html:not(.dark) .hod-dark-surface-alt,
+        html:not(.dark) .hod-dark-muted { background: #ffffff !important; }
+        html:not(.dark) .hod-dark-border { border-color: #e2e8f0 !important; }
+        html:not(.dark) .text-white { color: #0f172a !important; }
+        html:not(.dark) .text-gray-100,
+        html:not(.dark) .text-gray-300,
+        html:not(.dark) .text-gray-400 { color: #475569 !important; }
+        html:not(.dark) .text-gray-500 { color: #64748b !important; }
+        html:not(.dark) .bg-gray-800,
+        html:not(.dark) .bg-gray-800\/40,
+        html:not(.dark) .bg-gray-900\/50,
+        html:not(.dark) .bg-\[\#161e31\],
+        html:not(.dark) .bg-\[\#0f172a\],
+        html:not(.dark) .bg-\[\#0a0f1e\] { background: #ffffff !important; }
+        html:not(.dark) .border-gray-800,
+        html:not(.dark) .border-gray-700,
+        html:not(.dark) .divide-gray-800\/50 { border-color: #e2e8f0 !important; }
+        html:not(.dark) .hover\:bg-gray-700:hover,
+        html:not(.dark) .hover\:bg-gray-800:hover,
+        html:not(.dark) .hover\:bg-\[\#161e31\]\/30:hover { background: #f8fafc !important; }
+        html:not(.dark) input,
+        html:not(.dark) select { background: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
     </style>
 </head>
-<body class="bg-[#0f172a] text-gray-100 min-h-screen font-sans">
+<body class="hod-dark-main bg-[#0f172a] text-gray-100 min-h-screen font-sans">
     
     <div class="flex h-screen overflow-hidden">
-        <!-- Main Content Area (No Sidebar) -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            
-            <!-- Top Navigation Bar -->
-            <header class="h-16 flex items-center px-8 border-b border-gray-800 bg-[#0f172a] justify-between z-10">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                        <i class="fas fa-code text-blue-500"></i>
-                        <span>CampusCode</span>
-                    </h1>
-                </div>
-                <div class="flex items-center gap-6">
-                    <div class="relative group">
-                        <i class="fas fa-cog text-gray-400 cursor-pointer hover:text-white transition-colors"></i>
-                    </div>
-                    <div class="relative">
-                        <i class="fas fa-bell text-gray-400 cursor-pointer hover:text-white transition-colors"></i>
-                        <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                    </div>
-                    <div class="flex items-center gap-3 pl-4 border-l border-gray-800">
-                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold ring-2 ring-blue-500/20">
-                            <%= user.fullName.split(' ').map(n => n[0]).join('') %>
-                        </div>
-                        <span class="text-sm font-medium text-gray-300"><%= user.fullName %></span>
-                    </div>
-                </div>
-            </header>
-
-            <main class="flex-1 overflow-y-auto bg-[#0a0f1e] p-8">
+            <main class="hod-dark-main flex-1 overflow-y-auto bg-[#0a0f1e] p-8">
                 <div class="max-w-[1400px] mx-auto">
                     
                     <!-- Page Header -->
@@ -144,10 +159,10 @@
                     </div>
 
                     <!-- Main Content Card -->
-                    <div class="bg-[#0f172a] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+                    <div class="hod-dark-surface-alt rounded-3xl border hod-dark-border border-gray-800 shadow-2xl overflow-hidden">
                         
                         <!-- Tabs -->
-                        <div class="flex items-center px-8 border-b border-gray-800 bg-[#161e31]">
+                        <div class="hod-dark-surface flex items-center px-8 border-b hod-dark-border border-gray-800 bg-[#161e31]">
                             <a href="?tab=all" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= (!query.tab || query.tab === 'all') ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-300' %> flex items-center gap-2">
                                 <i class="fas fa-list-ul"></i> All Contests <span class="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full text-[10px]"><%= (stats.pendingCount + stats.approvedCount + stats.rejectedCount) %></span>
                             </a>
@@ -166,7 +181,7 @@
                         </div>
 
                         <!-- Filters -->
-                        <div class="p-8 bg-[#0f172a]">
+                        <div class="hod-dark-surface-alt p-8 bg-[#0f172a]">
                             <form id="filterForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                                 <input type="hidden" name="tab" value="<%= query.tab || 'all' %>">
                                 <div>
@@ -324,7 +339,7 @@
                         </div>
                         
                         <!-- Footer -->
-                        <div class="p-6 bg-[#161e31] border-t border-gray-800 flex items-center justify-between">
+                        <div class="hod-dark-surface p-6 border-t hod-dark-border border-gray-800 flex items-center justify-between">
                             <p class="text-gray-500 text-xs font-medium">Showing <%= pendingContests.length %> contests of <%= (stats.pendingCount + stats.approvedCount + stats.rejectedCount) %></p>
                             <div class="flex gap-2">
                                 <button class="px-4 py-1.5 rounded-lg bg-gray-800 text-gray-500 text-xs font-bold border border-gray-700 cursor-not-allowed">Previous</button>
@@ -441,65 +456,6 @@
             });
         }
     </script>
-    <!-- PROFILE OVERLAY -->
-        <div id="profileOverlay" class="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
-        <div class="w-[380px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
-            <div class="bg-gradient-to-br from-[#1E4A7A] to-[#153255] relative pt-12 pb-20 px-6 text-center">
-                <button id="closeProfileOverlay" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/90 transition-all flex items-center justify-center backdrop-blur-sm">
-                    <i class="fas fa-times text-sm"></i>
-                </button>
-
-                <div class="absolute left-1/2 bottom-[-48px] -translate-x-1/2">
-                    <div class="relative w-24 h-24 rounded-full p-1.5 bg-white dark:bg-gray-800 ring-4 ring-[#1E4A7A]/10 dark:ring-[#1E4A7A]/30">
-                        <div class="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-inner">
-                            <%= user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) %>
-                        </div>
-                        <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 border-4 border-white dark:border-gray-800 rounded-full"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pt-16 pb-8 px-6">
-                <div class="text-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-1"><%= user.fullName %></h2>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3"><%= user.post || 'Faculty Member' %></p>
-
-                    <div class="flex items-center justify-center gap-2 flex-wrap">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
-                            <%= user.department || 'General' %> Dept
-                        </span>
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-100 dark:border-purple-800">
-                            <%= user.role ? user.role.toUpperCase() : 'FACULTY' %>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 text-center">
-                        <p class="text-xs text-gray-500 uppercase font-semibold">Faculty ID</p>
-                        <p class="text-sm font-bold text-gray-800 dark:text-gray-200">FAC-<%= user.id %></p>
-                    </div>
-                    <div class="p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 text-center">
-                        <p class="text-xs text-gray-500 uppercase font-semibold">Joined</p>
-                        <p class="text-sm font-bold text-gray-800 dark:text-gray-200"><%= user.joiningDate || 'Unknown' %></p>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <button id="logoutBtn" class="w-full flex items-center justify-between p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 group transition-all duration-200 border border-transparent hover:border-red-100 dark:hover:border-red-800">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center">
-                                <i class="fas fa-sign-out-alt text-sm"></i>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-red-600 dark:group-hover:text-red-400">Logout</span>
-                        </div>
-                        <i class="fas fa-chevron-right text-xs text-gray-400 group-hover:text-red-500 dark:group-hover:text-red-400"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="/js/hod/index1_logic.js"></script>
 </body>
 
