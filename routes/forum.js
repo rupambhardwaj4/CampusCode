@@ -381,6 +381,29 @@ module.exports = (db) => {
             }
         );
     });
+
+    // ==========================================
+    // 6b. CREATE REPLY (LEGACY /api/forum/replies)
+    router.post('/replies', requireAuth, (req, res) => {
+        const thread_id = Number(req.body.thread_id || 0);
+        const { content } = req.body;
+        const user_id = req.session.user.id;
+
+        if (!thread_id || !content) {
+            return res.status(400).json({ success: false, message: 'Thread ID and content are required' });
+        }
+
+        db.run(`INSERT INTO forum_replies (thread_id, user_id, content) VALUES (?, ?, ?)`,
+            [thread_id, user_id, content],
+            function (err) {
+                if (err) {
+                    console.error("Error creating reply (legacy route):", err.message);
+                    return res.status(500).json({ success: false, message: 'Database error' });
+                }
+                res.json({ success: true, message: 'Reply posted', reply_id: this.lastID });
+            }
+        );
+    });
     // ==========================================
     // 7. VOTE ON REPLY
     // ==========================================
