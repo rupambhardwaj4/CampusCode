@@ -341,6 +341,45 @@
         </div>
     </div>
 
+    <div id="ticketOverlay" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="w-full max-w-2xl mx-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Ticket Details</h3>
+                <button id="ticketOverlayClose" class="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Ticket ID</p>
+                        <p id="overlayTicketId" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</p>
+                        <p id="overlayTicketStatus" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Category</p>
+                        <p id="overlayTicketCategory" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</p>
+                        <p id="overlayTicketSubject" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Issue Details</p>
+                    <div id="overlayTicketDetails" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">-</div>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Concerned Member Solution / Reply</p>
+                    <div id="overlayTicketReply" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20 p-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">No response yet.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
         <script>
         document.addEventListener("DOMContentLoaded", async function () {
             const sidebar = document.getElementById('mainSidebar');
@@ -493,6 +532,8 @@
             const newTicketRef = document.getElementById('newTicketRef');
             const ticketsList = document.getElementById('ticketsList');
             const refreshTicketsBtn = document.getElementById('refreshTicketsBtn');
+            const ticketOverlay = document.getElementById('ticketOverlay');
+            const ticketOverlayClose = document.getElementById('ticketOverlayClose');
 
             if (subjectInput && subjectCounter) {
                 const syncCounter = () => {
@@ -528,6 +569,14 @@
                     ticketsList.innerHTML = tickets.map((t) => {
                         const status = String(t.status || 'open').replace(/_/g, ' ');
                         const reply = String(t.superadmin_reply || '').trim();
+                        const safePayload = encodeURIComponent(JSON.stringify({
+                            id: t.id,
+                            subject: String(t.subject || ''),
+                            category: String(t.category || ''),
+                            details: String(t.details || ''),
+                            status,
+                            reply
+                        }));
                         return `
                             <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/30">
                                 <div class="flex items-start justify-between gap-3">
@@ -535,9 +584,11 @@
                                         <div class="text-sm font-semibold text-gray-800 dark:text-gray-100">${String(t.subject || 'Untitled').replace(/[<>&"']/g, '')}</div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">#TKT-${t.id} | ${t.category || 'General Question'}</div>
                                     </div>
-                                    <span class="text-xs font-semibold px-2 py-1 rounded-full ${badgeClass(status)}">${status}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold px-2 py-1 rounded-full ${badgeClass(status)}">${status}</span>
+                                        <button class="text-xs font-semibold px-3 py-1 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200 hover:bg-primary-200 dark:hover:bg-primary-900/50" onclick="openTicketOverlay('${safePayload}')">open</button>
+                                    </div>
                                 </div>
-                                ${reply ? `<div class="mt-2 text-sm text-gray-700 dark:text-gray-300"><span class="font-semibold">Reply:</span> ${reply.replace(/[<>&"']/g, '')}</div>` : ''}
                             </div>
                         `;
                     }).join('');
@@ -594,6 +645,32 @@
 
             await loadProfileMini();
             await loadTickets();
+
+            window.openTicketOverlay = function (payload) {
+                try {
+                    const t = JSON.parse(decodeURIComponent(payload));
+                    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '-'; };
+                    set('overlayTicketId', `#TKT-${t.id || '-'}`);
+                    set('overlayTicketStatus', t.status || 'open');
+                    set('overlayTicketCategory', t.category || 'General Question');
+                    set('overlayTicketSubject', t.subject || 'Untitled');
+                    set('overlayTicketDetails', t.details || '-');
+                    set('overlayTicketReply', t.reply || 'No response yet.');
+                    if (ticketOverlay) ticketOverlay.classList.remove('hidden');
+                    if (ticketOverlay) ticketOverlay.classList.add('flex');
+                } catch (_) {}
+            };
+            const closeTicketOverlay = () => {
+                if (!ticketOverlay) return;
+                ticketOverlay.classList.add('hidden');
+                ticketOverlay.classList.remove('flex');
+            };
+            if (ticketOverlayClose) ticketOverlayClose.addEventListener('click', closeTicketOverlay);
+            if (ticketOverlay) {
+                ticketOverlay.addEventListener('click', (e) => {
+                    if (e.target === ticketOverlay) closeTicketOverlay();
+                });
+            }
         });
     </script>
     <script src="/js/role-logo-fixes.js"></script>
