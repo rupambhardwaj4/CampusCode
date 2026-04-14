@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (path.includes('forum.html') || path.endsWith('/forum/') || path.endsWith('/forum') || path.includes('/student/forum')) {
         initForumListing();
-    } else if (path.includes('create.html')) {
+    } else if (path.includes('create.html') || path.includes('/student/new-post')) {
         initCreateThread();
-    } else if (path.includes('thread.html')) {
+    } else if (path.includes('thread.html') || path.includes('/student/thread')) {
         initThreadDetail();
     }
 });
@@ -591,9 +591,10 @@ function initForumListing() {
                     deleteButtonHTML = `<button onclick="deleteThread(${t.id}, event)" class="absolute top-4 right-4 text-red-500 hover:bg-red-50 p-2 rounded-lg text-sm"><i class="fas fa-trash"></i> Delete</button>`;
                 }
 
+                const threadPath = window.location.pathname.startsWith('/student') ? '/student/thread' : '/forum/thread.html';
                 container.innerHTML += `
                     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer p-6 relative" 
-                         onclick="window.location.href='/forum/thread.html?id=${t.id}'">
+                         onclick="window.location.href='${threadPath}?id=${t.id}'">
                         ${deleteButtonHTML}
                         <div class="flex items-center space-x-3 mb-2">
                             <span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}">${t.topic.toUpperCase()}</span>
@@ -689,7 +690,8 @@ function initCreateThread() {
             
             if(data.success) {
                 // Redirect to new thread
-                window.location.href = `/forum/thread.html?id=${data.thread_id}`;
+                const threadPath = window.location.pathname.startsWith('/student') ? '/student/thread' : '/forum/thread.html';
+                window.location.href = `${threadPath}?id=${data.thread_id}`;
             } else {
                 alert(data.message || "Failed to create thread.");
                 btn.disabled = false;

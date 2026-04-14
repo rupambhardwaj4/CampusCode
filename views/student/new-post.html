@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Start Discussion - CampusCode</title>
+  <link rel="icon" href="/campuscode-logo.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Poppins', 'sans-serif'] },
+          colors: {
+            primary: { 50: '#E7F0FA', 100: '#D0E1F5', 200: '#7BA4D0', 300: '#4D84C0', 400: '#2E5E99', 500: '#1E4A7A', 600: '#0D2440' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .dark ::-webkit-scrollbar-track { background: #111827; }
+    ::-webkit-scrollbar-thumb { background: #7ba4d0; border-radius: 3px; }
+    .sidebar { transition: width .3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden; }
+    .nav-item { transition: all .2s ease; position: relative; display: flex; align-items: center; padding: .75rem 1rem; margin-bottom: .25rem; color: #374151; border-radius: .75rem; cursor: pointer; white-space: nowrap; }
+    .dark .nav-item { color: #d1d5db; }
+    .nav-item:hover { background-color: #f3f4f6; }
+    .dark .nav-item:hover { background-color: #374151; }
+    .nav-item.active { background-color: #d0e1f5; color: #1e4a7a; }
+    .dark .nav-item.active { background-color: #1e4a7a; color: #fff; }
+    .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 60%; width: 4px; background-color: #2e5e99; border-radius: 0 4px 4px 0; }
+    .nav-item i { width: 1.5rem; text-align: center; margin-right: .75rem; font-size: 1.1rem; flex-shrink: 0; }
+    .nav-item span { font-size: .875rem; font-weight: 500; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+    .sidebar.collapsed .nav-item i { margin-right: 0; font-size: 1.25rem; }
+    .sidebar.collapsed .nav-item span { display: none; }
+  </style>
+  <link rel="stylesheet" href="/css/role-dark-fixes.css">
+</head>
+<body class="bg-primary-50 dark:bg-gray-900 min-h-screen font-sans transition-colors duration-200">
+  <div class="flex h-screen overflow-hidden">
+    <aside id="mainSidebar" class="sidebar w-64 bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen flex-shrink-0 transition-colors duration-200 z-50">
+      <div class="p-6 flex-shrink-0 flex items-center justify-between h-[88px]">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2 overflow-hidden whitespace-nowrap">
+          <i class="fas fa-code text-primary-500 text-2xl flex-shrink-0"></i>
+          <span id="sidebarLogoText" class="transition-all duration-300 opacity-100 w-auto">CampusCode</span>
+        </h1>
+        <button id="sidebarToggleBtn" class="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-500 transition-colors focus:outline-none">
+          <i class="fas fa-chevron-left transition-transform duration-300"></i>
+        </button>
+      </div>
+      <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-2">
+        <a href="/student/dashboard" class="nav-item"><i class="fas fa-home"></i><span>Home</span></a>
+        <a href="/student/problems" class="nav-item"><i class="fas fa-tasks"></i><span>Problems</span></a>
+        <a href="/student/contests" class="nav-item"><i class="fas fa-trophy"></i><span>Contests</span></a>
+        <a href="/student/forum" class="nav-item active"><i class="fas fa-comments"></i><span>Community</span></a>
+        <a href="/student/stats" class="nav-item"><i class="fas fa-list"></i><span>Stats</span></a>
+        <a href="/student/report" class="nav-item"><i class="fas fa-chart-pie"></i><span>Report</span></a>
+        <a href="/student/profile" class="nav-item"><i class="fas fa-user"></i><span>Profile</span></a>
+      </nav>
+      <div class="p-4 space-y-1 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0 bottom-menu">
+        <a href="/student/support" class="nav-item"><i class="far fa-question-circle"></i><span>Help & Support</span></a>
+        <a href="/student/settings" class="nav-item"><i class="fas fa-cog"></i><span>Settings</span></a>
+      </div>
+    </aside>
+    <div class="flex-1 overflow-y-auto relative w-full">
+      <header class="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200 sticky top-0 z-40 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+          <div class="flex-1 max-w-2xl ml-4 flex items-center gap-4">
+            <a href="/student/forum" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors border border-gray-200 dark:border-gray-600">
+              <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+              <h1 class="text-xl font-bold text-gray-800 dark:text-white">Create Discussion</h1>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Start a new discussion in the student community.</p>
+            </div>
+          </div>
+          <div class="ml-4 flex items-center gap-3">
+            <button id="themeToggleBtn" class="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-transform active:scale-95">
+              <i class="fas fa-moon text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+      <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-gray-800 dark:text-gray-100">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8 transition-colors duration-200">
+          <h2 class="text-2xl font-bold mb-3">Start a New Discussion</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Create a thread for your question, idea, or project help.</p>
+          <form id="createThreadForm" class="space-y-6">
+            <div>
+              <label for="threadTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Title</label>
+              <input type="text" id="threadTitle" required placeholder="e.g. How to optimize tree traversal?"
+                class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label for="threadTopic" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Topic</label>
+              <select id="threadTopic" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none">
+                <option value="general">General</option>
+                <option value="algorithms">Algorithms</option>
+                <option value="web">Web</option>
+                <option value="backend">Backend</option>
+                <option value="career">Career</option>
+              </select>
+            </div>
+            <div>
+              <label for="threadContent" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Content</label>
+              <textarea id="threadContent" rows="10" required placeholder="Write your discussion details here..."
+                class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none resize-y"></textarea>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <a href="/student/forum" class="px-5 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Cancel</a>
+              <button type="submit" id="submitThreadBtn" class="px-6 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-semibold transition">Post Discussion</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = themeToggleBtn.querySelector('i');
+    function updateThemeIcon(isDark) {
+      themeIcon.className = isDark ? 'fas fa-sun text-xl' : 'fas fa-moon text-xl';
+    }
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      updateThemeIcon(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      updateThemeIcon(false);
+    }
+    themeToggleBtn.addEventListener('click', () => {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark');
+      if (isDark) {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        updateThemeIcon(false);
+      } else {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        updateThemeIcon(true);
+      }
+    });
+    document.getElementById('sidebarToggleBtn').addEventListener('click', () => {
+      const sidebar = document.getElementById('mainSidebar');
+      const icon = document.querySelector('#sidebarToggleBtn i');
+      sidebar.classList.toggle('w-64');
+      sidebar.classList.toggle('w-20');
+      sidebar.classList.toggle('collapsed');
+      if (sidebar.classList.contains('collapsed')) {
+        icon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+      } else {
+        icon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+      }
+    });
+    document.getElementById('createThreadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitThreadBtn');
+      const title = document.getElementById('threadTitle').value.trim();
+      const topic = document.getElementById('threadTopic').value;
+      const content = document.getElementById('threadContent').value.trim();
+      if (!title || !content) return;
+      btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Posting...';
+      try {
+        const response = await fetch('/api/forum/threads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, topic, content })
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          window.location.href = `/student/thread?id=${data.thread_id}`;
+        } else {
+          alert(data.message || 'Failed to create discussion.');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Network error while creating discussion.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    });
+  </script>
+  <script src="/js/role-logo-fixes.js"></script>
+</body>
+</html>

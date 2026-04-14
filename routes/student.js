@@ -815,6 +815,18 @@ const GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK = 0.3;
         }
     });
 
+    router.get('/new-post', requireRole('student'), (req, res) => {
+        res.sendFile(path.join(__dirname, '../views/student/new-post.html'));
+    });
+
+    router.get('/new-post.html', requireRole('student'), (req, res) => res.redirect('/student/new-post'));
+
+    router.get('/thread', requireRole('student'), (req, res) => {
+        res.sendFile(path.join(__dirname, '../views/student/thread.html'));
+    });
+
+    router.get('/thread.html', requireRole('student'), (req, res) => res.redirect('/student/thread'));
+
     router.get('/community', requireRole('student'), (req, res) => res.redirect('/student/forum'));
 
     router.get('/settings', requireRole('student'), (req, res) => {
