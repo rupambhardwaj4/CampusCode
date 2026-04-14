@@ -4,3 +4,4 @@ campuscode.db
 database.sqlite
 .DS_Store
 
+*.sqlite
