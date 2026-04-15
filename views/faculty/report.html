@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Reports - Faculty Dashboard</title>
+    <title>Analytics Report - Faculty Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="/css/shared.css">
-    <link rel="stylesheet" href="/css/faculty/style.css">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -17,13 +16,30 @@
                 extend: {
                     fontFamily: { sans: ["Poppins", "sans-serif"] },
                     colors: {
-                        primary: { 50: "#E7F0FA", 100: "#D0E1F5", 200: "#7BA4D0", 300: "#4D84C0", 400: "#2E5E99", 500: "#1E4A7A", 600: "#0D2440" },
-                        dark: { bg: "#111827", card: "#1F2937", text: "#F9FAFB", border: "#374151" }
+                        primary: { 50:"#E7F0FA",100:"#D0E1F5",200:"#7BA4D0",300:"#4D84C0",400:"#2E5E99",500:"#1E4A7A",600:"#0D2440" },
+                        dark: { bg:"#0F172A", card:"#1E293B", text:"#F8FAFC", border:"#334155" }
                     }
                 }
             }
         };
     </script>
+    <style>
+        .kpi-gradient-blue { background: linear-gradient(135deg, #1E4A7A 0%, #2563eb 100%); }
+        .kpi-gradient-purple { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+        .kpi-gradient-emerald { background: linear-gradient(135deg, #059669 0%, #34d399 100%); }
+        .kpi-gradient-orange { background: linear-gradient(135deg, #ea580c 0%, #fb923c 100%); }
+        .kpi-gradient-rose { background: linear-gradient(135deg, #be123c 0%, #fb7185 100%); }
+        .kpi-card { transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s ease; }
+        .kpi-card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .chart-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .chart-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+        .difficulty-bar { transition: width 1.2s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes fadeSlideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .animate-in { animation: fadeSlideUp 0.5s ease both; }
+        .glow-blue { box-shadow: 0 0 30px rgba(37,99,235,0.25); }
+        .glow-purple { box-shadow: 0 0 30px rgba(168,85,247,0.25); }
+        .rank-badge { min-width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-weight:700; font-size:12px; }
+    </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen font-sans transition-colors duration-200 text-gray-800 dark:text-gray-200">
 <div class="flex h-screen overflow-hidden">
@@ -32,92 +48,539 @@
         <%- include('../partials/faculty_header') %>
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="mb-6">
-                <h2 class="text-lg font-bold text-gray-800 dark:text-white">Performance Overview</h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Analytics for <%= user.collegeName || 'Your College' %> - <%= user.post || 'Faculty' %></p>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                    <p class="text-xs uppercase font-semibold text-gray-400">Problems</p>
-                    <p class="text-3xl font-black mt-2 text-gray-800 dark:text-white"><%= reportData?.problems || 0 %></p>
+            <!-- ─── PAGE HEADER ─── -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-in" style="animation-delay:0s">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-xl bg-primary-500 flex items-center justify-center text-white shadow-lg">
+                            <i class="fas fa-chart-line text-sm"></i>
+                        </span>
+                        Analytics Report
+                    </h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Performance overview for <span class="font-semibold text-gray-700 dark:text-gray-200"><%= user.fullName || 'Faculty' %></span>
+                        &nbsp;·&nbsp; <span class="text-primary-500"><%= user.department || 'Department' %></span>
+                    </p>
                 </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                    <p class="text-xs uppercase font-semibold text-gray-400">Contests</p>
-                    <p class="text-3xl font-black mt-2 text-gray-800 dark:text-white"><%= reportData?.contests || 0 %></p>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                    <p class="text-xs uppercase font-semibold text-gray-400">Active Students</p>
-                    <p class="text-3xl font-black mt-2 text-gray-800 dark:text-white"><%= reportData?.activeStudents || 0 %></p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 class="text-base font-semibold text-gray-800 dark:text-white mb-4">Submission Trend (Last 6 Months)</h3>
-                    <div class="h-64"><canvas id="participationChart"></canvas></div>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 class="text-base font-semibold text-gray-800 dark:text-white mb-4">Problem Difficulty Distribution</h3>
-                    <div class="h-64 flex justify-center"><canvas id="difficultyChart"></canvas></div>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-                <div class="w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-file-download text-3xl text-primary-500"></i>
-                </div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">Export Reports</h3>
-                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Download current analytics for submissions and difficulty spread.</p>
-                <div class="flex justify-center gap-3">
-                    <button class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                <div class="flex items-center gap-2">
+                    <a href="/faculty/report/pdf" target="_blank" id="btn-export-pdf" class="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl text-sm font-semibold shadow-md transition-all">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
+                    <button id="btn-export-excel" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-sm font-semibold shadow-md transition-all">
                         <i class="fas fa-file-excel"></i> Export Excel
                     </button>
-                    <button class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                        <i class="fas fa-file-pdf"></i> Export PDF
-                    </button>
                 </div>
             </div>
+
+            <!-- ─── KPI CARDS ─── -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+                <!-- Problems Created -->
+                <div class="kpi-card kpi-gradient-blue text-white rounded-2xl p-5 relative overflow-hidden animate-in" style="animation-delay:0.05s">
+                    <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="relative">
+                        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-code text-sm"></i>
+                        </div>
+                        <p class="text-3xl font-black leading-none mb-1"><%= reportData.problems %></p>
+                        <p class="text-xs font-medium opacity-80 uppercase tracking-wide">Problems</p>
+                    </div>
+                </div>
+
+                <!-- Contests -->
+                <div class="kpi-card kpi-gradient-purple text-white rounded-2xl p-5 relative overflow-hidden animate-in" style="animation-delay:0.1s">
+                    <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="relative">
+                        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-trophy text-sm"></i>
+                        </div>
+                        <p class="text-3xl font-black leading-none mb-1"><%= reportData.contests %></p>
+                        <p class="text-xs font-medium opacity-80 uppercase tracking-wide">Contests</p>
+                    </div>
+                </div>
+
+                <!-- Active Students -->
+                <div class="kpi-card kpi-gradient-emerald text-white rounded-2xl p-5 relative overflow-hidden animate-in" style="animation-delay:0.15s">
+                    <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="relative">
+                        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-users text-sm"></i>
+                        </div>
+                        <p class="text-3xl font-black leading-none mb-1"><%= reportData.activeStudents %></p>
+                        <p class="text-xs font-medium opacity-80 uppercase tracking-wide">Active Students</p>
+                    </div>
+                </div>
+
+                <!-- Total Submissions -->
+                <div class="kpi-card kpi-gradient-orange text-white rounded-2xl p-5 relative overflow-hidden animate-in" style="animation-delay:0.2s">
+                    <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="relative">
+                        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-paper-plane text-sm"></i>
+                        </div>
+                        <p class="text-3xl font-black leading-none mb-1"><%= reportData.totalSubmissions %></p>
+                        <p class="text-xs font-medium opacity-80 uppercase tracking-wide">Submissions</p>
+                    </div>
+                </div>
+
+                <!-- Acceptance Rate -->
+                <div class="kpi-card kpi-gradient-rose text-white rounded-2xl p-5 relative overflow-hidden animate-in" style="animation-delay:0.25s">
+                    <div class="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10"></div>
+                    <div class="absolute -bottom-6 -left-4 w-20 h-20 rounded-full bg-white/5"></div>
+                    <div class="relative">
+                        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-check-circle text-sm"></i>
+                        </div>
+                        <p class="text-3xl font-black leading-none mb-1"><%= reportData.acceptanceRate %><span class="text-lg">%</span></p>
+                        <p class="text-xs font-medium opacity-80 uppercase tracking-wide">Accept Rate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── MAIN CHARTS ROW ─── -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+                <!-- Submission Trend (Area Chart) -->
+                <div class="lg:col-span-2 chart-card bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 animate-in" style="animation-delay:0.3s">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Submission Activity</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Monthly trend over last 6 months</p>
+                        </div>
+                        <span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-full">
+                            <i class="fas fa-arrow-trend-up mr-1"></i>Trend
+                        </span>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="submissionTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Difficulty Donut -->
+                <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 animate-in" style="animation-delay:0.35s">
+                    <div class="mb-5">
+                        <h2 class="text-base font-bold text-gray-800 dark:text-white">Difficulty Split</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Problem distribution by level</p>
+                    </div>
+                    <div class="h-44 flex justify-center relative">
+                        <canvas id="difficultyChart"></canvas>
+                        <div id="donut-center" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <p class="text-2xl font-black text-gray-800 dark:text-white" id="donut-total"><%= reportData.problems %></p>
+                            <p class="text-xs text-gray-400">total</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-4 mt-4 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Easy <span class="font-bold text-gray-700 dark:text-gray-300">(<%= reportData.difficulty[0] %>)</span></span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Medium <span class="font-bold text-gray-700 dark:text-gray-300">(<%= reportData.difficulty[1] %>)</span></span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="text-gray-600 dark:text-gray-400">Hard <span class="font-bold text-gray-700 dark:text-gray-300">(<%= reportData.difficulty[2] %>)</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── SECONDARY CHARTS ─── -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+                <!-- Weekly Activity Bar -->
+                <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 animate-in" style="animation-delay:0.4s">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Weekly Activity</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Submissions over the past 7 weeks</p>
+                        </div>
+                        <span class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 text-sm">
+                            <i class="fas fa-calendar-week"></i>
+                        </span>
+                    </div>
+                    <div class="h-52">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Subject Breakdown Horizontal Bars -->
+                <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 animate-in" style="animation-delay:0.45s">
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Subject Breakdown</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Problems created per subject</p>
+                        </div>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 text-sm">
+                            <i class="fas fa-book"></i>
+                        </span>
+                    </div>
+                    <div class="space-y-3.5">
+                        <% const maxSubj = Math.max(...(reportData.subjectBreakdown.map(s => s.count)), 1); %>
+                        <% const subjectColors = ['bg-blue-500','bg-purple-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500']; %>
+                        <% (reportData.subjectBreakdown.length > 0 ? reportData.subjectBreakdown : [{subject:'No subjects yet', count:0}]).forEach((s, i) => { %>
+                        <div>
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[65%]"><%= s.subject %></span>
+                                <span class="font-bold text-gray-800 dark:text-white ml-2"><%= s.count %></span>
+                            </div>
+                            <div class="w-full h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div class="difficulty-bar h-full rounded-full <%= subjectColors[i % subjectColors.length] %>" style="width: <%= Math.round((s.count / maxSubj) * 100) %>%"></div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── TABLES ROW ─── -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+                <!-- Top Problems -->
+                <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in" style="animation-delay:0.5s">
+                    <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Top Problems</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Ranked by student submissions</p>
+                        </div>
+                        <a href="/faculty/problem" class="text-xs text-primary-500 hover:underline font-semibold">View all →</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <% if (reportData.topProblems.length > 0) { %>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50/80 dark:bg-gray-700/40 text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                    <th class="px-4 py-3 text-left">#</th>
+                                    <th class="px-4 py-3 text-left">Problem</th>
+                                    <th class="px-4 py-3 text-center">Level</th>
+                                    <th class="px-4 py-3 text-center">Submissions</th>
+                                    <th class="px-4 py-3 text-center">Accepted</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                                <% reportData.topProblems.forEach((p, i) => {
+                                    const medalColors = ['bg-amber-400 text-white','bg-gray-300 text-gray-700','bg-orange-400 text-white'];
+                                    const diffColor = p.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : (p.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400');
+                                    const rate = p.submissions > 0 ? Math.round((p.accepted / p.submissions) * 100) : 0;
+                                %>
+                                <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <span class="rank-badge <%= i < 3 ? medalColors[i] : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' %>">
+                                            <%= i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) %>
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 max-w-[180px]">
+                                        <p class="font-medium text-gray-800 dark:text-white truncate"><%= p.title %></p>
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase <%= diffColor %>"><%= p.difficulty || 'N/A' %></span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300"><%= p.submissions %></td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="text-emerald-600 dark:text-emerald-400 font-bold"><%= rate %>%</span>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                        <% } else { %>
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                                <i class="fas fa-code text-gray-400 text-xl"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">No problems yet</p>
+                            <p class="text-xs text-gray-400 mt-1">Create your first problem to see analytics</p>
+                            <a href="/faculty/problem/create" class="mt-3 px-4 py-1.5 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold rounded-lg transition-colors">Create Problem</a>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Top Students Leaderboard -->
+                <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in" style="animation-delay:0.55s">
+                    <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-800 dark:text-white">Top Students</h2>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Students with most accepted solutions</p>
+                        </div>
+                        <a href="/faculty/student" class="text-xs text-primary-500 hover:underline font-semibold">View all →</a>
+                    </div>
+                    <div>
+                        <% if (reportData.topStudents.length > 0) { %>
+                        <ul class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                            <% reportData.topStudents.forEach((s, i) => {
+                                const initials = (s.fullName || 'U').trim().split(' ').slice(0,2).map(n => n[0] || '').join('').toUpperCase();
+                                const avatarGrads = ['from-blue-400 to-indigo-600','from-purple-400 to-pink-600','from-emerald-400 to-teal-600','from-amber-400 to-orange-500','from-rose-400 to-red-600'];
+                                const medalColors = ['bg-amber-400 text-white','bg-gray-300 text-gray-700','bg-orange-400 text-white'];
+                            %>
+                            <li class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors">
+                                <span class="rank-badge <%= i < 3 ? medalColors[i] : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' %>">
+                                    <%= i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) %>
+                                </span>
+                                <div class="w-9 h-9 rounded-xl bg-gradient-to-br <%= avatarGrads[i % avatarGrads.length] %> flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                                    <%= initials %>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-gray-800 dark:text-white truncate"><%= s.fullName %></p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        <% if (s.year || s.section) { %><%= [s.year, s.section].filter(Boolean).join(' · ') %><% } else { %>Student<% } %>
+                                    </p>
+                                </div>
+                                <div class="text-right ml-2 flex-shrink-0">
+                                    <p class="text-sm font-black text-primary-600 dark:text-blue-400"><%= s.solved %></p>
+                                    <p class="text-[10px] text-gray-400 uppercase tracking-wide">solved</p>
+                                </div>
+                            </li>
+                            <% }); %>
+                        </ul>
+                        <% } else { %>
+                        <div class="flex flex-col items-center justify-center py-12 text-center">
+                            <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                                <i class="fas fa-user-graduate text-gray-400 text-xl"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">No student data yet</p>
+                            <p class="text-xs text-gray-400 mt-1">Data appears as students submit to your problems</p>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ─── RECENT CONTESTS ─── -->
+            <div class="chart-card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in mb-6" style="animation-delay:0.6s">
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-800 dark:text-white">Recent Contests</h2>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Latest contests you created</p>
+                    </div>
+                    <a href="/faculty/contest" class="text-xs text-primary-500 hover:underline font-semibold">View all →</a>
+                </div>
+                <% if (reportData.recentContests.length > 0) { %>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50/80 dark:bg-gray-700/40 text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                <th class="px-6 py-3 text-left">Contest Title</th>
+                                <th class="px-6 py-3 text-center">Status</th>
+                                <th class="px-6 py-3 text-center">Start Date</th>
+                                <th class="px-6 py-3 text-center">End Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                            <% reportData.recentContests.forEach(c => {
+                                const statusMap = {
+                                    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                                    accepted: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                                    rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+                                    active: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                                    live: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                };
+                                const statusCls = statusMap[String(c.status||'').toLowerCase()] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
+                                const fmt = d => { try { const dt = new Date(d); return isNaN(dt) ? '—' : dt.toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}); } catch { return '—'; } };
+                            %>
+                            <tr class="hover:bg-gray-50/60 dark:hover:bg-gray-700/20 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0">
+                                            <i class="fas fa-trophy text-xs"></i>
+                                        </div>
+                                        <p class="font-semibold text-gray-800 dark:text-white max-w-xs truncate"><%= c.title %></p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase <%= statusCls %>"><%= c.status || 'Draft' %></span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-gray-600 dark:text-gray-400 text-xs"><%= fmt(c.startDate) %></td>
+                                <td class="px-6 py-4 text-center text-gray-600 dark:text-gray-400 text-xs"><%= fmt(c.endDate) %></td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <% } else { %>
+                <div class="flex flex-col items-center justify-center py-10 text-center">
+                    <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                        <i class="fas fa-trophy text-gray-400 text-xl"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-gray-500 dark:text-gray-400">No contests yet</p>
+                    <p class="text-xs text-gray-400 mt-1">Create your first contest to track its performance here</p>
+                    <a href="/faculty/contest" class="mt-3 px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg transition-colors">Create Contest</a>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- ─── QUICK STAT SUMMARY BAR ─── -->
+            <div class="bg-gradient-to-r from-primary-600 to-blue-500 rounded-2xl p-6 animate-in" style="animation-delay:0.65s">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
+                    <div>
+                        <p class="text-3xl font-black"><%= reportData.acceptedSubmissions %></p>
+                        <p class="text-xs opacity-80 uppercase tracking-wide mt-1">Accepted Solutions</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-black"><%= reportData.difficulty[0] %></p>
+                        <p class="text-xs opacity-80 uppercase tracking-wide mt-1">Easy Problems</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-black"><%= reportData.difficulty[1] %></p>
+                        <p class="text-xs opacity-80 uppercase tracking-wide mt-1">Medium Problems</p>
+                    </div>
+                    <div>
+                        <p class="text-3xl font-black"><%= reportData.difficulty[2] %></p>
+                        <p class="text-xs opacity-80 uppercase tracking-wide mt-1">Hard Problems</p>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const trendCtx = document.getElementById('participationChart');
+    const isDark = document.documentElement.classList.contains('dark');
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const labelColor = isDark ? '#94a3b8' : '#64748b';
+
+    Chart.defaults.font.family = "'Poppins', sans-serif";
+    Chart.defaults.font.size = 11;
+
+    // ─── Submission Trend Area Chart ───
+    const trendCtx = document.getElementById('submissionTrendChart');
     if (trendCtx) {
+        const gradient = trendCtx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, 'rgba(37,99,235,0.35)');
+        gradient.addColorStop(1, 'rgba(37,99,235,0.01)');
+
         new Chart(trendCtx, {
-            type: 'bar',
+            type: 'line',
             data: {
-                labels: <%- JSON.stringify(reportData?.labels || []) %>,
+                labels: <%- JSON.stringify(reportData.labels) %>,
                 datasets: [{
                     label: 'Submissions',
-                    data: <%- JSON.stringify(reportData?.participationTrend || []) %>,
-                    backgroundColor: 'rgba(30,74,122,0.7)',
-                    borderRadius: 6
+                    data: <%- JSON.stringify(reportData.participationTrend) %>,
+                    borderColor: '#2563eb',
+                    backgroundColor: gradient,
+                    borderWidth: 2.5,
+                    tension: 0.42,
+                    fill: true,
+                    pointBackgroundColor: '#2563eb',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', padding: 12, cornerRadius: 10, bodyFont: { weight: '600' } } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: labelColor, stepSize: 1 }, border: { display: false } },
+                    x: { grid: { display: false }, ticks: { color: labelColor }, border: { display: false } }
+                }
+            }
         });
     }
 
+    // ─── Difficulty Donut ───
     const diffCtx = document.getElementById('difficultyChart');
     if (diffCtx) {
+        const diffData = <%- JSON.stringify(reportData.difficulty) %>;
+        const hasData = diffData.some(v => v > 0);
         new Chart(diffCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Easy', 'Medium', 'Hard'],
                 datasets: [{
-                    data: <%- JSON.stringify(reportData?.difficulty || [0,0,0]) %>,
-                    backgroundColor: ['#22c55e', '#eab308', '#ef4444'],
+                    data: hasData ? diffData : [1, 1, 1],
+                    backgroundColor: hasData ? ['#10b981', '#f59e0b', '#f43f5e'] : ['#e5e7eb','#e5e7eb','#e5e7eb'],
                     borderWidth: 0,
-                    hoverOffset: 4
+                    hoverOffset: 6
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: '#1e293b', padding: 10, cornerRadius: 8,
+                        callbacks: { label: ctx => hasData ? ` ${ctx.label}: ${ctx.raw}` : ' No data yet' }
+                    }
+                }
+            }
         });
     }
+
+    // ─── Weekly Bar Chart ───
+    const weeklyCtx = document.getElementById('weeklyChart');
+    if (weeklyCtx) {
+        const wGrad = weeklyCtx.getContext('2d').createLinearGradient(0, 0, 0, 200);
+        wGrad.addColorStop(0, 'rgba(124,58,237,0.85)');
+        wGrad.addColorStop(1, 'rgba(124,58,237,0.2)');
+        new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: <%- JSON.stringify(reportData.weekLabels) %>,
+                datasets: [{
+                    label: 'Submissions',
+                    data: <%- JSON.stringify(reportData.weeklyData) %>,
+                    backgroundColor: wGrad,
+                    borderRadius: 8,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b', padding: 10, cornerRadius: 8 } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: labelColor }, border: { display: false } },
+                    x: { grid: { display: false }, ticks: { color: labelColor }, border: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ─── Export Excel (CSV) ───
+    document.getElementById('btn-export-excel')?.addEventListener('click', () => {
+        const rows = [
+            ['Metric', 'Value'],
+            ['Problems Created', '<%= reportData.problems %>'],
+            ['Contests', '<%= reportData.contests %>'],
+            ['Active Students', '<%= reportData.activeStudents %>'],
+            ['Total Submissions', '<%= reportData.totalSubmissions %>'],
+            ['Accepted Submissions', '<%= reportData.acceptedSubmissions %>'],
+            ['Acceptance Rate (%)', '<%= reportData.acceptanceRate %>'],
+            [],
+            ['Top Problems', 'Submissions', 'Acceptance Rate'],
+            ...<%- JSON.stringify(reportData.topProblems) %>.map(p => [
+                p.title, p.submissions,
+                p.submissions > 0 ? Math.round((p.accepted / p.submissions) * 100) + '%' : '0%'
+            ]),
+            [],
+            ['Top Students', 'Solved', 'Year', 'Section'],
+            ...<%- JSON.stringify(reportData.topStudents) %>.map(s => [s.fullName, s.solved, s.year||'', s.section||''])
+        ];
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'faculty_report.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Observe dark mode changes and update chart colors accordingly
+    new MutationObserver(() => {
+        Chart.instances && Object.values(Chart.instances).forEach(chart => chart.update());
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 });
 </script>
+
+<script src="/js/faculty/index1_logic.js"></script>
 </body>
 </html>

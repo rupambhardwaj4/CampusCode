@@ -1060,14 +1060,34 @@ module.exports = (db, transporter) => {
             if (err) return res.status(500).send(err.message);
             if (!row) return res.status(403).send("Unauthorized or Invalid Faculty ID.");
 
-            // Insert into faculty_assignments
-            db.run(
-                `INSERT INTO faculty_assignments (user_id, subject, year, section, assigned_by_id, collegeName)
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [facultyId, subjectName, assignedYears, assignedSections, hodId, college],
-                function(err) {
-                    if (err) return res.status(500).send(err.message);
-                    res.json({ success: true, message: 'Assignment successful' });
+            // Check if another faculty is already assigned to this exact section
+            db.get(
+                `SELECT f.user_id, u.fullName 
+                 FROM faculty_assignments f
+                 JOIN account_users u ON f.user_id = u.id
+                 WHERE f.subject = ? AND f.year = ? AND f.section = ? AND f.collegeName = ?`,
+                [subjectName, assignedYears, assignedSections, college],
+                (checkErr, existingAssignment) => {
+                    if (checkErr) return res.status(500).json({ success: false, error: checkErr.message });
+                    if (existingAssignment) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            error: Number(existingAssignment.user_id) === Number(facultyId) 
+                                ? `This faculty is already assigned to this section.`
+                                : `This section is already assigned to ${existingAssignment.fullName || 'another faculty'} for ${subjectName}.` 
+                        });
+                    }
+
+                    // Insert into faculty_assignments
+                    db.run(
+                        `INSERT INTO faculty_assignments (user_id, subject, year, section, assigned_by_id, collegeName)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                        [facultyId, subjectName, assignedYears, assignedSections, hodId, college],
+                        function(err) {
+                            if (err) return res.status(500).json({ success: false, error: err.message });
+                            res.json({ success: true, message: 'Assignment successful' });
+                        }
+                    );
                 }
             );
         });

@@ -933,8 +933,10 @@ module.exports = (db) => {
             labels.push(monthNames[d.getMonth()]);
             monthMap.push(String(d.getMonth() + 1).padStart(2, '0'));
         }
+        const weekLabels = ['6w ago','5w ago','4w ago','3w ago','2w ago','Last wk','This wk'];
 
         Promise.all([
+            // 0 - Monthly submissions trend
             runQuery(
                 `SELECT strftime('%m', s.createdAt) as month, COUNT(*) as count
                  FROM submissions s
@@ -943,32 +945,111 @@ module.exports = (db) => {
                  GROUP BY strftime('%m', s.createdAt)`,
                 [user.id]
             ),
+            // 1 - Difficulty breakdown
             runQuery(
                 `SELECT difficulty, COUNT(*) as count
-                 FROM problems
-                 WHERE faculty_id = ?
+                 FROM problems WHERE faculty_id = ?
                  GROUP BY difficulty`,
                 [user.id]
             ),
+            // 2 - Total problems count
             getSingle(`SELECT COUNT(*) as count FROM problems WHERE faculty_id = ?`, [user.id]),
+            // 3 - Total contests count
             getSingle(`SELECT COUNT(*) as count FROM contests WHERE createdBy = ?`, [user.id]),
+            // 4 - Distinct students who submitted to faculty's problems
             getSingle(
                 `SELECT COUNT(DISTINCT s.user_id) as count
                  FROM submissions s
                  JOIN problems p ON p.id = s.problem_id
                  WHERE p.faculty_id = ?`,
                 [user.id]
+            ),
+            // 5 - Total + accepted submissions
+            getSingle(
+                `SELECT COUNT(*) as total,
+                        SUM(CASE WHEN LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass') THEN 1 ELSE 0 END) as accepted
+                 FROM submissions s
+                 JOIN problems p ON p.id = s.problem_id
+                 WHERE p.faculty_id = ?`,
+                [user.id]
+            ),
+            // 6 - Top 5 problems by submission count
+            runQuery(
+                `SELECT p.title, p.difficulty,
+                        COUNT(s.id) as submissions,
+                        SUM(CASE WHEN LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass') THEN 1 ELSE 0 END) as accepted
+                 FROM problems p
+                 LEFT JOIN submissions s ON s.problem_id = p.id
+                 WHERE p.faculty_id = ?
+                 GROUP BY p.id ORDER BY submissions DESC LIMIT 5`,
+                [user.id]
+            ),
+            // 7 - Top 5 students by problems solved
+            runQuery(
+                `SELECT u.fullName, u.year, u.section,
+                        COUNT(DISTINCT s.problem_id) as solved,
+                        COALESCE(u.points, 0) as points
+                 FROM submissions s
+                 JOIN problems p ON p.id = s.problem_id
+                 JOIN account_users u ON u.id = s.user_id
+                 WHERE p.faculty_id = ?
+                   AND LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass')
+                 GROUP BY s.user_id ORDER BY solved DESC LIMIT 5`,
+                [user.id]
+            ),
+            // 8 - Subject breakdown
+            runQuery(
+                `SELECT COALESCE(NULLIF(subject,''),'Unassigned') as subject, COUNT(*) as count
+                 FROM problems WHERE faculty_id = ?
+                 GROUP BY subject ORDER BY count DESC LIMIT 6`,
+                [user.id]
+            ),
+            // 9 - Recent contests
+            runQuery(
+                `SELECT title, status,
+                        COALESCE(startDate,'') as startDate,
+                        COALESCE(endDate,'') as endDate
+                 FROM contests WHERE createdBy = ?
+                 ORDER BY createdAt DESC LIMIT 6`,
+                [user.id]
+            ),
+            // 10 - Weekly submissions (last 7 weeks)
+            runQuery(
+                `SELECT strftime('%W', s.createdAt) as week, COUNT(*) as count
+                 FROM submissions s
+                 JOIN problems p ON p.id = s.problem_id
+                 WHERE p.faculty_id = ?
+                   AND s.createdAt >= date('now', '-49 days')
+                 GROUP BY week ORDER BY week ASC`,
+                [user.id]
             )
-        ]).then(([monthlyRows, difficultyRows, problemsRow, contestsRow, activeStudentsRow]) => {
+        ]).then(([
+            monthlyRows, difficultyRows, problemsRow, contestsRow, activeStudentsRow,
+            submissionStats, topProblems, topStudents, subjectBreakdown, recentContests, weeklyRows
+        ]) => {
+            // Monthly trend
             const monthlyByMonth = {};
             (monthlyRows || []).forEach(r => { monthlyByMonth[r.month] = Number(r.count || 0); });
             const participationTrend = monthMap.map(m => monthlyByMonth[m] || 0);
 
+            // Difficulty
             let easy = 0, medium = 0, hard = 0;
             (difficultyRows || []).forEach(r => {
-                if (String(r.difficulty || '').toLowerCase() === 'easy') easy = Number(r.count || 0);
-                if (String(r.difficulty || '').toLowerCase() === 'medium') medium = Number(r.count || 0);
-                if (String(r.difficulty || '').toLowerCase() === 'hard') hard = Number(r.count || 0);
+                const diff = String(r.difficulty || '').toLowerCase();
+                if (diff === 'easy') easy = Number(r.count || 0);
+                if (diff === 'medium') medium = Number(r.count || 0);
+                if (diff === 'hard') hard = Number(r.count || 0);
+            });
+
+            // Submission stats
+            const totalSub = Number(submissionStats?.total || 0);
+            const acceptedSub = Number(submissionStats?.accepted || 0);
+            const acceptanceRate = totalSub > 0 ? Math.round((acceptedSub / totalSub) * 100) : 0;
+
+            // Weekly trend — fill gaps based on week numbers
+            const weeklyData = Array(7).fill(0);
+            (weeklyRows || []).slice(-7).forEach((r, i) => {
+                weeklyData[i] = Number(r.count || 0);
             });
 
             res.render('faculty/report.html', {
@@ -981,7 +1062,16 @@ module.exports = (db) => {
                     difficulty: [easy, medium, hard],
                     problems: Number(problemsRow?.count || 0),
                     contests: Number(contestsRow?.count || 0),
-                    activeStudents: Number(activeStudentsRow?.count || 0)
+                    activeStudents: Number(activeStudentsRow?.count || 0),
+                    totalSubmissions: totalSub,
+                    acceptedSubmissions: acceptedSub,
+                    acceptanceRate,
+                    topProblems: topProblems || [],
+                    topStudents: topStudents || [],
+                    subjectBreakdown: subjectBreakdown || [],
+                    recentContests: recentContests || [],
+                    weekLabels,
+                    weeklyData
                 }
             });
         }).catch((err) => {
@@ -996,9 +1086,91 @@ module.exports = (db) => {
                     difficulty: [0,0,0],
                     problems: 0,
                     contests: 0,
-                    activeStudents: 0
+                    activeStudents: 0,
+                    totalSubmissions: 0,
+                    acceptedSubmissions: 0,
+                    acceptanceRate: 0,
+                    topProblems: [],
+                    topStudents: [],
+                    subjectBreakdown: [],
+                    recentContests: [],
+                    weekLabels,
+                    weeklyData: [0,0,0,0,0,0,0]
                 }
             });
+        });
+    });
+
+    // ==========================================
+    // REPORT — PDF PRINT VIEW
+    // ==========================================
+    router.get('/report/pdf', requireRole(['faculty', 'hos', 'hod']), checkScope, (req, res) => {
+        const user = buildUser(req);
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const now = new Date();
+        const labels = [];
+        const monthMap = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            labels.push(monthNames[d.getMonth()]);
+            monthMap.push(String(d.getMonth() + 1).padStart(2, '0'));
+        }
+        const weekLabels = ['6w ago','5w ago','4w ago','3w ago','2w ago','Last wk','This wk'];
+
+        Promise.all([
+            runQuery(`SELECT strftime('%m', s.createdAt) as month, COUNT(*) as count FROM submissions s JOIN problems p ON p.id = s.problem_id WHERE p.faculty_id = ? GROUP BY strftime('%m', s.createdAt)`, [user.id]),
+            runQuery(`SELECT difficulty, COUNT(*) as count FROM problems WHERE faculty_id = ? GROUP BY difficulty`, [user.id]),
+            getSingle(`SELECT COUNT(*) as count FROM problems WHERE faculty_id = ?`, [user.id]),
+            getSingle(`SELECT COUNT(*) as count FROM contests WHERE createdBy = ?`, [user.id]),
+            getSingle(`SELECT COUNT(DISTINCT s.user_id) as count FROM submissions s JOIN problems p ON p.id = s.problem_id WHERE p.faculty_id = ?`, [user.id]),
+            getSingle(`SELECT COUNT(*) as total, SUM(CASE WHEN LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass') THEN 1 ELSE 0 END) as accepted FROM submissions s JOIN problems p ON p.id = s.problem_id WHERE p.faculty_id = ?`, [user.id]),
+            runQuery(`SELECT p.title, p.difficulty, COUNT(s.id) as submissions, SUM(CASE WHEN LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass') THEN 1 ELSE 0 END) as accepted FROM problems p LEFT JOIN submissions s ON s.problem_id = p.id WHERE p.faculty_id = ? GROUP BY p.id ORDER BY submissions DESC LIMIT 5`, [user.id]),
+            runQuery(`SELECT u.fullName, u.year, u.section, COUNT(DISTINCT s.problem_id) as solved, COALESCE(u.points,0) as points FROM submissions s JOIN problems p ON p.id = s.problem_id JOIN account_users u ON u.id = s.user_id WHERE p.faculty_id = ? AND LOWER(COALESCE(s.status,'')) IN ('accepted','ac','pass') GROUP BY s.user_id ORDER BY solved DESC LIMIT 5`, [user.id]),
+            runQuery(`SELECT COALESCE(NULLIF(subject,''),'Unassigned') as subject, COUNT(*) as count FROM problems WHERE faculty_id = ? GROUP BY subject ORDER BY count DESC LIMIT 6`, [user.id]),
+            runQuery(`SELECT title, status, COALESCE(startDate,'') as startDate, COALESCE(endDate,'') as endDate FROM contests WHERE createdBy = ? ORDER BY createdAt DESC LIMIT 6`, [user.id]),
+            runQuery(`SELECT strftime('%W', s.createdAt) as week, COUNT(*) as count FROM submissions s JOIN problems p ON p.id = s.problem_id WHERE p.faculty_id = ? AND s.createdAt >= date('now', '-49 days') GROUP BY week ORDER BY week ASC`, [user.id])
+        ]).then(([monthlyRows, difficultyRows, problemsRow, contestsRow, activeStudentsRow, submissionStats, topProblems, topStudents, subjectBreakdown, recentContests, weeklyRows]) => {
+            const monthlyByMonth = {};
+            (monthlyRows || []).forEach(r => { monthlyByMonth[r.month] = Number(r.count || 0); });
+            const participationTrend = monthMap.map(m => monthlyByMonth[m] || 0);
+
+            let easy = 0, medium = 0, hard = 0;
+            (difficultyRows || []).forEach(r => {
+                const diff = String(r.difficulty || '').toLowerCase();
+                if (diff === 'easy') easy = Number(r.count || 0);
+                if (diff === 'medium') medium = Number(r.count || 0);
+                if (diff === 'hard') hard = Number(r.count || 0);
+            });
+
+            const totalSub = Number(submissionStats?.total || 0);
+            const acceptedSub = Number(submissionStats?.accepted || 0);
+            const acceptanceRate = totalSub > 0 ? Math.round((acceptedSub / totalSub) * 100) : 0;
+
+            const weeklyData = Array(7).fill(0);
+            (weeklyRows || []).slice(-7).forEach((r, i) => { weeklyData[i] = Number(r.count || 0); });
+
+            res.render('faculty/report_pdf.html', {
+                user,
+                reportData: {
+                    labels, participationTrend,
+                    difficulty: [easy, medium, hard],
+                    problems: Number(problemsRow?.count || 0),
+                    contests: Number(contestsRow?.count || 0),
+                    activeStudents: Number(activeStudentsRow?.count || 0),
+                    totalSubmissions: totalSub,
+                    acceptedSubmissions: acceptedSub,
+                    acceptanceRate,
+                    topProblems: topProblems || [],
+                    topStudents: topStudents || [],
+                    subjectBreakdown: subjectBreakdown || [],
+                    recentContests: recentContests || [],
+                    weekLabels,
+                    weeklyData
+                }
+            });
+        }).catch(err => {
+            console.error('Faculty Report PDF Error:', err);
+            res.status(500).send('Error generating report. Please try again.');
         });
     });
 
