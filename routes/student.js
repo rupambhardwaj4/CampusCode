@@ -130,12 +130,14 @@ const GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK = 0.3;
         const creatorRole = String(contestRow?.creatorRole || '').toLowerCase();
         const creatorCollege = String(contestRow?.creatorCollegeName || contestRow?.collegeName || '').trim();
         const studentCollege = String(sessionUser?.collegeName || '').trim();
+        const creatorCollegeNorm = creatorCollege.toLowerCase();
+        const studentCollegeNorm = studentCollege.toLowerCase();
         const studentDepartment = String(sessionUser?.department || '').trim();
         const contestDepartment = String(contestRow?.department || '').trim();
         const scope = String(contestRow?.visibility_scope || contestRow?.scope || contestRow?.level || '').toLowerCase();
 
         if (creatorRole === 'superadmin') return true;
-        if (!studentCollege || !creatorCollege || creatorCollege !== studentCollege) return false;
+        if (!studentCollegeNorm || !creatorCollegeNorm || creatorCollegeNorm !== studentCollegeNorm) return false;
 
         if (scope === 'global') return true;
         if (scope === 'college') return true;
