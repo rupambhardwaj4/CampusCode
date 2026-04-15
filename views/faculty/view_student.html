@@ -232,6 +232,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id') || '<%= queryId %>';
+        const apiBasePath = window.location.pathname.replace(/\/view_student(?:\.html)?\/?$/, '');
 
         if (!studentId || studentId === 'undefined') {
             showError("No Student ID was provided in the link.");
@@ -240,7 +241,7 @@
 
         try {
             // Fetch data from isolated Faculty API
-            const response = await fetch(`/college/faculty/api/student/public-profile/${studentId}`);
+            const response = await fetch(`${apiBasePath}/api/student/public-profile/${studentId}`);
             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
             const data = await response.json();
             

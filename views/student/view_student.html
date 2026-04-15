@@ -189,6 +189,7 @@
                     </ul>
                 </div>
 
+<<<<<<< HEAD
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
                     <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                         <i class="fas fa-medal text-primary-500"></i> Top Languages
@@ -199,6 +200,9 @@
                         <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600"><i class="fab fa-js text-yellow-500 mr-1"></i> JavaScript</span>
                     </div>
                 </div>
+=======
+               
+>>>>>>> ef517db (update tag and filter)
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-100 dark:border-gray-700 lg:col-span-2">
@@ -215,6 +219,7 @@
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-history text-primary-500"></i> Recent Submissions
                 </h2>
+<<<<<<< HEAD
                 <div class="p-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center text-center">
                     <div class="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-4 border border-gray-100 dark:border-gray-700">
                         <i class="fas fa-laptop-code text-3xl text-gray-300 dark:text-gray-600"></i>
@@ -224,6 +229,9 @@
                         View Full History
                     </button>
                 </div>
+=======
+                <div id="student-submissions" class="space-y-3"></div>
+>>>>>>> ef517db (update tag and filter)
             </div>
 
         </div>
@@ -244,9 +252,62 @@
             loadingText.textContent = message;
             loadingText.className = "text-gray-600 dark:text-gray-300 font-medium";
         };
+        const submissionsContainer = document.getElementById('student-submissions');
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        const formatDate = (value) => {
+            const date = value ? new Date(value) : null;
+            return date && !Number.isNaN(date.getTime())
+                ? date.toLocaleString()
+                : 'Recently';
+        };
+
+        const renderRecentSubmissions = (submissions = []) => {
+            if (!Array.isArray(submissions) || submissions.length === 0) {
+                submissionsContainer.innerHTML = `
+                    <div class="p-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center text-center">
+                        <div class="w-16 h-16 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center mb-4 border border-gray-100 dark:border-gray-700">
+                            <i class="fas fa-laptop-code text-3xl text-gray-300 dark:text-gray-600"></i>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400 font-medium text-sm">No recent coding activity available to display.</p>
+                    </div>`;
+                return;
+            }
+
+            submissionsContainer.innerHTML = submissions.map((submission) => {
+                const statusRaw = String(submission.status || 'pending').toLowerCase();
+                const isAccepted = ['accepted', 'ac', 'pass'].includes(statusRaw);
+                const statusClasses = isAccepted
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+
+                return `
+                    <div class="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/20 p-4">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-white">${escapeHtml(submission.problemTitle || 'Untitled Problem')}</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    ${escapeHtml(submission.language || 'N/A')} • ${escapeHtml(submission.difficulty || 'N/A')} • ${formatDate(submission.createdAt)}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase ${statusClasses}">${escapeHtml(statusRaw)}</span>
+                                <span class="text-sm font-bold text-primary-600 dark:text-blue-400">${Number(submission.pointsEarned || 0)} pts</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        };
 
         const urlParams = new URLSearchParams(window.location.search);
         const studentId = urlParams.get('id');
+        const apiBasePath = window.location.pathname.replace(/\/view_student(?:\.html)?\/?$/, '');
 
         if (!studentId) {
             showError("No Student ID was provided in the link.");
@@ -254,8 +315,7 @@
         }
 
         try {
-            // Fetch data from backend
-            const response = await fetch(`/college/api/student/public-profile/${studentId}`);
+            const response = await fetch(`${apiBasePath}/api/student/public-profile/${studentId}`);
             
             if (!response.ok) throw new Error(`Network response was not ok (Status: ${response.status})`);
             
@@ -263,6 +323,7 @@
             
             if (data.success) {
                 const student = data.student;
+                const recentSubmissions = data.recentSubmissions || [];
 
                 // Populate Name and Header Data
                 document.getElementById('stu-name').textContent = student.fullName || "Unknown Name";
@@ -302,9 +363,10 @@
                 document.getElementById('stu-avatar').textContent = initials.toUpperCase();
 
                 // Populate Stats
-                document.getElementById('stu-points').textContent = student.points || 0;
+                document.getElementById('stu-points').textContent = Number(student.points || 0);
                 document.getElementById('stu-rank').textContent = student.rank || "Unranked";
-                document.getElementById('stu-solved').textContent = student.solvedCount || 0;
+                document.getElementById('stu-solved').textContent = Number(student.solvedCount || 0);
+                renderRecentSubmissions(recentSubmissions);
 
                 // Configure Status Badge styling to match dashboard labels
                 const statusBadge = document.getElementById('stu-status');

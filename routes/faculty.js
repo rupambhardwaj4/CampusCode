@@ -636,57 +636,119 @@ module.exports = (db) => {
         });
     });
 
-    router.get('/api/student/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+    router.get('/api/student/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), async (req, res) => {
         const studentId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`
-            SELECT id, fullName, email, department, branch, program, year, section, collegeName, role, status
-            FROM account_users 
-            WHERE id = ? AND collegeName = ? AND role = 'student'
-        `, [studentId, collegeName], (err, user) => {
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const user = await getSingle(`
+                SELECT
+                    id, fullName, email, department, branch, program, year, section, collegeName, role, status,
+                    COALESCE(points, 0) as points,
+                    COALESCE(solvedCount, 0) as solvedCount,
+                    rank
+                FROM account_users
+                WHERE id = ? AND collegeName = ? AND role = 'student'
+            `, [studentId, collegeName]);
             if (!user) return res.status(404).json({ success: false, message: "Student not found" });
+
+            const rankRow = await getSingle(`
+                SELECT COUNT(*) as cnt
+                FROM account_users
+                WHERE LOWER(COALESCE(role, '')) IN ('student', 'individual')
+                  AND COALESCE(points, 0) > ?
+            `, [Number(user.points || 0)]);
+
+            const recentSubmissions = await runQuery(`
+                SELECT
+                    s.id,
+                    COALESCE(p.title, 'Untitled Problem') as problemTitle,
+                    COALESCE(p.difficulty, 'N/A') as difficulty,
+                    COALESCE(s.language, 'N/A') as language,
+                    COALESCE(s.status, 'pending') as status,
+                    COALESCE(s.points_earned, 0) as pointsEarned,
+                    COALESCE(s.createdAt, '') as createdAt
+                FROM submissions s
+                LEFT JOIN problems p ON p.id = s.problem_id
+                WHERE s.user_id = ?
+                ORDER BY datetime(COALESCE(s.createdAt, '1970-01-01')) DESC, s.id DESC
+                LIMIT 5
+            `, [studentId]);
 
             res.json({
                 success: true,
                 student: {
                     ...user,
-                    points: user.points || 0,
-                    rank: user.rank || 'Unranked',
-                    solvedCount: user.solvedCount || 0
-                }
+                    rank: user.rank || `#${Number(rankRow?.cnt || 0) + 1}`
+                },
+                recentSubmissions
             });
-        });
+        } catch (error) {
+            console.error('Faculty student public profile error:', error);
+            res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
-    router.get('/api/faculty/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+    router.get('/api/faculty/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), async (req, res) => {
         const facultyId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod 
-                FROM account_users WHERE id = ? AND collegeName = ?`, 
-        [facultyId, collegeName], (err, user) => {
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const user = await getSingle(
+                `SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod
+                 FROM account_users
+                 WHERE id = ? AND collegeName = ?`,
+                [facultyId, collegeName]
+            );
             if (!user) return res.status(404).json({ success: false, message: "Faculty not found" });
 
-            const statsQuery = `
-                SELECT 
+            const stats = await getSingle(
+                `SELECT
                     (SELECT COUNT(*) FROM contests WHERE createdBy = ?) as totalContests,
-                    (SELECT COUNT(*) FROM problems WHERE faculty_id = ?) as totalProblems
-            `;
+                    (SELECT COUNT(*) FROM problems WHERE faculty_id = ?) as totalProblems`,
+                [facultyId, facultyId]
+            );
 
-            db.get(statsQuery, [facultyId, facultyId], (err, stats) => {
-                res.json({
-                    success: true,
-                    faculty: user,
-                    stats: {
-                        problemsCreated: stats ? stats.totalProblems : 0,
-                        activeContests: stats ? stats.totalContests : 0
-                    }
-                });
+            const recentActivity = await runQuery(`
+                SELECT *
+                FROM (
+                    SELECT
+                        'problem' as type,
+                        p.id as itemId,
+                        p.title as title,
+                        COALESCE(NULLIF(p.status, ''), 'draft') as status,
+                        COALESCE(p.createdAt, '') as activityAt
+                    FROM problems p
+                    WHERE p.faculty_id = ?
+
+                    UNION ALL
+
+                    SELECT
+                        'contest' as type,
+                        c.id as itemId,
+                        c.title as title,
+                        COALESCE(NULLIF(c.status, ''), 'draft') as status,
+                        COALESCE(c.createdAt, c.startDate, '') as activityAt
+                    FROM contests c
+                    WHERE c.createdBy = ?
+                )
+                ORDER BY datetime(activityAt) DESC, itemId DESC
+                LIMIT 5
+            `, [facultyId, facultyId]);
+
+            res.json({
+                success: true,
+                faculty: user,
+                stats: {
+                    problemsCreated: stats ? stats.totalProblems : 0,
+                    activeContests: stats ? stats.totalContests : 0
+                },
+                recentActivity
             });
-        });
+        } catch (error) {
+            console.error('Faculty public profile error:', error);
+            res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
     // ==========================================
@@ -1444,36 +1506,57 @@ module.exports = (db) => {
     });
 
     // Student Profile API for Faculty
-    router.get('/api/student/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+    router.get('/api/student/public-profile/:id', requireRole(['faculty', 'hos', 'hod']), async (req, res) => {
         const studentId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`
-            SELECT id, fullName, email, department, branch, program, year, section, collegeName, role, status
-            FROM account_users 
-            WHERE id = ? AND collegeName = ? AND role = 'student'
-        `, [studentId, collegeName], (err, student) => {
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const student = await getSingle(`
+                SELECT
+                    id, fullName, email, department, branch, program, year, section, collegeName, role, status,
+                    COALESCE(points, 0) as points,
+                    COALESCE(solvedCount, 0) as solvedCount,
+                    rank
+                FROM account_users
+                WHERE id = ? AND collegeName = ? AND role = 'student'
+            `, [studentId, collegeName]);
             if (!student) return res.status(404).json({ success: false, message: "Student not found" });
 
-            // Fetch summary stats
-            db.get(`
-                SELECT 
-                    (SELECT COUNT(*) FROM submissions WHERE user_id = ? AND status = 'accepted') as solvedCount,
-                    (SELECT SUM(best_points) FROM submissions WHERE user_id = ?) as totalPoints
-                FROM account_users LIMIT 1
-            `, [studentId, studentId], (err, stats) => {
-                res.json({
-                    success: true,
-                    student: {
-                        ...student,
-                        points: stats?.totalPoints || 0,
-                        rank: 'N/A', // Rank calculation can be added if needed
-                        solvedCount: stats?.solvedCount || 0
-                    }
-                });
+            const rankRow = await getSingle(`
+                SELECT COUNT(*) as cnt
+                FROM account_users
+                WHERE LOWER(COALESCE(role, '')) IN ('student', 'individual')
+                  AND COALESCE(points, 0) > ?
+            `, [Number(student.points || 0)]);
+
+            const recentSubmissions = await runQuery(`
+                SELECT
+                    s.id,
+                    COALESCE(p.title, 'Untitled Problem') as problemTitle,
+                    COALESCE(p.difficulty, 'N/A') as difficulty,
+                    COALESCE(s.language, 'N/A') as language,
+                    COALESCE(s.status, 'pending') as status,
+                    COALESCE(s.points_earned, 0) as pointsEarned,
+                    COALESCE(s.createdAt, '') as createdAt
+                FROM submissions s
+                LEFT JOIN problems p ON p.id = s.problem_id
+                WHERE s.user_id = ?
+                ORDER BY datetime(COALESCE(s.createdAt, '1970-01-01')) DESC, s.id DESC
+                LIMIT 5
+            `, [studentId]);
+
+            res.json({
+                success: true,
+                student: {
+                    ...student,
+                    rank: student.rank || `#${Number(rankRow?.cnt || 0) + 1}`
+                },
+                recentSubmissions
             });
-        });
+        } catch (error) {
+            console.error('Faculty student profile detail error:', error);
+            res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
     return router;

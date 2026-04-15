@@ -360,9 +360,16 @@
                 <h3 id="addProblemContestTitle" class="text-2xl font-bold dark:text-white">Manage Problems</h3>
                 <button onclick="closeAddProblemModal()" class="h-10 w-10 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center"><i class="fas fa-times text-gray-500 dark:text-gray-400"></i></button>
             </div>
-            <div class="relative mb-6 shrink-0">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input type="text" id="problemSearch" onkeyup="renderAvailableProblemsTable()" placeholder="Search available problems by title or difficulty..." class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-primary-400 transition-colors">
+            <div class="mb-6 shrink-0 flex flex-col md:flex-row gap-3">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="problemSearch" onkeyup="renderAvailableProblemsTable()" placeholder="Search available problems by title or difficulty..." class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-primary-400 transition-colors">
+                </div>
+                <select id="problemSourceFilter" onchange="renderAvailableProblemsTable()" class="md:w-56 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 dark:text-white outline-none focus:border-primary-400 transition-colors">
+                    <option value="all">All Problems</option>
+                    <option value="college">College Problems</option>
+                    <option value="superadmin">Superadmin Problems</option>
+                </select>
             </div>
             <div class="flex-1 overflow-y-auto min-h-0 border border-gray-200 dark:border-gray-700 rounded-2xl">
                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -373,6 +380,7 @@
                             </th>
                             <th class="px-6 py-4 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider w-1/2">Problem Title</th>
                             <th class="px-6 py-4 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">Difficulty</th>
+                            <th class="px-6 py-4 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">Tag</th>
                             <th class="px-6 py-4 font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px] tracking-wider">Score</th>
                         </tr>
                     </thead>
@@ -970,17 +978,21 @@
 
         function renderAvailableProblemsTable() {
             const search = document.getElementById('problemSearch').value.toLowerCase();
+            const sourceFilter = document.getElementById('problemSourceFilter')?.value || 'all';
             const tbody = document.getElementById('available-problems-list');
             tbody.innerHTML = '';
             
             const filtered = availableProblems.filter(p => {
                 const title = String(p.title || '').toLowerCase();
                 const difficulty = String(p.difficulty || '').toLowerCase();
-                return title.includes(search) || difficulty.includes(search);
+                const problemSource = String(p.creator_role || '').toLowerCase() === 'superadmin' ? 'superadmin' : 'college';
+                const matchesSearch = title.includes(search) || difficulty.includes(search);
+                const matchesSource = sourceFilter === 'all' || problemSource === sourceFilter;
+                return matchesSearch && matchesSource;
             });
             
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-gray-500 dark:text-gray-400 font-medium">No problems found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500 dark:text-gray-400 font-medium">No problems found.</td></tr>`;
                 return;
             }
             
@@ -988,16 +1000,21 @@
             filtered.forEach(p => {
                 const isChecked = selectedProblems.includes(p.id);
                 if (!isChecked) allChecked = false;
+                const problemSource = String(p.creator_role || '').toLowerCase() === 'superadmin' ? 'superadmin' : 'college';
                 
                 let diffColor = 'text-green-600 bg-green-50 dark:bg-green-500/10 dark:text-green-400';
                 if (p.difficulty === 'Medium') diffColor = 'text-yellow-600 bg-yellow-50 dark:bg-yellow-500/10 dark:text-yellow-400';
                 if (p.difficulty === 'Hard') diffColor = 'text-red-600 bg-red-50 dark:bg-red-500/10 dark:text-red-400';
+                const sourceBadge = problemSource === 'superadmin'
+                    ? 'text-blue-700 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-300'
+                    : 'text-purple-700 bg-purple-50 dark:bg-purple-500/10 dark:text-purple-300';
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group" onclick="toggleProblemSelection(${p.id})">
                         <td class="px-6 py-4 text-center"><input type="checkbox" class="problem-cb w-4 h-4 rounded text-primary-600 border-gray-300 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 pointer-events-none" ${isChecked ? 'checked' : ''}></td>
                         <td class="px-6 py-4 font-bold text-gray-800 dark:text-gray-200">${p.title}</td>
                         <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${diffColor}">${p.difficulty}</span></td>
+                        <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sourceBadge}">${problemSource}</span></td>
                         <td class="px-6 py-4 font-bold text-gray-600 dark:text-gray-400">${p.score || 0} pts</td>
                     </tr>`;
             });
@@ -1014,11 +1031,15 @@
 
         function toggleSelectAllProblems() {
             const search = document.getElementById('problemSearch').value.toLowerCase();
+            const sourceFilter = document.getElementById('problemSourceFilter')?.value || 'all';
             
             const filtered = availableProblems.filter(p => {
                 const title = String(p.title || '').toLowerCase();
                 const difficulty = String(p.difficulty || '').toLowerCase();
-                return title.includes(search) || difficulty.includes(search);
+                const problemSource = String(p.creator_role || '').toLowerCase() === 'superadmin' ? 'superadmin' : 'college';
+                const matchesSearch = title.includes(search) || difficulty.includes(search);
+                const matchesSource = sourceFilter === 'all' || problemSource === sourceFilter;
+                return matchesSearch && matchesSource;
             });
             const isAllChecked = document.getElementById('selectAllProblemsCb').checked;
             

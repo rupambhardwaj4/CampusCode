@@ -1631,59 +1631,143 @@ router.put('/api/contests/:id', requireRole('admin'), (req, res) => {
     // ==========================================
     // PUBLIC PROFILE APIs
     // ==========================================
-    router.get('/api/faculty/public-profile/:id', requireRole('admin'), (req, res) => {
+    router.get('/api/faculty/public-profile/:id', requireRole('admin'), async (req, res) => {
         const facultyId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod 
-                FROM users WHERE id = ? AND collegeName = ?`, 
-        [facultyId, collegeName], (err, user) => {
-            
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const user = await dbGetAsync(
+                `SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod
+                 FROM users
+                 WHERE id = ? AND collegeName = ?`,
+                [facultyId, collegeName]
+            );
             if (!user) return res.status(404).json({ success: false, message: "Faculty not found" });
 
-            const statsQuery = `
-                SELECT 
+            const stats = await dbGetAsync(
+                `SELECT
                     (SELECT COUNT(*) FROM contests WHERE createdBy = ?) as totalContests,
-                    (SELECT COUNT(*) FROM problems WHERE faculty_id = ?) as totalProblems
-            `;
+                    (SELECT COUNT(*) FROM problems WHERE faculty_id = ?) as totalProblems`,
+                [facultyId, facultyId]
+            );
 
-            db.get(statsQuery, [facultyId, facultyId], (err, stats) => {
-                res.json({
-                    success: true,
-                    faculty: user,
-                    stats: {
-                        problemsCreated: stats ? stats.totalProblems : 0,
-                        activeContests: stats ? stats.totalContests : 0
-                    }
-                });
+            const recentActivity = await dbAllAsync(
+                `SELECT *
+                 FROM (
+                    SELECT
+                        'problem' as type,
+                        p.id as itemId,
+                        p.title as title,
+                        COALESCE(NULLIF(p.status, ''), 'draft') as status,
+                        COALESCE(p.createdAt, '') as activityAt
+                    FROM problems p
+                    WHERE p.faculty_id = ?
+
+                    UNION ALL
+
+                    SELECT
+                        'contest' as type,
+                        c.id as itemId,
+                        c.title as title,
+                        COALESCE(NULLIF(c.status, ''), 'draft') as status,
+                        COALESCE(c.createdAt, c.startDate, '') as activityAt
+                    FROM contests c
+                    WHERE c.createdBy = ?
+                 )
+                 ORDER BY datetime(activityAt) DESC, itemId DESC
+                 LIMIT 5`,
+                [facultyId, facultyId]
+            );
+
+            res.json({
+                success: true,
+                faculty: user,
+                stats: {
+                    problemsCreated: stats ? stats.totalProblems : 0,
+                    activeContests: stats ? stats.totalContests : 0
+                },
+                recentActivity
             });
-        });
+        } catch (error) {
+            console.error('Admin faculty public profile error:', error);
+            res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
-    router.get('/api/student/public-profile/:id', requireRole('admin'), (req, res) => {
+    router.get('/api/student/public-profile/:id', requireRole('admin'), async (req, res) => {
         const studentId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`
-            SELECT id, fullName, email, department, branch, program, year, section, collegeName, role, status
-            FROM users 
-            WHERE id = ? AND collegeName = ? AND role = 'student'
-        `, [studentId, collegeName], (err, user) => {
-            
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const user = await dbGetAsync(
+                `SELECT
+                    id, fullName, email, department, branch, program, year, section, collegeName, role, status,
+                    COALESCE(points, 0) as points,
+                    COALESCE(solvedCount, 0) as solvedCount,
+                    rank
+                 FROM users
+                 WHERE id = ? AND collegeName = ? AND role = 'student'`,
+                [studentId, collegeName]
+            );
             if (!user) return res.status(404).json({ success: false, message: "Student not found" });
+
+            const submissionStats = await dbGetAsync(
+                `SELECT
+                    COALESCE(SUM(CASE WHEN LOWER(COALESCE(status, '')) IN ('accepted', 'ac', 'pass') THEN COALESCE(points_earned, 0) ELSE 0 END), 0) as earnedPoints,
+                    COUNT(DISTINCT CASE WHEN LOWER(COALESCE(status, '')) IN ('accepted', 'ac', 'pass') THEN problem_id END) as solvedProblems,
+                    MAX(
+                        CASE
+                            WHEN LOWER(COALESCE(status, '')) IN ('accepted', 'ac', 'pass')
+                            THEN (
+                                SELECT COUNT(*) + 1
+                                FROM users u
+                                WHERE LOWER(COALESCE(u.role, '')) = 'student'
+                                  AND COALESCE(u.points, 0) > COALESCE(?, 0)
+                            )
+                            ELSE NULL
+                        END
+                    ) as computedRank
+                 FROM submissions
+                 WHERE user_id = ?`,
+                [user.points, studentId]
+            );
+
+            const recentSubmissions = await dbAllAsync(
+                `SELECT
+                    s.id,
+                    COALESCE(p.title, 'Untitled Problem') as problemTitle,
+                    COALESCE(p.difficulty, 'N/A') as difficulty,
+                    COALESCE(s.language, 'N/A') as language,
+                    COALESCE(s.status, 'pending') as status,
+                    COALESCE(s.points_earned, 0) as pointsEarned,
+                    COALESCE(s.createdAt, '') as createdAt
+                 FROM submissions s
+                 LEFT JOIN problems p ON p.id = s.problem_id
+                 WHERE s.user_id = ?
+                 ORDER BY datetime(COALESCE(s.createdAt, '1970-01-01')) DESC, s.id DESC
+                 LIMIT 5`,
+                [studentId]
+            );
+
+            const finalPoints = Number(user.points || submissionStats?.earnedPoints || 0);
+            const finalSolvedCount = Number(user.solvedCount || submissionStats?.solvedProblems || 0);
+            const rankNumber = Number(submissionStats?.computedRank || 0);
+            const finalRank = user.rank || (rankNumber > 0 ? `#${rankNumber}` : 'Unranked');
 
             res.json({
                 success: true,
                 student: {
                     ...user,
-                    points: user.points || 0,       
-                    rank: user.rank || 'Unranked',
-                    solvedCount: user.solvedCount || 0   
-                }
+                    points: finalPoints,
+                    rank: finalRank,
+                    solvedCount: finalSolvedCount
+                },
+                recentSubmissions
             });
-        });
+        } catch (error) {
+            console.error('Admin student public profile error:', error);
+            res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
     // ==========================================
