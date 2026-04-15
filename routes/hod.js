@@ -1473,26 +1473,41 @@ module.exports = (db, transporter) => {
     });
 
     // Settings
-    router.get('/hod/settings', requireRole('hod'), checkScope, (req, res) => {
-        db.get(`SELECT * FROM account_users WHERE id = ?`, [req.session.user.id], (err, user) => {
-            if (err) return res.status(500).send(err.message);
+    router.get('/hod/settings', requireRole('hod'), checkScope, async (req, res) => {
+        try {
+            const user = await dbGet(`SELECT * FROM account_users WHERE id = ?`, [req.session.user.id]);
+            if (!user) return res.redirect('/auth/login');
+
+            const assignments = await dbAll(`SELECT subject, year, section FROM faculty_assignments WHERE user_id = ?`, [req.session.user.id]);
+            
+            user.assignedSubjects = [...new Set(assignments.map(a => a.subject))].filter(Boolean);
+            user.assignedYears = [...new Set(assignments.map(a => a.year))].filter(Boolean).join(',');
+            user.assignedSections = [...new Set(assignments.map(a => a.section))].filter(Boolean).join(',');
+
             const success = req.query.saved === '1';
             res.render('hod/settings.html', { user, currentPage: 'settings', success });
-        });
+        } catch (err) {
+            res.status(500).send(err.message);
+        }
     });
 
     // Settings Update
     router.post('/hod/settings/update', requireRole('hod'), (req, res) => {
-        const { fullName, email, gender, mobile } = req.body;
+        const { fullName, email, gender, mobile, joiningDate, github_link, location } = req.body;
         const id = req.session.user.id;
         db.run(
-            `UPDATE account_users SET fullName = ?, email = ?, gender = ?, mobile = ? WHERE id = ?`,
-            [fullName, email, gender, mobile, id],
+            `UPDATE account_users SET fullName = ?, email = ?, gender = ?, mobile = ?, joiningDate = ?, github_link = ?, location = ? WHERE id = ?`,
+            [fullName, email, gender, mobile, joiningDate, github_link, location, id],
             function(err) {
                 if (err) return res.status(500).send(err.message);
                 // Refresh session
                 req.session.user.fullName = fullName;
                 req.session.user.email = email;
+                req.session.user.gender = gender;
+                req.session.user.mobile = mobile;
+                req.session.user.joiningDate = joiningDate;
+                req.session.user.github_link = github_link;
+                req.session.user.location = location;
                 res.redirect('/college/hod/settings?saved=1');
             }
         );
@@ -1506,44 +1521,44 @@ module.exports = (db, transporter) => {
     // Pending Questions (Dedicated Page)
     router.get('/hod/pending-questions', requireRole('hod'), checkScope, (req, res) => {
         const dept = req.session.user.department;
-        const college = req.session.user.collegeName;
+        const currentTab = req.query.tab || 'pending';
+        let statusFilter = 'pending';
+        if (currentTab === 'approved') statusFilter = 'accepted';
+        else if (currentTab === 'rejected') statusFilter = 'rejected';
 
-        // Fetch all questions for listing (we'll filter in EJS or handle with query params)
-        const status = req.query.status || 'pending';
-        
         const statsQuery = `
             SELECT 
                 (SELECT COUNT(*) FROM problems WHERE department = ? AND status = 'pending') as pendingCount,
                 (SELECT COUNT(*) FROM problems WHERE department = ? AND status = 'accepted') as approvedCount,
-                (SELECT COUNT(*) FROM problems WHERE department = ? AND status = 'rejected') as rejectedCount,
-                (SELECT COUNT(*) FROM problems WHERE department = ? AND createdAt >= date('now', '-7 days')) as thisWeekCount
+                (SELECT COUNT(*) FROM problems WHERE department = ? AND status = 'rejected') as rejectedCount
         `;
-
-        const subjectsQuery = `SELECT DISTINCT subject FROM problems WHERE department = ?`;
 
         const problemsQuery = `
             SELECT p.*, u.fullName as facultyName, u.role as creatorRole 
             FROM problems p 
             JOIN account_users u ON p.faculty_id = u.id 
-            WHERE p.department = ? 
+            WHERE p.department = ? AND p.status = ?
             ORDER BY p.id DESC
         `;
 
-        db.get(statsQuery, [dept, dept, dept, dept], (err, stats) => {
+        const subjectsQuery = `SELECT DISTINCT subject FROM problems WHERE department = ?`;
+
+        db.get(statsQuery, [dept, dept, dept], (err, stats) => {
             if (err) return res.status(500).send(err.message);
             
             db.all(subjectsQuery, [dept], (err, subjects) => {
                 if (err) return res.status(500).send(err.message);
-                
-                db.all(problemsQuery, [dept], (err, allQuestions) => {
+
+                db.all(problemsQuery, [dept, statusFilter], (err, questions) => {
                     if (err) return res.status(500).send(err.message);
                     
                     res.render('hod/pending_questions.html', { 
                         user: req.session.user, 
-                        allQuestions, 
+                        allQuestions: questions, 
+                        activeTab: currentTab,
                         subjects: subjects || [],
                         stats: stats || {},
-                        currentPage: 'dashboard' 
+                        currentPage: 'pending-questions'
                     });
                 });
             });
@@ -1570,9 +1585,10 @@ module.exports = (db, transporter) => {
                 }
                 const placeholders = managedUserIds.map(() => '?').join(',');
                 const filterQuery = `
-                    SELECT c.*, u.fullName as creatorName, u.role as creatorRole
+                    SELECT c.*, u.fullName as creatorName, u.role as creatorRole, uHOS.fullName as hos_verified_by_name
                     FROM contests c
                     JOIN account_users u ON c.createdBy = u.id
+                    LEFT JOIN account_users uHOS ON c.hos_verified_by = uHOS.id
                     WHERE c.createdBy IN (${placeholders})
                       AND (COALESCE(u.collegeName, '') = ? OR COALESCE(c.collegeName, '') = ?)
                 `;
@@ -1598,21 +1614,8 @@ module.exports = (db, transporter) => {
                 // Calculate conflict stats
                 stats.conflictCount = allContests.filter(c => c.status === 'pending' && c.conflicts.length > 0).length;
 
-                // Filtering the list based on Tab and Query Params
+                // Filtering by query params ONLY (Tab filtering moved to client-side)
                 let filteredContests = allContests;
-                const normalizedTab = tab === 'accepted' ? 'approved' : tab;
-
-                // Tab Filter
-                if (normalizedTab === 'approved') filteredContests = filteredContests.filter(c => c.status === 'accepted');
-                else if (normalizedTab === 'rejected') filteredContests = filteredContests.filter(c => c.status === 'rejected');
-                else if (normalizedTab === 'active') filteredContests = filteredContests.filter(c => c.status === 'accepted' && new Date(c.startDate) <= new Date() && new Date(c.endDate) >= new Date());
-                else if (normalizedTab === 'conflicts') filteredContests = filteredContests.filter(c => c.conflicts.length > 0);
-                else if (!normalizedTab || normalizedTab === 'all') {
-                    // Default to pending for "All" if that's what user prefers, but image implies "All"
-                    // We'll show all but user can select
-                }
-
-                // Query Params Filter
                 if (subject && subject !== 'All Subjects') filteredContests = filteredContests.filter(c => c.subject === subject);
                 if (type && type !== 'All Types') filteredContests = filteredContests.filter(c => c.type === type);
                 if (dateFrom) filteredContests = filteredContests.filter(c => new Date(c.startDate) >= new Date(dateFrom));
@@ -1622,7 +1625,7 @@ module.exports = (db, transporter) => {
                     filteredContests = filteredContests.filter(c => Number(c.hos_verified || 0) === val);
                 }
 
-                // Get unique subjects for filter dropdown
+                // Get unique subjects/types for dropdowns
                 const subjects = [...new Set(allContests.map(c => c.subject))].filter(Boolean);
                 const types = [...new Set(allContests.map(c => c.type))].filter(Boolean);
 
@@ -2139,13 +2142,11 @@ module.exports = (db, transporter) => {
                     sql = `UPDATE problems SET hod_verified = 1, status = 'accepted', is_public = 1, approved_by = ?, approved_at = ? WHERE id = ? AND department = ?`;
                     params = [req.session.user.id, new Date().toISOString(), id, dept];
                 } else if (userRole === 'hos') {
-                    // For HOS, we accept if it's faculty problem (they are the subject expert)
                     sql = `UPDATE problems SET hos_verified = 1, status = 'accepted', is_public = 1, approved_by = ?, approved_at = ? WHERE id = ? AND department = ?`;
                     params = [req.session.user.id, new Date().toISOString(), id, dept];
                 } else {
                     return res.status(403).json({ success: false, message: 'Unauthorized role for approval.' });
                 }
-
                 db.run(sql, params, function(err) {
                     if (err) return res.status(500).json({ success: false, message: err.message });
                     res.json({ success: true, message: 'Problem approved.' });
@@ -2153,50 +2154,85 @@ module.exports = (db, transporter) => {
             });
 
         } else if (type === 'contest') {
-            if (action === 'reject') {
+            if (finalAction === 'reject') {
                 return getUsersManagedByHod(req.session.user.id, req.session.user.collegeName)
                     .then((managedUserIds) => {
                         if (!managedUserIds.length) return res.status(403).json({ success: false, message: 'No managed users found for this HOD' });
                         const ownerPlaceholders = managedUserIds.map(() => '?').join(',');
                         db.run(`UPDATE contests SET status = 'rejected' WHERE id = ? AND createdBy IN (${ownerPlaceholders})`, [id, ...managedUserIds], function(err) {
                             if (err) return res.status(500).json({ success: false, message: err.message });
-                            if (!this.changes) return res.status(403).json({ success: false, message: 'Contest not found in your HOD scope' });
                             res.json({ success: true, message: 'Contest rejected.' });
                         });
                     })
                     .catch((error) => res.status(500).json({ success: false, message: error.message }));
+            } else {
+                getUsersManagedByHod(req.session.user.id, req.session.user.collegeName)
+                    .then((managedUserIds) => {
+                        if (!managedUserIds.length) return res.status(403).json({ success: false, message: 'No managed users found for this HOD' });
+                        const ownerPlaceholders = managedUserIds.map(() => '?').join(',');
+                        db.get(`SELECT c.hos_verified, u.role as creatorRole FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE c.id = ? AND c.createdBy IN (${ownerPlaceholders})`, [id, ...managedUserIds], (infoErr, infoRow) => {
+                            if (infoErr) return res.status(500).json({ success: false, message: infoErr.message });
+                            if (!infoRow) return res.status(404).json({ success: false, message: 'Contest not found in your HOD scope' });
+
+                            db.run(`UPDATE contests SET hod_verified = 1 WHERE id = ? AND createdBy IN (${ownerPlaceholders})`, [id, ...managedUserIds], function(err) {
+                                if (err) return res.status(500).json({ success: false, message: err.message });
+
+                                const creatorRole = String(infoRow.creatorRole || '').toLowerCase();
+                                const shouldAccept = creatorRole === 'hos' || (creatorRole === 'faculty' && infoRow.hos_verified === 1);
+                                if (!shouldAccept) {
+                                    return res.json({ success: true, message: 'HOD approval recorded. Waiting for HOS approval.' });
+                                }
+                                db.run(
+                                    `UPDATE contests SET status = 'accepted', isVerified = 1, visibility_scope = 'college', approved_by = ?, approved_at = ? WHERE id = ?`,
+                                    [req.session.user.id, new Date().toISOString(), id],
+                                    function(updErr) {
+                                        if (updErr) return res.status(500).json({ success: false, message: updErr.message });
+                                        res.json({ success: true, message: 'Contest approved and now visible to students.' });
+                                    }
+                                );
+                            });
+                        });
+                    })
+                    .catch((error) => res.status(500).json({ success: false, message: error.message }));
             }
-            getUsersManagedByHod(req.session.user.id, req.session.user.collegeName)
-                .then((managedUserIds) => {
-                    if (!managedUserIds.length) return res.status(403).json({ success: false, message: 'No managed users found for this HOD' });
-                    const ownerPlaceholders = managedUserIds.map(() => '?').join(',');
-                    db.get(`SELECT c.hos_verified, u.role as creatorRole FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE c.id = ? AND c.createdBy IN (${ownerPlaceholders})`, [id, ...managedUserIds], (infoErr, infoRow) => {
-                if (infoErr) return res.status(500).json({ success: false, message: infoErr.message });
-                if (!infoRow) return res.status(404).json({ success: false, message: 'Contest not found in your HOD scope' });
-
-                db.run(`UPDATE contests SET hod_verified = 1 WHERE id = ? AND createdBy IN (${ownerPlaceholders})`, [id, ...managedUserIds], function(err) {
-                    if (err) return res.status(500).json({ success: false, message: err.message });
-
-                    const creatorRole = String(infoRow.creatorRole || '').toLowerCase();
-                    const shouldAccept = creatorRole === 'hos' || (creatorRole === 'faculty' && infoRow.hos_verified === 1);
-                    if (!shouldAccept) {
-                        return res.json({ success: true, message: 'HOD approval recorded. Waiting for HOS approval.' });
-                    }
-                    db.run(
-                        `UPDATE contests SET status = 'accepted', isVerified = 1, visibility_scope = 'college', approved_by = ?, approved_at = ? WHERE id = ?`,
-                        [req.session.user.id, new Date().toISOString(), id],
-                        function(updErr) {
-                            if (updErr) return res.status(500).json({ success: false, message: updErr.message });
-                            res.json({ success: true, message: 'Contest approved and now visible to students.' });
-                        }
-                    );
-                });
-                    });
-                })
-                .catch((error) => res.status(500).json({ success: false, message: error.message }));
         } else {
             res.status(400).json({ success: false, message: 'Invalid type' });
         }
+    });
+
+    // Bulk Approve Questions
+    router.post('/college/hod/api/bulk-approve-questions', requireRole('hod'), (req, res) => {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'No questions selected' });
+        }
+        
+        const dept = req.session.user.department;
+        const placeholders = ids.map(() => '?').join(',');
+        const sql = `UPDATE problems 
+                      SET hod_verified = 1, status = 'accepted', is_public = 1, 
+                          approved_by = ?, approved_at = ? 
+                      WHERE id IN (${placeholders}) AND department = ?`;
+        
+        const params = [req.session.user.id, new Date().toISOString(), ...ids, dept];
+        
+        db.run(sql, params, function(err) {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            res.json({ success: true, message: `Successfully approved ${this.changes} questions.` });
+        });
+    });
+
+    // Update Problem Feedback
+    router.post('/college/hod/api/update-problem-feedback', requireRole(['hod', 'hos']), (req, res) => {
+        const { id, comments } = req.body;
+        const dept = req.session.user.department;
+        
+        if (!id) return res.status(400).json({ success: false, message: 'Missing problem id' });
+        
+        db.run(`UPDATE problems SET hod_remarks = ? WHERE id = ? AND department = ?`, [comments, id, dept], function(err) {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            res.json({ success: true, message: 'Feedback updated successfully.' });
+        });
     });
 
     // --- HOD Contest APIs ---

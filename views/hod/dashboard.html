@@ -50,10 +50,10 @@
     <div class="flex h-screen overflow-hidden">
         <%- include('partials/sidebar.html', { currentPage: currentPage }) %>
 
-        <div class="flex-1 overflow-y-auto">
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
             <%- include('partials/header.html', { pageTitle: 'Dashboard', user: user }) %>
 
-            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <main class="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 custom-scrollbar">
                 <div class="mb-8">
                     <% 
                         const currentHour = new Date().getHours();
@@ -193,12 +193,14 @@
                     </div>
                 </div>
 
+                <!-- Activity Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     <!-- Recent Activity Section -->
                     <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-700">
                         <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Recent Activity</h2>
                         <div class="relative pl-4 border-l border-gray-200 dark:border-gray-700 space-y-6">
                             <% if ((recentActivity || []).length) { %>
-                                <% recentActivity.forEach((activity) => { %>
+                                <% recentActivity.slice(0, 6).forEach((activity) => { %>
                                     <div class="relative">
                                         <div class="absolute -left-[21px] top-1 h-3 w-3 rounded-full bg-<%= activity.color %>-500 ring-4 ring-white dark:ring-gray-800"></div>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white"><%= activity.text %></p>
@@ -359,6 +361,3 @@
 </body>
 
 </html>
-
-
-

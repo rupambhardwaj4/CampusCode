@@ -1,7 +1,7 @@
 // Uses allContests injected from the EJS template via server data
 // allContests is a global variable set in pending_contests.ejs
 
-let currentTab = 'all';
+let currentTab = 'pending';
 let currentPage = 1;
 const itemsPerPage = 10;
 
@@ -133,10 +133,31 @@ function renderTable() {
     let filteredData = [...allContests];
 
     // Tab filtering
-    if (currentTab === 'accepted') filteredData = filteredData.filter(c => c.status === 'accepted');
+    if (currentTab === 'pending') filteredData = filteredData.filter(c => c.status === 'pending');
+    else if (currentTab === 'accepted') filteredData = filteredData.filter(c => c.status === 'accepted');
     else if (currentTab === 'rejected') filteredData = filteredData.filter(c => c.status === 'rejected');
     else if (currentTab === 'active') filteredData = filteredData.filter(c => c.status === 'active');
     else if (currentTab === 'conflicts') filteredData = getAllConflictingContests();
+
+    // Dropdown Filters
+    const fSubject = document.getElementById('filterSubject').value;
+    const fType = document.getElementById('filterType').value;
+    const fDateFrom = document.getElementById('filterDateFrom').value;
+    const fDateTo = document.getElementById('filterDateTo').value;
+    const fApprovedBy = document.getElementById('filterApprovedBy').value;
+
+    if (fSubject) filteredData = filteredData.filter(c => c.subject === fSubject);
+    if (fType) filteredData = filteredData.filter(c => c.type === fType);
+    if (fDateFrom) {
+        const from = new Date(fDateFrom);
+        filteredData = filteredData.filter(c => new Date(c.start_date) >= from);
+    }
+    if (fDateTo) {
+        const to = new Date(fDateTo);
+        filteredData = filteredData.filter(c => new Date(c.start_date) <= to);
+    }
+    if (fApprovedBy === 'yes') filteredData = filteredData.filter(c => c.hos_verified);
+    else if (fApprovedBy === 'no') filteredData = filteredData.filter(c => !c.hos_verified);
 
     document.getElementById('displayCount').textContent = filteredData.length;
 
@@ -207,6 +228,9 @@ function renderTable() {
                         <div class="mt-1">${getStatusBadge(c)}</div>
                     ` : getStatusBadge(c)}
                 </td>
+                <td class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    ${c.hos_verified_by || 'Not Verified'}
+                </td>
                 <td class="px-4 py-3 text-center">
                     <button class="btn-view-details text-primary-600 hover:text-primary-800 transition-colors" data-id="${c.id}">
                         <i class="fas fa-eye"></i>
@@ -275,28 +299,32 @@ function showContestDetails(id) {
     const contestName = contest.title || contest.name || 'Untitled';
 
     content.innerHTML = `
-        <div class="space-y-6">
+        <div class="space-y-8">
             ${hasConflicts ? `
-                <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-700 rounded-xl p-4">
-                    <div class="flex items-start gap-3">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mt-1 conflict-badge"></i>
+                <div class="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 dark:border-red-700 rounded-3xl p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <i class="fas fa-exclamation-triangle text-8xl"></i>
+                    </div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/30">
+                            <i class="fas fa-calendar-xmark text-xl"></i>
+                        </div>
                         <div class="flex-1">
-                            <h3 class="text-lg font-bold text-red-900 dark:text-red-200 mb-2">⚠️ SCHEDULING CONFLICT DETECTED</h3>
-                            <p class="text-sm text-red-800 dark:text-red-300 mb-3">
-                                This contest conflicts with ${conflicts.length} other contest(s) for the same subject, section, and time slot:
+                            <h3 class="text-lg font-black text-red-900 dark:text-red-200 mb-1">SCHEDULING CONFLICT DETECTED</h3>
+                            <p class="text-sm text-red-800 dark:text-red-300 mb-4 opacity-80">
+                                This contest overlaps with <b>${conflicts.length}</b> other scheduled event(s). Review carefully before approving.
                             </p>
-                            <div class="space-y-2">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 ${conflicts.map(c => `
-                                    <div class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-red-300 dark:border-red-700">
-                                        <p class="font-semibold text-sm text-gray-900 dark:text-white">${c.contest.title || c.contest.name}</p>
-                                        <div class="grid grid-cols-3 gap-2 mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                            <div><span class="font-medium">Subject:</span> ${c.contest.subject}</div>
-                                            <div><span class="font-medium">Section:</span> ${c.contest.section}</div>
-                                            <div><span class="font-medium">Time:</span> ${c.contest.start_time}-${c.contest.end_time}</div>
+                                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-3 rounded-xl border border-red-200 dark:border-red-800 shadow-sm transition-all hover:border-red-400">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <p class="font-bold text-xs text-gray-900 dark:text-white truncate pr-2">${c.contest.title || c.contest.name}</p>
+                                            <span class="text-[10px] font-black text-red-500">CONFLICT</span>
                                         </div>
-                                        <p class="text-xs text-red-600 dark:text-red-400 mt-2">
-                                            <i class="fas fa-info-circle"></i> Submitted by ${c.contest.faculty || 'N/A'}
-                                        </p>
+                                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-gray-500 font-medium">
+                                            <span><i class="fas fa-layer-group opacity-50"></i> Sec ${c.contest.section}</span>
+                                            <span><i class="fas fa-clock opacity-50"></i> ${c.contest.start_time}-${c.contest.end_time}</span>
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -305,105 +333,160 @@ function showContestDetails(id) {
                 </div>
             ` : ''}
 
-            <div class="grid grid-cols-4 gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <div>
-                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Contest ID</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">#${contest.id}</p>
+            <!-- Primary Metadata Header -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-2xl bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/50">
+                    <p class="text-[10px] font-black text-primary-500 uppercase mb-1 tracking-wider">Subject Force</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">${contest.subject || 'N/A'}</p>
                 </div>
-                <div>
-                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Type</p>
-                    <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full ${contest.type === 'practice' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
-            contest.type === 'assessment' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' :
-                'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-        }">${(contest.type || 'N/A').toUpperCase()}</span>
+                <div class="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/50">
+                    <p class="text-[10px] font-black text-indigo-500 uppercase mb-1 tracking-wider">Target Group</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">${contest.section ? 'Section ' + contest.section : 'All Sections'}</p>
                 </div>
-                <div>
-                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Subject</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">${contest.subject || 'N/A'}</p>
+                <div class="p-4 rounded-2xl bg-sky-50 dark:bg-sky-900/10 border border-sky-100 dark:border-sky-800/50">
+                    <p class="text-[10px] font-black text-sky-500 uppercase mb-1 tracking-wider">Contest Type</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white capitalize">${contest.type || 'N/A'}</p>
                 </div>
-                <div>
-                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Section</p>
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">${contest.section ? 'Section ' + contest.section : 'N/A'}</p>
+                <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/50">
+                    <p class="text-[10px] font-black text-amber-600 uppercase mb-1 tracking-wider">Classification</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-white capitalize">${contest.contest_class || 'Standard'}</p>
                 </div>
             </div>
 
-            <div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">${contestName}</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Organized by <span class="font-semibold">${contest.faculty || 'N/A'}</span></p>
-            </div>
-
-            ${contest.description ? `
-            <div class="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <i class="fas fa-info-circle text-primary-500"></i> Contest Description
-                </h4>
-                <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">${contest.description}</div>
-            </div>` : ''}
-
-            <div class="grid md:grid-cols-2 gap-4">
-                <div class="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <i class="fas fa-calendar-alt text-blue-500"></i> Schedule
-                    </h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Start Date:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">${contest.start_date ? new Date(contest.start_date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Time Slot:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">${contest.start_time || ''} - ${contest.end_time || ''}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Duration:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">${contest.duration || 'N/A'}</span>
-                        </div>
+            <!-- Title & Creator Info -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 dark:border-gray-700 pb-6">
+                <div class="space-y-1">
+                    <h3 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">${contestName}</h3>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i class="fas fa-id-card text-xs opacity-60"></i>
+                        <span>Authored by <span class="font-bold text-gray-700 dark:text-gray-300 underline decoration-primary-500/30 underline-offset-4">${contest.faculty || 'N/A'}</span></span>
                     </div>
                 </div>
-
-                <div class="bg-green-50 dark:bg-green-900/10 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                    <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <i class="fas fa-users text-green-500"></i> Participation
-                    </h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Max Participants:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white">${contest.max_participants || 'N/A'}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Status:</span>
-                            <span class="font-semibold text-gray-900 dark:text-white capitalize">${contest.status}</span>
-                        </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden md:block">
+                        <p class="text-[10px] font-black text-gray-400 uppercase">Creator Role</p>
+                        <p class="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">${contest.creatorRole || 'Faculty'}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                        <i class="fas fa-shield-halved"></i>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
-                <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                    <i class="fas fa-comments text-primary-500"></i> Add Comment
-                </h4>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Detailed Schedule -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-stopwatch text-primary-500"></i> Temporal Configuration
+                    </h4>
+                    <div class="p-6 rounded-3xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 space-y-4">
+                        <div class="flex justify-between items-center group">
+                            <span class="text-sm text-gray-500 group-hover:text-primary-500 transition-colors">Start Window</span>
+                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                ${contest.start_date ? new Date(contest.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'}
+                                <span class="ml-2 text-xs font-medium text-gray-400">${contest.start_time || ''}</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center group">
+                            <span class="text-sm text-gray-500 group-hover:text-primary-500 transition-colors">Completion</span>
+                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                ${contest.end_date ? new Date(contest.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible'}
+                                <span class="ml-2 text-xs font-medium text-gray-400">${contest.end_time || ''}</span>
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center group">
+                            <span class="text-sm text-gray-500 group-hover:text-primary-500 transition-colors">Reg. Deadline</span>
+                            <span class="text-sm font-bold text-rose-500">
+                                ${contest.registrationEndDate ? new Date(contest.registrationEndDate).toLocaleDateString() : (contest.deadline ? new Date(contest.deadline).toLocaleDateString() : 'Immediate')}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <span class="text-xs font-bold text-gray-400 italic">Expected Duration</span>
+                            <span class="text-sm font-black text-primary-600">${contest.duration || 'Not Set'} Mins</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Participation & Prize -->
+                <div class="space-y-4">
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-award text-amber-500"></i> Rewards & Scoping
+                    </h4>
+                    <div class="p-6 rounded-3xl bg-amber-50/30 dark:bg-amber-900/5 border border-amber-100/50 dark:border-amber-800/30 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">Visibility Scope</span>
+                            <span class="text-xs font-black uppercase tracking-tighter text-indigo-600 dark:text-indigo-400">${contest.visibility_scope || 'College-Wide'}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">Max Capacity</span>
+                            <span class="text-sm font-bold text-gray-800 dark:text-gray-200">${contest.max_participants || 'Unlimited'} Students</span>
+                        </div>
+                        <div class="flex flex-col gap-1 pt-2 border-t border-amber-100 dark:border-amber-800">
+                            <span class="text-[10px] font-black text-amber-600 uppercase">Prize Pool / Recognition</span>
+                            <p class="text-sm font-medium text-amber-900 dark:text-amber-200">${contest.prize || 'Standard XP and Leaderboard Rank'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descriptive Text Blocks -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 space-y-4">
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-scroll text-primary-500"></i> Rules & Description
+                        </h4>
+                        <div class="p-6 rounded-3xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
+                            ${contest.rulesAndDescription || contest.description || 'No detailed rules provided.'}
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-list-check text-emerald-500"></i> Special Guidelines
+                        </h4>
+                        <div class="p-6 rounded-3xl bg-emerald-50/30 dark:bg-emerald-900/5 border border-emerald-100/50 dark:border-emerald-800/50 text-sm text-emerald-800 dark:text-emerald-300 italic">
+                            ${contest.guidelines || 'Standard academic integrity rules apply to this contest for all participants.'}
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-user-check text-primary-500"></i> Eligibility
+                    </h4>
+                    <div class="p-6 rounded-3xl bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 text-sm text-primary-800 dark:text-primary-300 font-medium">
+                        ${contest.eligibility || 'Open to all students who meet the subject and section requirements mentioned in the metadata header.'}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comment Box -->
+            <div class="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <label class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Reviewer Comments (Optional)</label>
                 <textarea id="modalContestComment"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 resize-none"
-                    rows="3" placeholder="Add your comments..."></textarea>
+                    class="w-full px-5 py-4 text-sm border-2 border-gray-100 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all resize-none"
+                    rows="3" placeholder="Explain the reason for approval or rejection..."></textarea>
             </div>
 
-            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <!-- Footer Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6">
                 ${contest.status === 'pending' ? `
-                    <button onclick="handleApproveFromModal(${contest.id})" class="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-semibold transition-colors shadow-md flex items-center justify-center gap-2">
-                        <i class="fas fa-check-circle"></i> Approve Contest
+                    <button onclick="handleApproveFromModal(${contest.id})" class="flex-[3] px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-base font-black transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 group">
+                        <i class="fas fa-check-circle group-hover:scale-110 transition-transform"></i>
+                        Approve & Verify Contest
                     </button>
-                    <button onclick="handleRejectFromModal(${contest.id})" class="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors shadow-md flex items-center justify-center gap-2">
-                        <i class="fas fa-times-circle"></i> Reject Contest
+                    <button onclick="handleRejectFromModal(${contest.id})" class="flex-1 px-8 py-4 bg-white dark:bg-gray-800 hover:bg-rose-50 text-rose-600 border-2 border-rose-100 dark:border-rose-900/30 rounded-2xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        <i class="fas fa-times-circle"></i>
+                        Reject
                     </button>
                 ` : `
-                    <div class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-center">
-                        <span class="text-sm font-semibold text-gray-600 dark:text-gray-400">
-                            Status: <span class="${contest.status === 'accepted' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${contest.status.toUpperCase()}</span>
+                    <div class="flex-1 px-8 py-4 bg-gray-100 dark:bg-gray-800 rounded-2xl text-center border border-gray-200 dark:border-gray-700">
+                        <span class="text-sm font-black text-gray-500 uppercase tracking-widest">
+                            FINAL STATUS: <span class="${contest.status === 'accepted' ? 'text-emerald-500' : 'text-rose-500'} font-black">${contest.status}</span>
                         </span>
                     </div>
                 `}
-                <button onclick="document.getElementById('contestDetailModal').classList.add('hidden')" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold transition-colors">
-                    Close
+                <button onclick="document.getElementById('contestDetailModal').classList.add('hidden')" class="px-8 py-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-2xl text-sm font-bold transition-all">
+                    Dismiss
                 </button>
             </div>
         </div>

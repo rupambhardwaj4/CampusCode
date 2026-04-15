@@ -1399,7 +1399,12 @@ module.exports = (db) => {
             const facultyPh = facultyIds.map(() => '?').join(',');
 
             const contests = await new Promise((resolve, reject) => {
-                db.all(`SELECT c.id, c.title, c.subject, c.status, c.startDate as start_date, c.endDate as end_date, c.createdAt, c.department, c.hos_verified, c.hod_verified, u.fullName as faculty, u.role as creatorRole
+                db.all(`SELECT c.id, c.title, c.subject, c.status, c.startDate as start_date, c.endDate as end_date, 
+                               c.createdAt, c.department, c.hos_verified, c.hod_verified, 
+                               c.duration, c.deadline, c.registrationEndDate, c.eligibility, 
+                               c.description, c.rulesAndDescription, c.guidelines, c.contest_class,
+                               c.prize, c.visibility_scope,
+                               u.fullName as faculty, u.role as creatorRole
                     FROM contests c JOIN account_users u ON c.createdBy = u.id
                     WHERE c.status = 'pending'
                       AND COALESCE(c.hos_verified, 0) = 0
@@ -1607,7 +1612,7 @@ module.exports = (db) => {
                 if (String(infoRow.creatorRole || '').toLowerCase() !== 'faculty') {
                     return res.json({ success: true, message: 'HOS approval is only required for faculty-created contests.' });
                 }
-                db.run(`UPDATE contests SET hos_verified = 1 WHERE id = ?`, [id], function(err) {
+                db.run(`UPDATE contests SET hos_verified = 1, hos_verified_by = ?, hos_verified_at = ? WHERE id = ?`, [user.id, new Date().toISOString(), id], function(err) {
                     if (err) return res.status(500).json({ success: false, message: err.message });
                     if (infoRow.hod_verified === 1) {
                         db.run(

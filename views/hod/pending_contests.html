@@ -40,19 +40,16 @@
 
             <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 
-                <!-- Back Link -->
-                <div class="mb-6">
-                    <a href="/college/hod/dashboard" class="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
-                        <i class="fas fa-arrow-left text-xs"></i>
-                        Back to Dashboard
-                    </a>
-                </div>
-
                 <!-- Page Header & Stats -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Pending Contests Approval</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Review and verify contests created by faculty members.</p>
+                    <div class="flex items-center gap-4">
+                        <a href="/college/hod/dashboard" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 hover:text-primary-600 transition-all shadow-sm">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Pending Contests Approval</h1>
+                            <p class="text-gray-600 dark:text-gray-400">Review and verify contests created by faculty members.</p>
+                        </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <button onclick="bulkApprove()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2">
@@ -87,54 +84,53 @@
 
                 <!-- Tabs & Filters Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-8">
-                    <div class="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
-                        <a href="?tab=all" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= (!query.tab || query.tab === 'all') ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700' %>">All</a>
-                        <a href="?tab=approved" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= (query.tab === 'approved' || query.tab === 'accepted') ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700' %>">Approved</a>
-                        <a href="?tab=rejected" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= query.tab === 'rejected' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700' %>">Rejected</a>
-                        <a href="?tab=active" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= query.tab === 'active' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700' %>">Active</a>
-                        <a href="?tab=conflicts" class="px-6 py-4 text-sm font-semibold border-b-2 transition-all <%= query.tab === 'conflicts' ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700' %>">Conflicts</a>
+                    <div class="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto" id="tabContainer">
+                        <button onclick="switchTab('pending')" class="tab-btn px-6 py-4 text-sm font-semibold border-b-2 transition-all border-primary-500 text-primary-600 dark:text-primary-400" data-tab="pending">Pending</button>
+                        <button onclick="switchTab('approved')" class="tab-btn px-6 py-4 text-sm font-semibold border-b-2 transition-all border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white" data-tab="approved">Approved</button>
+                        <button onclick="switchTab('rejected')" class="tab-btn px-6 py-4 text-sm font-semibold border-b-2 transition-all border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white" data-tab="rejected">Rejected</button>
+                        <button onclick="switchTab('active')" class="tab-btn px-6 py-4 text-sm font-semibold border-b-2 transition-all border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white" data-tab="active">Active</button>
+                        <button onclick="switchTab('conflicts')" class="tab-btn px-6 py-4 text-sm font-semibold border-b-2 transition-all border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white" data-tab="conflicts">Conflicts</button>
                     </div>
 
                     <div class="p-6">
-                        <form id="filterForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                            <input type="hidden" name="tab" value="<%= query.tab || 'all' %>">
+                        <form id="filterForm" onsubmit="event.preventDefault(); applyFilters();" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                            <input type="hidden" id="currentTab" value="<%= query.tab || 'pending' %>">
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Subject</label>
-                                <select name="subject" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
-                                    <option>All Subjects</option>
+                                <select id="filterSubject" onchange="applyFilters()" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
+                                    <option value="">All Subjects</option>
                                     <% subjects.forEach(s => { %>
-                                        <option <%= query.subject === s ? 'selected' : '' %>><%= s %></option>
+                                        <option value="<%= s %>" <%= query.subject === s ? 'selected' : '' %>><%= s %></option>
                                     <% }) %>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Type</label>
-                                <select name="type" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
-                                    <option>All Types</option>
+                                <select id="filterType" onchange="applyFilters()" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
+                                    <option value="">All Types</option>
                                     <% types.forEach(t => { %>
-                                        <option <%= query.type === t ? 'selected' : '' %>><%= t %></option>
+                                        <option value="<%= t %>" <%= query.type === t ? 'selected' : '' %>><%= t %></option>
                                     <% }) %>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">From</label>
-                                <input type="date" name="dateFrom" value="<%= query.dateFrom %>" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
+                                <input type="date" id="filterDateFrom" oninput="applyFilters()" value="<%= query.dateFrom %>" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">To</label>
-                                <input type="date" name="dateTo" value="<%= query.dateTo %>" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
+                                <input type="date" id="filterDateTo" oninput="applyFilters()" value="<%= query.dateTo %>" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">HOS Status</label>
-                                <select name="hos_approved" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
-                                    <option>All</option>
+                                <select id="filterHosApproved" onchange="applyFilters()" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm dark:text-white">
+                                    <option value="">All</option>
                                     <option value="Yes" <%= query.hos_approved === 'Yes' ? 'selected' : '' %>>Yes</option>
                                     <option value="No" <%= query.hos_approved === 'No' ? 'selected' : '' %>>No</option>
                                 </select>
                             </div>
                             <div class="flex items-end gap-2">
-                                <button type="submit" class="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-bold transition-all">Apply</button>
-                                <a href="/college/hod/pending-contests" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-bold border border-gray-200 dark:border-gray-600 flex items-center justify-center"><i class="fas fa-undo"></i></a>
+                                <button type="button" onclick="resetFilters()" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-bold border border-gray-200 dark:border-gray-600 flex items-center justify-center w-full"><i class="fas fa-undo mr-2"></i>Reset</button>
                             </div>
                         </form>
                     </div>
@@ -150,35 +146,41 @@
                                         <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-primary-500 focus:ring-primary-500">
                                     </th>
                                     <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contest Title</th>
-                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
-                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Schedule</th>
-                                    <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Status</th>
+                                    <th class="p-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Type</th>
+                                    <th class="p-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Time Slot</th>
+                                    <th class="p-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">Verified by HOS</th>
+                                    <th class="p-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
                                     <th class="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 <% if (pendingContests.length === 0) { %>
                                     <tr>
-                                        <td colspan="6" class="p-12 text-center text-gray-500 dark:text-gray-400">No contests found matching criteria.</td>
+                                        <td colspan="7" class="p-12 text-center text-gray-500 dark:text-gray-400">No contests found matching criteria.</td>
                                     </tr>
                                 <% } %>
-                                <% pendingContests.forEach(c => { %>
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                <% pendingContests.forEach(c => { 
+                                     const isActive = (c.status === 'accepted' && new Date(c.startDate) <= new Date() && new Date(c.endDate) >= new Date());
+                                     const hasConflicts = (c.conflicts && c.conflicts.length > 0);
+                                 %>
+                                    <tr class="contest-row hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors" 
+                                        data-status="<%= c.status %>" 
+                                        data-active="<%= isActive %>" 
+                                        data-conflicts="<%= hasConflicts %>"
+                                        data-subject="<%= c.subject %>"
+                                        data-type="<%= c.type %>"
+                                        data-date="<%= c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : '' %>"
+                                        data-hos-verified="<%= c.hos_verified ? 'Yes' : 'No' %>">
                                         <td class="p-4">
                                             <input type="checkbox" class="contest-checkbox rounded border-gray-300 text-primary-500 focus:ring-primary-500" data-id="<%= c.id %>">
                                         </td>
                                         <td class="p-4">
                                             <div class="flex flex-col">
                                                 <span class="font-semibold text-gray-900 dark:text-white"><%= c.title %></span>
-                                                <span class="text-[10px] text-gray-500 uppercase font-bold"><%= c.type || 'Contest' %></span>
+                                                <span class="text-[10px] text-gray-500 uppercase font-bold"><%= c.subject %></span>
                                             </div>
                                         </td>
-                                        <td class="p-4">
-                                            <div class="flex flex-col gap-0.5">
-                                                <span class="text-sm text-gray-600 dark:text-gray-300"><%= c.subject %></span>
-                                                <span class="text-xs text-gray-400">Section <%= c.section || 'All' %></span>
-                                            </div>
-                                        </td>
+                                        <td class="p-4 text-sm text-gray-600 dark:text-gray-300"><%= c.type || 'Contest' %></td>
                                         <td class="p-4">
                                             <div class="flex flex-col gap-0.5">
                                                 <span class="text-sm text-gray-600 dark:text-gray-300"><%= c.startDate ? new Date(c.startDate).toLocaleDateString() : 'N/A' %></span>
@@ -186,6 +188,11 @@
                                                     <%= (c.startDate && c.endDate) ? (new Date(c.startDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ' - ' + new Date(c.endDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})) : 'N/A' %>
                                                 </span>
                                             </div>
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                <%= c.hos_verified_by_name || 'Not Verified' %>
+                                            </span>
                                         </td>
                                         <td class="p-4 text-center">
                                             <% if (c.status === 'accepted') { %>
@@ -221,22 +228,32 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- Empty State -->
+                    <div id="emptyState" class="hidden p-12 text-center text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-search text-3xl mb-4"></i>
+                        <p>No contests found matching your current filter criteria.</p>
+                    </div>
                 </div>
             </main>
         </div>
     </div>
 
     <!-- CONTEST DETAIL MODAL -->
-    <div id="contestDetailModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
-        <div class="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-[fadeIn_0.2s_ease-out]">
+    <div id="contestDetailModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md hidden">
+        <div class="w-full max-w-5xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-[fadeIn_0.2s_ease-out]">
             <!-- Modal Header -->
             <div class="px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white" id="modalTitle">Contest Details</h2>
-                    <p class="text-sm text-gray-500" id="modalSubtitle">Loading metadata...</p>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
+                        <i class="fas fa-trophy text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white" id="modalTitle">Contest Details</h2>
+                        <p class="text-sm text-gray-500" id="modalSubtitle">Loading metadata...</p>
+                    </div>
                 </div>
                 <button onclick="closeContestModal()" class="w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors">
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-times text-gray-500"></i>
                 </button>
             </div>
 
@@ -244,53 +261,131 @@
             <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
                 <div id="modalLoading" class="flex flex-col items-center justify-center py-20 gap-4">
                     <div class="w-12 h-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin"></div>
-                    <p class="text-gray-500 font-medium tracking-wide">Fetching data...</p>
+                    <p class="text-gray-500 font-medium tracking-wide">Fetching comprehensive data...</p>
                 </div>
 
                 <div id="modalContent" class="hidden space-y-8">
-                    <!-- Metadata Grid -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
-                            <p class="text-[10px] font-black text-gray-400 uppercase mb-1">Subject</p>
+                    <!-- High-Level Info Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50">
+                            <p class="text-[10px] font-black text-blue-500 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fas fa-book"></i> Subject
+                            </p>
                             <p class="text-sm font-bold text-gray-900 dark:text-white" id="detailSubject">-</p>
                         </div>
-                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
-                            <p class="text-[10px] font-black text-gray-400 uppercase mb-1">Section</p>
+                        <div class="p-4 rounded-2xl bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/50">
+                            <p class="text-[10px] font-black text-purple-500 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fas fa-users"></i> Target Section
+                            </p>
                             <p class="text-sm font-bold text-gray-900 dark:text-white" id="detailSection">-</p>
                         </div>
-                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
-                            <p class="text-[10px] font-black text-gray-400 uppercase mb-1">Duration</p>
+                        <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50">
+                            <p class="text-[10px] font-black text-emerald-500 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fas fa-clock"></i> Duration
+                            </p>
                             <p class="text-sm font-bold text-gray-900 dark:text-white" id="detailDuration">-</p>
                         </div>
-                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
-                            <p class="text-[10px] font-black text-gray-400 uppercase mb-1">Creator</p>
-                            <p class="text-sm font-bold text-primary-600 dark:text-primary-400" id="detailCreator">-</p>
+                        <div class="p-4 rounded-2xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/50">
+                            <p class="text-[10px] font-black text-orange-500 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fas fa-user-edit"></i> Created By
+                            </p>
+                            <p class="text-sm font-bold text-gray-900 dark:text-white" id="detailCreator">-</p>
                         </div>
                     </div>
 
-                    <!-- Description Section -->
-                    <div class="space-y-3">
-                        <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="fas fa-align-left text-primary-500"></i> Description & Rules
-                        </h3>
-                        <div class="p-6 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" id="detailDesc">
-                            -
+                    <!-- Detailed Schedule & Registration Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Left: Times -->
+                        <div class="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-700">
+                            <h3 class="text-xs font-black text-gray-400 uppercase mb-4 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-primary-500"></i> Event Timing
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Start Date & Time</span>
+                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200" id="detailStart">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">End Date & Time</span>
+                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200" id="detailEnd">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Registration Deadline</span>
+                                    <span class="text-sm font-bold text-orange-600 dark:text-orange-400" id="detailDeadline">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Classification -->
+                        <div class="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-700">
+                            <h3 class="text-xs font-black text-gray-400 uppercase mb-4 flex items-center gap-2">
+                                <i class="fas fa-tags text-primary-500"></i> Scope & Type
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Contest Class</span>
+                                    <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300 capitalize" id="detailClass">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Verification Status</span>
+                                    <div class="flex gap-2" id="detailVerificationBadges">
+                                        <!-- Dynamic badges -->
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-500">Visibility</span>
+                                    <span class="text-sm font-bold text-blue-600 dark:text-blue-400 italic" id="detailVisibility">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description & Rules (Tabs or Stacked) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="space-y-3">
+                                <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <i class="fas fa-align-left text-primary-500"></i> Description & Rules
+                                </h3>
+                                <div class="p-6 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" id="detailDesc">
+                                    -
+                                </div>
+                            </div>
+                            <div class="space-y-3">
+                                <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <i class="fas fa-list-check text-primary-500"></i> Specific Guidelines
+                                </h3>
+                                <div class="p-6 rounded-2xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 italic leading-relaxed" id="detailGuidelines">
+                                    -
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <i class="fas fa-id-card-clip text-primary-500"></i> Eligibility
+                            </h3>
+                            <div class="p-6 rounded-2xl bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 text-sm text-primary-700 dark:text-primary-300 font-medium whitespace-pre-wrap" id="detailEligibility">
+                                -
+                            </div>
                         </div>
                     </div>
 
                     <!-- Problems List -->
                     <div class="space-y-4">
-                        <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="fas fa-tasks text-primary-500"></i> Linked Problems
-                        </h3>
-                        <div class="rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <i class="fas fa-tasks text-primary-500"></i> Embedded Problems Set
+                            </h3>
+                            <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-[10px] font-black uppercase text-gray-500" id="detailProblemCount">0 Problems</span>
+                        </div>
+                        <div class="rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
                             <table class="w-full text-left text-sm">
                                 <thead class="bg-gray-50 dark:bg-gray-900/50">
                                     <tr>
-                                        <th class="p-3 font-bold text-gray-500">Title</th>
-                                        <th class="p-3 font-bold text-gray-500">Subject</th>
-                                        <th class="p-3 font-bold text-gray-500 text-center">Difficulty</th>
-                                        <th class="p-3 font-bold text-gray-500 text-center">Points</th>
+                                        <th class="px-6 py-4 font-black text-gray-400 text-[10px] uppercase">Problem Title</th>
+                                        <th class="px-6 py-4 font-black text-gray-400 text-[10px] uppercase">Subject</th>
+                                        <th class="px-6 py-4 font-black text-gray-400 text-[10px] uppercase text-center">Difficulty</th>
+                                        <th class="px-6 py-4 font-black text-gray-400 text-[10px] uppercase text-center">XP Points</th>
                                     </tr>
                                 </thead>
                                 <tbody id="problemList" class="divide-y divide-gray-100 dark:divide-gray-700 capitalize">
@@ -303,9 +398,14 @@
             </div>
 
             <!-- Modal Footer -->
-            <div class="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-900/50">
-                <button onclick="closeContestModal()" class="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold hover:bg-gray-300 transition-all">Close</button>
-                <div id="modalActions" class="flex gap-2">
+            <div class="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                <button onclick="closeContestModal()" class="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-bold hover:bg-gray-300 transition-all">Close Window</button>
+                <div id="modalActions" class="flex gap-3">
+                    <!-- Dynamic Buttons -->
+                </div>
+            </div>
+        </div>
+    </div>
                     <!-- Dynamic Buttons -->
                 </div>
             </div>
@@ -313,6 +413,92 @@
     </div>
 
     <script>
+        // --- Client-side Multi-criteria Filtering ---
+        function applyFilters() {
+            const status = document.getElementById('currentTab').value;
+            const subject = document.getElementById('filterSubject').value;
+            const type = document.getElementById('filterType').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const hosVerified = document.getElementById('filterHosApproved').value;
+
+            const rows = document.querySelectorAll('.contest-row');
+            const buttons = document.querySelectorAll('.tab-btn');
+            
+            // Update UI buttons (Tabs)
+            buttons.forEach(btn => {
+                if (btn.dataset.tab === status) {
+                    btn.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+                } else {
+                    btn.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+                }
+            });
+
+            // Filter rows based on ALL criteria
+            rows.forEach(row => {
+                const rowStatus = row.dataset.status;
+                const rowActive = row.dataset.active === 'true';
+                const rowConflicts = row.dataset.conflicts === 'true';
+                const rowSubject = row.dataset.subject;
+                const rowType = row.dataset.type;
+                const rowDate = row.dataset.date;
+                const rowHosVerified = row.dataset.hosVerified; // 'Yes' or 'No'
+
+                // 1. Tab Filtering
+                let matchesTab = false;
+                if (status === 'pending') matchesTab = (rowStatus === 'pending');
+                else if (status === 'approved') matchesTab = (rowStatus === 'accepted');
+                else if (status === 'rejected') matchesTab = (rowStatus === 'rejected');
+                else if (status === 'active') matchesTab = rowActive;
+                else if (status === 'conflicts') matchesTab = rowConflicts;
+
+                // 2. Dropdown & Date Filters
+                const matchesSubject = !subject || rowSubject === subject;
+                const matchesType = !type || rowType === type;
+                const matchesHos = !hosVerified || rowHosVerified === hosVerified;
+                
+                let matchesDate = true;
+                if (dateFrom && rowDate) matchesDate = matchesDate && (new Date(rowDate) >= new Date(dateFrom));
+                if (dateTo && rowDate) matchesDate = matchesDate && (new Date(rowDate) <= new Date(dateTo));
+
+                // Show only if ALL criteria match
+                row.classList.toggle('hidden', !(matchesTab && matchesSubject && matchesType && matchesHos && matchesDate));
+            });
+            
+            // Update Empty State
+            const visibleRows = document.querySelectorAll('.contest-row:not(.hidden)');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.classList.toggle('hidden', visibleRows.length > 0);
+            }
+        }
+
+        function switchTab(status) {
+            document.getElementById('currentTab').value = status;
+            applyFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterSubject').value = "";
+            document.getElementById('filterType').value = "";
+            document.getElementById('filterDateFrom').value = "";
+            document.getElementById('filterDateTo').value = "";
+            document.getElementById('filterHosApproved').value = "";
+            applyFilters();
+        }
+
+        // Initialize view
+        document.addEventListener('DOMContentLoaded', () => {
+             // If there's a tab in URL, switch to it
+             const urlParams = new URLSearchParams(window.location.search);
+             const urlTab = urlParams.get('tab');
+             if (urlTab) document.getElementById('currentTab').value = urlTab;
+             
+             applyFilters();
+        });
+
         // Handle select all functionality
         const selectAll = document.getElementById('selectAll');
         const checkboxes = document.querySelectorAll('.contest-checkbox');
@@ -442,34 +628,63 @@
                 
                 if (data.success) {
                     const c = data.contest;
-                    document.getElementById('modalTitle').textContent = c.title;
-                    document.getElementById('modalSubtitle').textContent = `Created by ${c.creatorName} • ID #${c.id}`;
-                    document.getElementById('detailSubject').textContent = c.subject || 'General';
-                    document.getElementById('detailSection').textContent = c.section || 'All Sections';
-                    document.getElementById('detailDuration').textContent = c.duration || 'Not set';
-                    document.getElementById('detailCreator').textContent = c.creatorName;
-                    document.getElementById('detailDesc').textContent = c.rulesAndDescription || c.description || 'No description provided.';
+                    document.getElementById('modalTitle').textContent = c.title || 'Untitled Contest';
+                    document.getElementById('modalSubtitle').textContent = `Departmental Authority Review • Database ID #${c.id}`;
                     
+                    // Top stats
+                    document.getElementById('detailSubject').textContent = c.subject || 'All Subjects';
+                    document.getElementById('detailSection').textContent = c.section || 'All Sections';
+                    document.getElementById('detailDuration').textContent = c.duration ? `${c.duration} Mins` : 'Not Set';
+                    document.getElementById('detailCreator').textContent = c.creatorName || 'System';
+
+                    // Schedule
+                    const fmtDate = (d) => d ? new Date(d).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Flexible';
+                    document.getElementById('detailStart').textContent = fmtDate(c.startDate);
+                    document.getElementById('detailEnd').textContent = fmtDate(c.endDate);
+                    document.getElementById('detailDeadline').textContent = fmtDate(c.registrationEndDate || c.deadline);
+
+                    // Classification
+                    document.getElementById('detailClass').textContent = c.contest_class || 'Standard';
+                    document.getElementById('detailVisibility').textContent = c.visibility_scope || 'College';
+                    
+                    // Verification Badges
+                    const vBadges = document.getElementById('detailVerificationBadges');
+                    vBadges.innerHTML = `
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${c.hos_verified ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}">
+                            HOS: ${c.hos_verified ? 'Verified' : 'Pending'}
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${c.hod_verified ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-yellow-100 text-yellow-700 border border-yellow-200'}">
+                            HOD: ${c.hod_verified ? 'Verified' : 'Pending'}
+                        </span>
+                    `;
+
+                    // Content
+                    document.getElementById('detailDesc').textContent = c.rulesAndDescription || c.description || 'No detailed rules or description provided by the creator.';
+                    document.getElementById('detailGuidelines').textContent = c.guidelines || 'Use standard platform guidelines.';
+                    document.getElementById('detailEligibility').textContent = c.eligibility || 'Open to all students in the assigned section.';
+                    
+                    // Problem List
+                    document.getElementById('detailProblemCount').textContent = `${c.problems.length} Linked Problems`;
                     const problemList = document.getElementById('problemList');
                     problemList.innerHTML = c.problems.map(p => `
-                        <tr>
-                            <td class="p-3 font-semibold">${p.title}</td>
-                            <td class="p-3 text-gray-500">${p.subject || '-'}</td>
-                            <td class="p-3 text-center">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <td class="px-6 py-4 font-semibold text-gray-900 dark:text-gray-100">${p.title}</td>
+                            <td class="px-6 py-4 text-gray-500 text-xs">${p.subject || '-'}</td>
+                            <td class="px-6 py-4 text-center">
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${p.difficulty === 'hard' ? 'bg-red-100 text-red-600' : p.difficulty === 'medium' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}">
                                     ${p.difficulty || 'easy'}
                                 </span>
                             </td>
-                            <td class="p-3 text-center font-mono font-bold">${p.points || 0}</td>
+                            <td class="px-6 py-4 text-center font-mono font-bold text-gray-700 dark:text-gray-300">${p.points || 0} XP</td>
                         </tr>
-                    `).join('') || '<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">No linked problems.</td></tr>';
+                    `).join('') || '<tr><td colspan="4" class="p-8 text-center text-gray-400 italic">No linked problems found for this contest.</td></tr>';
 
                     const actions = document.getElementById('modalActions');
                     actions.innerHTML = '';
                     if (c.status === 'pending') {
                         actions.innerHTML = `
-                            <button onclick="rejectContest(${c.id})" class="px-6 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all">Reject</button>
-                            <button onclick="approveContest(${c.id}, 0)" class="px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all">Approve</button>
+                            <button onclick="rejectContest(${c.id})" class="px-8 py-2.5 bg-white dark:bg-gray-800 border border-red-200 text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 transition-all">Reject Contest</button>
+                            <button onclick="approveContest(${c.id}, 0)" class="px-8 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all">Approve & Publish</button>
                         `;
                     }
 

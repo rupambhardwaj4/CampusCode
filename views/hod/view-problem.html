@@ -267,8 +267,19 @@
              <button id="runBtn" onclick="runCode()" class="px-3 py-1 text-xs font-medium bg-primary-600 hover:bg-primary-700 text-white rounded transition flex items-center gap-1">
                <i class="fas fa-play text-[10px]"></i> Run Test
              </button>
+             
+             <% if (problem.status === 'pending') { %>
+              <div class="h-4 w-px bg-gray-700 shrink-0 mx-1"></div>
+              <button onclick="approveProblem()" class="px-3 py-1 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded transition flex items-center gap-1">
+                <i class="fas fa-check text-[10px]"></i> Accept
+              </button>
+              <button onclick="openFeedbackModal()" class="px-3 py-1 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded transition flex items-center gap-1">
+                <i class="fas fa-times text-[10px]"></i> Reject
+              </button>
+             <% } %>
           </div>
           
+          <style>.CodeMirror { height: 100% !important; }</style>
           <div class="flex-1 overflow-hidden">
             <textarea id="codeEditor"></textarea>
           </div>
@@ -370,7 +381,102 @@
     function clearOutput() {
       document.getElementById('outputPanel').innerHTML = '<p class="opacity-50 italic">Output cleared.</p>';
     }
+
+    // --- Admin Actions ---
+    async function approveProblem() {
+      if (!confirm('Are you sure you want to accept this question into the repository?')) return;
+      try {
+        const r = await fetch('/college/hod/api/bulk-approve-questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: [problemId] })
+        });
+        const d = await r.json();
+        if (d.success) {
+          alert('Question accepted successfully!');
+          window.location.href = '/college/hod/pending-questions';
+        } else {
+          alert(d.message || 'Failed to approve question');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function openFeedbackModal() {
+      document.getElementById('feedbackModal').classList.remove('hidden');
+      document.getElementById('feedbackModal').classList.add('flex');
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedbackModal').classList.add('hidden');
+      document.getElementById('feedbackModal').classList.remove('flex');
+    }
+
+    async function submitFeedback() {
+      const comments = document.getElementById('hodFeedback').value;
+      if (!comments.trim()) return alert('Please provide feedback for the rejection.');
+      
+      try {
+        // First reject the question (optional, or just update feedback + status)
+        // Here we also update the status to 'rejected'
+        const r = await fetch('/college/hod/api/update-problem-feedback', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ id: problemId, comments })
+        });
+        
+        // Also update status to rejected using the general route
+        const r2 = await fetch('/college/hod/api/approve-content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: problemId, type: 'problem', finalAction: 'reject' })
+        });
+
+        const d = await r2.json();
+        if (d.success) {
+          alert('Question rejected with feedback!');
+          window.location.href = '/college/hod/pending-questions';
+        } else {
+          alert(d.message || 'Failed to reject question');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
   </script>
+
+  <!-- Feedback Modal -->
+  <div id="feedbackModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
+    <div class="bg-[#0d1117] border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div class="px-8 py-6 border-b border-gray-800 flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-bold text-white">Correction Request</h3>
+                <p class="text-xs text-gray-500 mt-1 uppercase tracking-widest font-bold">Provide mandatory feedback for rejection</p>
+            </div>
+            <button onclick="closeFeedbackModal()" class="text-gray-500 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-8">
+            <label class="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Corrective Comments</label>
+            <textarea id="hodFeedback" 
+                      class="w-full bg-[#161b22] border border-gray-800 rounded-xl px-5 py-4 text-sm text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none transition-all resize-none h-40 placeholder:text-gray-600"
+                      placeholder="e.g., Please fix the edge cases in the sample output, or improve the difficulty categorization..."></textarea>
+            
+            <div class="mt-8 flex gap-3">
+                <button onclick="closeFeedbackModal()" class="flex-1 px-6 py-3.5 rounded-xl border border-gray-800 text-gray-400 text-sm font-bold hover:bg-gray-800 transition-all">
+                    Cancel
+                </button>
+                <button onclick="submitFeedback()" class="flex-[2] px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-paper-plane"></i>
+                    Send Feedback & Reject
+                </button>
+            </div>
+        </div>
+    </div>
+  </div>
 </body>
 
 </html>

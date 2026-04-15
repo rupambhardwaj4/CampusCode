@@ -143,34 +143,34 @@
                     <!-- Tabs -->
                     <div class="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
                         <button
-                            class="approval-tab active px-6 py-4 text-sm font-medium text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 focus:outline-none whitespace-nowrap"
-                            data-tab="all">
-                            <i class="fas fa-list mr-2"></i>All Contests <span
-                                class="ml-2 px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs"><%= contests.length %></span>
+                            class="approval-tab active px-6 py-4 text-sm font-semibold text-primary-600 dark:text-primary-400 border-b-2 border-primary-500 focus:outline-none whitespace-nowrap"
+                            data-tab="pending">
+                            <i class="fas fa-hourglass-start mr-2"></i>Pending Contests <span
+                                class="ml-2 px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-xs text-primary-600 dark:text-primary-400"><%= contests.filter(c => c.status === 'pending').length %></span>
                         </button>
                         <button
-                            class="approval-tab px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none whitespace-nowrap"
+                            class="approval-tab px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors focus:outline-none whitespace-nowrap"
                             data-tab="approved">
                             <i class="fas fa-check mr-2"></i>Approved <span
-                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs"><%= contestStats.approved %></span>
+                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"><%= contestStats.approved %></span>
                         </button>
                         <button
-                            class="approval-tab px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none whitespace-nowrap"
+                            class="approval-tab px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors focus:outline-none whitespace-nowrap"
                             data-tab="rejected">
                             <i class="fas fa-times mr-2"></i>Rejected <span
-                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs"><%= contestStats.rejected %></span>
+                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"><%= contestStats.rejected %></span>
                         </button>
                         <button
-                            class="approval-tab px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none whitespace-nowrap"
+                            class="approval-tab px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors focus:outline-none whitespace-nowrap"
                             data-tab="active">
                             <i class="fas fa-play mr-2"></i>Active <span
-                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs"><%= contestStats.upcoming %></span>
+                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300"><%= contestStats.upcoming %></span>
                         </button>
                         <button
-                            class="approval-tab px-6 py-4 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none whitespace-nowrap"
+                            class="approval-tab px-6 py-4 text-sm font-semibold text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white transition-colors focus:outline-none whitespace-nowrap"
                             data-tab="conflicts">
                             <i class="fas fa-exclamation-triangle mr-2"></i>Conflicts <span
-                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs">0</span>
+                                class="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-600 dark:text-gray-300">0</span>
                         </button>
                     </div>
 
@@ -261,6 +261,7 @@
                                     <th class="px-4 py-3">Time Slot</th>
                                     <th class="px-4 py-3">Start Date</th>
                                     <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3">HOS Verifier</th>
                                     <th class="px-4 py-3 text-center">Actions</th>
                                 </tr>
                             </thead>
