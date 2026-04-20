@@ -141,17 +141,7 @@
         </div>
 
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-100 dark:border-gray-700">
-            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                <i class="fas fa-user-circle text-primary-500"></i> Professional Summary
-            </h2>
-            <div class="p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
-                <p id="fac-bio" class="text-gray-600 dark:text-gray-300 leading-relaxed text-[15px]">
-                    Loading professional summary...
-                </p>
-            </div>
-            
-            <hr class="border-gray-100 dark:border-gray-700 my-8">
-            
+           
             <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                 <i class="fas fa-history text-primary-500"></i> Recent Activity
             </h2>
@@ -255,12 +245,18 @@
                 document.getElementById('fac-dept').textContent = fac.department || fac.branch || "Unassigned";
                 document.getElementById('fac-college').innerHTML = `<i class="fas fa-university text-purple-500 mr-1.5"></i> ${fac.collegeName || "Unknown College"}`;
                 document.getElementById('fac-id-val').textContent = fac.id;
-                
-                // Determine Role Display
+               // Determine Role Display
                 const isHod = fac.is_hod === 1 || fac.is_hod === true || String(fac.is_hod) === '1';
-                const roleDisplay = isHod ? "Head of Department (HOD)" : "Faculty Member";
+                const isHos = String(fac.role || '').toLowerCase() === 'hos';
+                
+                let roleDisplay = "Faculty Member";
+                if (isHod) {
+                    roleDisplay = "Head of Department (HOD)";
+                } else if (isHos) {
+                    roleDisplay = "Head of Subject (HOS)";
+                }
+                
                 document.getElementById('fac-role-display').textContent = roleDisplay;
-
                 // Configure Email Button
                 const emailBtn = document.getElementById('fac-email');
                 if (fac.email) {
@@ -297,8 +293,7 @@
                 }
 
                 // Auto-generate professional bio
-                document.getElementById('fac-bio').textContent = 
-                    `${fac.fullName} currently serves as a ${roleDisplay} in the ${fac.department || fac.branch || 'unassigned'} department at ${fac.collegeName}.`;
+                
                 renderRecentActivity(data.recentActivity || []);
 
                 // Fade out loader, Fade in profile

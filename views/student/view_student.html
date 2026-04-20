@@ -194,14 +194,7 @@
 
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 border border-gray-100 dark:border-gray-700 lg:col-span-2">
                 
-                <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                    <i class="fas fa-chart-bar text-primary-500"></i> Coding Journey
-                </h2>
-                <div class="p-5 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 mb-8">
-                    <p id="stu-bio" class="text-gray-600 dark:text-gray-300 leading-relaxed text-[15px]">
-                        Loading student bio...
-                    </p>
-                </div>
+               
                 
                 <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                     <i class="fas fa-history text-primary-500"></i> Recent Submissions
@@ -356,10 +349,7 @@
                     statusBadge.className = "absolute top-4 right-4 px-3 py-1 text-xs font-bold rounded-full bg-red-500/20 text-red-100 backdrop-blur-md border border-red-500/30 uppercase tracking-wide";
                 }
 
-                // Auto-generate student bio
-                document.getElementById('stu-bio').textContent = 
-                    `${student.fullName} is currently pursuing a degree in ${student.program || 'their program'} (${student.branch || student.department || 'unassigned'}) at ${student.collegeName}. They are currently in Year ${student.year || 'N/A'}.`;
-
+               
                 // Fade out loader, Fade in profile
                 loadingState.style.display = 'none';
                 profileContent.classList.remove('hidden');
