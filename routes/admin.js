@@ -2127,7 +2127,7 @@ router.put('/api/contests/:id', requireRole('admin'), (req, res) => {
             try {
                 const [problemRows, contestRows] = await Promise.all([
                     dbAllAsync(
-                        `SELECT id as itemId, title, COALESCE(NULLIF(status, ''), 'draft') as status, COALESCE(createdAt, '') as activityAt
+                        `SELECT id as itemId, title, COALESCE(NULLIF(status, ''), 'draft') as status, createdAt as activityAt
                          FROM problems
                          WHERE faculty_id = ?
                          ORDER BY id DESC
@@ -2135,7 +2135,7 @@ router.put('/api/contests/:id', requireRole('admin'), (req, res) => {
                         [facultyId]
                     ),
                     dbAllAsync(
-                        `SELECT id as itemId, title, COALESCE(NULLIF(status, ''), 'draft') as status, COALESCE(createdAt, startDate, '') as activityAt
+                        `SELECT id as itemId, title, COALESCE(NULLIF(status, ''), 'draft') as status, COALESCE(createdAt, startDate) as activityAt
                          FROM contests
                          WHERE createdBy = ?
                          ORDER BY id DESC
@@ -2149,8 +2149,8 @@ router.put('/api/contests/:id', requireRole('admin'), (req, res) => {
                     ...(contestRows || []).map((item) => ({ ...item, type: 'contest' }))
                 ]
                     .sort((a, b) => {
-                        const aTime = new Date(a.activityAt || 0).getTime() || 0;
-                        const bTime = new Date(b.activityAt || 0).getTime() || 0;
+                        const aTime = Number.isNaN(new Date(a.activityAt || 0).getTime()) ? 0 : new Date(a.activityAt || 0).getTime();
+                        const bTime = Number.isNaN(new Date(b.activityAt || 0).getTime()) ? 0 : new Date(b.activityAt || 0).getTime();
                         if (bTime !== aTime) return bTime - aTime;
                         return Number(b.itemId || 0) - Number(a.itemId || 0);
                     })

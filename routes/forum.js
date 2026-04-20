@@ -504,7 +504,39 @@ module.exports = (db) => {
             return res.json({ success: true, message: 'Reply updated.' });
         });
     });
+// ==========================================
+    // 5c. EDIT THREAD (OWNER ONLY)
+    // ==========================================
+    router.put('/threads/:id', requireAuth, (req, res) => {
+        const threadId = req.params.id;
+        const userId = req.session.user.id;
+        const { title, topic, content } = req.body;
 
+        // Validation
+        if (!title || !content) {
+            return res.status(400).json({ success: false, message: 'Title and content are required' });
+        }
+
+        // Update the thread, ensuring the user updating it is the one who created it
+        db.run(
+            `UPDATE forum_threads 
+             SET title = ?, topic = ?, content = ? 
+             WHERE id = ? AND user_id = ?`,
+            [title, topic || 'general', content, threadId, userId],
+            function (err) {
+                if (err) {
+                    console.error("Error updating thread:", err.message);
+                    return res.status(500).json({ success: false, message: 'Database error' });
+                }
+                // If no rows were changed, either the thread doesn't exist or the user isn't the author
+                if ((this.changes || 0) === 0) {
+                    return res.status(403).json({ success: false, message: 'Forbidden: You can only edit your own discussions.' });
+                }
+                
+                res.json({ success: true, message: 'Discussion updated successfully' });
+            }
+        );
+    });
 
     return router;
 };
