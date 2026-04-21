@@ -27,12 +27,14 @@ module.exports = (db) => {
                 return res.status(400).json({ success: false, message: 'Subject must be 50 characters or fewer.' });
             }
 
+            const isPostgres = !!db.pool;
             const result = await dbRun(`
                 INSERT INTO support_tickets (
                     user_id, requester_name, requester_email, requester_role, requester_college,
                     subject, category, details, status, updatedAt
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', CURRENT_TIMESTAMP)
+                ${isPostgres ? 'RETURNING id' : ''}
             `, [
                 user.id,
                 user.fullName || user.name || 'User',
@@ -47,7 +49,7 @@ module.exports = (db) => {
             return res.json({
                 success: true,
                 message: 'Ticket submitted successfully.',
-                ticketId: result.lastID
+                ticketId: result.lastID || null
             });
         } catch (error) {
             return res.status(500).json({ success: false, message: error.message });
@@ -104,6 +106,26 @@ module.exports = (db) => {
             `, [ticketId, userId]);
 
             return res.json({ success: true, status: 'reopened' });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    });
+
+    router.delete('/tickets/:id', requireAuth, async (req, res) => {
+        try {
+            const ticketId = Number(req.params.id);
+            const userId = Number(req.session.user.id);
+            if (!Number.isInteger(ticketId) || ticketId <= 0) {
+                return res.status(400).json({ success: false, message: 'Invalid ticket id.' });
+            }
+
+            const ownRows = await dbAll(`SELECT id FROM support_tickets WHERE id = ? AND user_id = ? LIMIT 1`, [ticketId, userId]);
+            if (!ownRows[0]) {
+                return res.status(404).json({ success: false, message: 'Ticket not found.' });
+            }
+
+            await dbRun(`DELETE FROM support_tickets WHERE id = ? AND user_id = ?`, [ticketId, userId]);
+            return res.json({ success: true, message: 'Ticket deleted successfully.' });
         } catch (error) {
             return res.status(500).json({ success: false, message: error.message });
         }

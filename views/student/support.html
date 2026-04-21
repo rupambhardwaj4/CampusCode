@@ -226,6 +226,53 @@
     </div>
   </div>
 
+  <div id="ticketOverlay" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="w-full max-w-2xl mx-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white">Ticket Details</h3>
+        <button id="ticketOverlayClose" class="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Ticket ID</p>
+            <p id="overlayTicketId" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</p>
+            <p id="overlayTicketStatus" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Category</p>
+            <p id="overlayTicketCategory" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Subject</p>
+            <p id="overlayTicketSubject" class="font-semibold text-gray-800 dark:text-gray-100">-</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Issue Details</p>
+          <div id="overlayTicketDetails" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">-</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Concerned Member Solution / Reply</p>
+          <div id="overlayTicketReply" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20 p-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">No response yet.</div>
+        </div>
+      </div>
+      <div class="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+        <button id="overlayDeleteBtn" type="button" aria-label="Delete query" title="Delete query" class="px-3 py-2 rounded-lg bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 text-sm font-semibold">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+        <button id="overlayReopenBtn" type="button" class="hidden px-4 py-2 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-sm font-semibold">
+          Reopen Issue (Not Satisfied)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const root = document.documentElement;
     const themeBtn = document.getElementById('themeToggleBtn');
@@ -284,6 +331,10 @@
     const ticketSubjectInput = document.getElementById('ticketSubject');
     const myTicketsList = document.getElementById('myTicketsList');
     const refreshMyTicketsBtn = document.getElementById('refreshMyTicketsBtn');
+    const ticketOverlay = document.getElementById('ticketOverlay');
+    const ticketOverlayClose = document.getElementById('ticketOverlayClose');
+    const ticketsCache = new Map();
+    let currentOverlayTicketId = null;
 
     if (ticketSubjectInput) {
       ticketSubjectInput.maxLength = 50;
@@ -302,6 +353,9 @@
       const normalized = String(status || 'open').toLowerCase();
       if (normalized === 'resolved') {
         return '<span class="px-2 py-1 rounded-full text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Resolved</span>';
+      }
+      if (normalized === 'reopened') {
+        return '<span class="px-2 py-1 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">Reopened</span>';
       }
       if (normalized === 'in_progress') {
         return '<span class="px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">In Progress</span>';
@@ -330,6 +384,7 @@
         const payload = await response.json();
         const tickets = payload?.tickets || [];
         if (!response.ok || !payload?.success) throw new Error(payload?.message || 'Unable to fetch tickets');
+        ticketsCache.clear();
         if (!tickets.length) {
           myTicketsList.innerHTML = '<div class="text-sm text-gray-500 dark:text-gray-400">No tickets yet. Create one above and track updates here.</div>';
           return;
@@ -337,20 +392,27 @@
         myTicketsList.innerHTML = tickets.slice(0, 5).map((ticket) => {
           const status = String(ticket.status || 'open').toLowerCase();
           const solutionText = String(ticket.superadmin_reply || '').trim();
-          const solutionLine = solutionText
-            ? `<p class="text-xs text-gray-700 dark:text-gray-200 mt-2"><span class="font-semibold">Support Solution:</span> ${escapeHtml(solutionText)}</p>`
-            : (status === 'resolved'
-                ? '<p class="text-xs text-amber-700 dark:text-amber-300 mt-2"><span class="font-semibold">Support Solution:</span> Resolved without a written note yet.</p>'
-                : '<p class="text-xs text-gray-500 dark:text-gray-400 mt-2"><span class="font-semibold">Support Solution:</span> Waiting for support response.</p>');
+          const ticketId = Number(ticket.id);
+          ticketsCache.set(ticketId, {
+            id: ticket.id,
+            subject: String(ticket.subject || ''),
+            category: String(ticket.category || ''),
+            details: String(ticket.details || ''),
+            status: String(ticket.status || 'open').replace(/_/g, ' '),
+            reply: solutionText || 'No response yet.'
+          });
+          const canReopen = ['resolved', 'closed'].includes(status);
           return `
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50/70 dark:bg-gray-900/30">
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50/70 dark:bg-gray-900/30 cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition-colors" onclick="openTicketOverlayById(${ticketId})">
             <div class="flex items-center justify-between gap-3">
               <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">${escapeHtml(ticket.subject || 'Untitled')}</p>
-              ${ticketStatusChip(ticket.status)}
+              <div class="flex items-center gap-2">
+                ${ticketStatusChip(ticket.status)}
+                ${canReopen ? `<button type="button" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900/50" onclick="event.stopPropagation(); reopenTicket(${ticketId})">reopen</button>` : ''}
+                <button type="button" aria-label="Delete query" title="Delete query" class="text-xs font-semibold px-3 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50" onclick="event.stopPropagation(); deleteTicket(${ticketId})"><i class="fas fa-trash-alt"></i></button>
+              </div>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">#TKT-${escapeHtml(ticket.id)} | ${escapeHtml(ticket.category || 'General')}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-300 mt-2"><span class="font-semibold">Your Query:</span> ${escapeHtml(ticket.details || '-')}</p>
-            ${solutionLine}
             <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-2">Last Updated: ${escapeHtml(formatDateTime(ticket.updatedAt))}</p>
           </div>
         `;
@@ -362,6 +424,94 @@
 
     if (refreshMyTicketsBtn) {
       refreshMyTicketsBtn.addEventListener('click', loadMyTickets);
+    }
+
+    window.openTicketOverlayById = function (ticketId) {
+      const t = ticketsCache.get(Number(ticketId));
+      if (!t) return;
+      currentOverlayTicketId = Number(t.id);
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || '-';
+      };
+      set('overlayTicketId', `#TKT-${t.id || '-'}`);
+      set('overlayTicketStatus', t.status || 'open');
+      set('overlayTicketCategory', t.category || 'General Question');
+      set('overlayTicketSubject', t.subject || 'Untitled');
+      set('overlayTicketDetails', t.details || '-');
+      set('overlayTicketReply', t.reply || 'No response yet.');
+      const reopenBtn = document.getElementById('overlayReopenBtn');
+      if (reopenBtn) {
+        const s = String(t.status || '').toLowerCase();
+        reopenBtn.classList.toggle('hidden', !['resolved', 'closed'].includes(s));
+      }
+      if (ticketOverlay) {
+        ticketOverlay.classList.remove('hidden');
+        ticketOverlay.classList.add('flex');
+      }
+    };
+
+    const closeTicketOverlay = () => {
+      if (!ticketOverlay) return;
+      currentOverlayTicketId = null;
+      ticketOverlay.classList.add('hidden');
+      ticketOverlay.classList.remove('flex');
+    };
+    if (ticketOverlayClose) ticketOverlayClose.addEventListener('click', closeTicketOverlay);
+    if (ticketOverlay) {
+      ticketOverlay.addEventListener('click', (e) => {
+        if (e.target === ticketOverlay) closeTicketOverlay();
+      });
+    }
+
+    window.reopenTicket = async function (ticketId) {
+      const id = Number(ticketId);
+      if (!Number.isInteger(id) || id <= 0) return;
+      try {
+        const res = await fetch(`/api/support/tickets/${id}/reopen`, { method: 'PATCH' });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          alert(json.message || 'Failed to reopen ticket');
+          return;
+        }
+        await loadMyTickets();
+        if (currentOverlayTicketId === id) {
+          window.openTicketOverlayById(id);
+        }
+      } catch (_) {
+        alert('Network error while reopening ticket.');
+      }
+    };
+
+    window.deleteTicket = async function (ticketId) {
+      const id = Number(ticketId);
+      if (!Number.isInteger(id) || id <= 0) return;
+      if (!confirm('Delete this query permanently?')) return;
+      try {
+        const res = await fetch(`/api/support/tickets/${id}`, { method: 'DELETE' });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.success) {
+          alert(json.message || 'Failed to delete ticket');
+          return;
+        }
+        if (currentOverlayTicketId === id) closeTicketOverlay();
+        await loadMyTickets();
+      } catch (_) {
+        alert('Network error while deleting ticket.');
+      }
+    };
+
+    const overlayReopenBtn = document.getElementById('overlayReopenBtn');
+    if (overlayReopenBtn) {
+      overlayReopenBtn.addEventListener('click', () => {
+        if (currentOverlayTicketId) window.reopenTicket(currentOverlayTicketId);
+      });
+    }
+    const overlayDeleteBtn = document.getElementById('overlayDeleteBtn');
+    if (overlayDeleteBtn) {
+      overlayDeleteBtn.addEventListener('click', () => {
+        if (currentOverlayTicketId) window.deleteTicket(currentOverlayTicketId);
+      });
     }
 
     const notificationBtn = document.getElementById('notificationBtn');
