@@ -62,23 +62,23 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Pending</p>
-                        <p class="text-2xl font-bold text-primary-500"><%= stats.pendingCount %></p>
+                        <p id="pendingCountStat" class="text-2xl font-bold text-primary-500"><%= stats.pendingCount %></p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Approved</p>
-                        <p class="text-2xl font-bold text-emerald-500"><%= stats.approvedCount %></p>
+                        <p id="approvedCountStat" class="text-2xl font-bold text-emerald-500"><%= stats.approvedCount %></p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Rejected</p>
-                        <p class="text-2xl font-bold text-red-500"><%= stats.rejectedCount %></p>
+                        <p id="rejectedCountStat" class="text-2xl font-bold text-red-500"><%= stats.rejectedCount %></p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Upcoming</p>
-                        <p class="text-2xl font-bold text-blue-500"><%= stats.upcomingCount %></p>
+                        <p id="upcomingCountStat" class="text-2xl font-bold text-blue-500"><%= stats.upcomingCount %></p>
                     </div>
                     <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
                         <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Conflicts</p>
-                        <p class="text-2xl font-bold text-orange-500"><%= stats.conflictCount %></p>
+                        <p id="conflictCountStat" class="text-2xl font-bold text-orange-500"><%= stats.conflictCount %></p>
                     </div>
                 </div>
 
@@ -163,14 +163,16 @@
                                      const isActive = (c.status === 'accepted' && new Date(c.startDate) <= new Date() && new Date(c.endDate) >= new Date());
                                      const hasConflicts = (c.conflicts && c.conflicts.length > 0);
                                  %>
-                                    <tr class="contest-row hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors" 
+                                    <tr class="contest-row hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer" 
+                                        data-id="<%= c.id %>"
                                         data-status="<%= c.status %>" 
                                         data-active="<%= isActive %>" 
                                         data-conflicts="<%= hasConflicts %>"
                                         data-subject="<%= c.subject %>"
                                         data-type="<%= c.type %>"
                                         data-date="<%= c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : '' %>"
-                                        data-hos-verified="<%= c.hos_verified ? 'Yes' : 'No' %>">
+                                        data-hos-verified="<%= Number(c.hos_verified || 0) === 1 ? 'Yes' : 'No' %>"
+                                        data-hod-verified="<%= Number(c.hod_verified || 0) === 1 ? 'Yes' : 'No' %>">
                                         <td class="p-4">
                                             <input type="checkbox" class="contest-checkbox rounded border-gray-300 text-primary-500 focus:ring-primary-500" data-id="<%= c.id %>">
                                         </td>
@@ -190,15 +192,38 @@
                                             </div>
                                         </td>
                                         <td class="p-4 text-center">
-                                            <span class="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                <%= c.hos_verified_by_name || 'Not Verified' %>
-                                            </span>
+                                            <div class="flex flex-col items-center gap-1">
+                                                <% if (Number(c.hos_verified || 0) === 1) { %>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase">
+                                                        Verified
+                                                    </span>
+                                                    <span class="text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                                                        <%= c.hos_verified_by_name || 'HOS' %>
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 uppercase">
+                                                        Pending
+                                                    </span>
+                                                    <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                                        Not verified
+                                                    </span>
+                                                <% } %>
+                                            </div>
                                         </td>
                                         <td class="p-4 text-center">
                                             <% if (c.status === 'accepted') { %>
                                                 <span class="px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 uppercase">Approved</span>
                                             <% } else if (c.status === 'rejected') { %>
                                                 <span class="px-2 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 uppercase">Rejected</span>
+                                            <% } else if (Number(c.hod_verified || 0) === 1) { %>
+                                                <div class="flex flex-col items-center gap-1">
+                                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter <%= c.hos_verified ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' %>">
+                                                        <%= c.hos_verified ? 'HOS Done' : 'HOS Pending' %>
+                                                    </span>
+                                                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                                        HOD Done
+                                                    </span>
+                                                </div>
                                             <% } else { %>
                                                 <div class="flex flex-col items-center gap-1">
                                                     <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter <%= c.hos_verified ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' %>">
@@ -210,7 +235,7 @@
                                         </td>
                                         <td class="p-4">
                                             <div class="flex items-center justify-center gap-2">
-                                                <% if (c.status === 'pending') { %>
+                                                <% if (c.status === 'pending' && !c.hod_verified) { %>
                                                     <button data-id="<%= c.id %>" data-conflicts="<%= (c.conflicts && c.conflicts.length) || 0 %>" class="approve-contest-btn w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800" title="Approve">
                                                         <i class="fas fa-check"></i>
                                                     </button>
@@ -218,9 +243,6 @@
                                                         <i class="fas fa-times"></i>
                                                     </button>
                                                 <% } %>
-                                                <button data-id="<%= c.id %>" class="view-contest-btn w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800" title="View Details">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -436,36 +458,80 @@
                 }
             });
 
+            const rowMatchesSharedFilters = (row) => {
+                const rowSubject = row.dataset.subject;
+                const rowType = row.dataset.type;
+                const rowDate = row.dataset.date;
+                const rowHosVerified = row.dataset.hosVerified;
+
+                const matchesSubject = !subject || rowSubject === subject;
+                const matchesType = !type || rowType === type;
+                const matchesHos = !hosVerified || rowHosVerified === hosVerified;
+
+                let matchesDate = true;
+                if (dateFrom && rowDate) matchesDate = matchesDate && (new Date(rowDate) >= new Date(dateFrom));
+                if (dateTo && rowDate) matchesDate = matchesDate && (new Date(rowDate) <= new Date(dateTo));
+
+                return matchesSubject && matchesType && matchesHos && matchesDate;
+            };
+
+            const updateSummaryCounts = () => {
+                let pendingCount = 0;
+                let approvedCount = 0;
+                let rejectedCount = 0;
+                let upcomingCount = 0;
+                let conflictCount = 0;
+                const now = new Date();
+
+                rows.forEach((row) => {
+                    if (!rowMatchesSharedFilters(row)) return;
+
+                    const rowStatus = row.dataset.status;
+                    const rowActive = row.dataset.active === 'true';
+                    const rowConflicts = row.dataset.conflicts === 'true';
+                    const rowHodVerified = row.dataset.hodVerified === 'Yes';
+                    const rowDate = row.dataset.date;
+
+                    if (rowStatus === 'pending' && !rowHodVerified) pendingCount += 1;
+                    if (rowStatus === 'accepted' || rowHodVerified) approvedCount += 1;
+                    if (rowStatus === 'rejected') rejectedCount += 1;
+                    if (rowStatus === 'accepted' && rowDate && new Date(rowDate) > now) upcomingCount += 1;
+                    if (rowConflicts && !rowHodVerified) conflictCount += 1;
+                });
+
+                const pendingStat = document.getElementById('pendingCountStat');
+                const approvedStat = document.getElementById('approvedCountStat');
+                const rejectedStat = document.getElementById('rejectedCountStat');
+                const upcomingStat = document.getElementById('upcomingCountStat');
+                const conflictStat = document.getElementById('conflictCountStat');
+
+                if (pendingStat) pendingStat.textContent = pendingCount;
+                if (approvedStat) approvedStat.textContent = approvedCount;
+                if (rejectedStat) rejectedStat.textContent = rejectedCount;
+                if (upcomingStat) upcomingStat.textContent = upcomingCount;
+                if (conflictStat) conflictStat.textContent = conflictCount;
+            };
+
             // Filter rows based on ALL criteria
             rows.forEach(row => {
                 const rowStatus = row.dataset.status;
                 const rowActive = row.dataset.active === 'true';
                 const rowConflicts = row.dataset.conflicts === 'true';
-                const rowSubject = row.dataset.subject;
-                const rowType = row.dataset.type;
-                const rowDate = row.dataset.date;
-                const rowHosVerified = row.dataset.hosVerified; // 'Yes' or 'No'
+                const rowHodVerified = row.dataset.hodVerified; // 'Yes' or 'No'
 
                 // 1. Tab Filtering
                 let matchesTab = false;
-                if (status === 'pending') matchesTab = (rowStatus === 'pending');
-                else if (status === 'approved') matchesTab = (rowStatus === 'accepted');
+                if (status === 'pending') matchesTab = (rowStatus === 'pending' && rowHodVerified !== 'Yes');
+                else if (status === 'approved') matchesTab = (rowStatus === 'accepted' || rowHodVerified === 'Yes');
                 else if (status === 'rejected') matchesTab = (rowStatus === 'rejected');
                 else if (status === 'active') matchesTab = rowActive;
-                else if (status === 'conflicts') matchesTab = rowConflicts;
-
-                // 2. Dropdown & Date Filters
-                const matchesSubject = !subject || rowSubject === subject;
-                const matchesType = !type || rowType === type;
-                const matchesHos = !hosVerified || rowHosVerified === hosVerified;
-                
-                let matchesDate = true;
-                if (dateFrom && rowDate) matchesDate = matchesDate && (new Date(rowDate) >= new Date(dateFrom));
-                if (dateTo && rowDate) matchesDate = matchesDate && (new Date(rowDate) <= new Date(dateTo));
+                else if (status === 'conflicts') matchesTab = (rowConflicts && rowHodVerified !== 'Yes');
 
                 // Show only if ALL criteria match
-                row.classList.toggle('hidden', !(matchesTab && matchesSubject && matchesType && matchesHos && matchesDate));
+                row.classList.toggle('hidden', !(matchesTab && rowMatchesSharedFilters(row)));
             });
+
+            updateSummaryCounts();
             
             // Update Empty State
             const visibleRows = document.querySelectorAll('.contest-row:not(.hidden)');
@@ -703,9 +769,10 @@
 
         // Delegated Event Listeners for Table Actions
         document.addEventListener('click', (e) => {
+            const contestRow = e.target.closest('.contest-row');
+            const interactiveElement = e.target.closest('button, a, input, select, textarea, label');
             const approveBtn = e.target.closest('.approve-contest-btn');
             const rejectBtn = e.target.closest('.reject-contest-btn');
-            const viewBtn = e.target.closest('.view-contest-btn');
 
             if (approveBtn) {
                 const id = approveBtn.dataset.id;
@@ -714,8 +781,8 @@
             } else if (rejectBtn) {
                 const id = rejectBtn.dataset.id;
                 rejectContest(id);
-            } else if (viewBtn) {
-                const id = viewBtn.dataset.id;
+            } else if (contestRow && !interactiveElement) {
+                const id = contestRow.dataset.id;
                 viewContestDetails(id);
             }
         });

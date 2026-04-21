@@ -242,9 +242,9 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-800">
                                     <% allQuestions.forEach(q => { %>
-                                        <tr class="hover:bg-slate-800/30 transition-colors group q-row" data-status="<%= q.status %>" data-subject="<%= q.subject %>">
+                                        <tr onclick="handleQuestionRowClick(event, this)" class="hover:bg-slate-800/30 transition-colors group q-row cursor-pointer" data-status="<%= q.status %>" data-subject="<%= q.subject %>" data-view-url="/college/hod/view-problem/<%= q.id %>">
                                             <td class="px-8 py-5 text-sm">
-                                                <input type="checkbox" class="q-checkbox rounded border-slate-600 bg-slate-700 text-primary-500" value="<%= q.id %>">
+                                                <input type="checkbox" onclick="event.stopPropagation()" class="q-checkbox rounded border-slate-600 bg-slate-700 text-primary-500" value="<%= q.id %>">
                                             </td>
                                             <td class="px-4 py-5">
                                                 <p class="text-sm font-bold text-white"><%- q.title %></p>
@@ -285,18 +285,14 @@
                                             </td>
                                             <td class="px-8 py-5 text-right">
                                                 <div class="flex items-center justify-end gap-1.5">
-                                                    <a href="/college/hod/view-problem/<%= q.id %>"
-                                                        class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-blue-400 hover:bg-slate-700 transition-colors" title="View Details">
-                                                        <i class="far fa-eye text-xs"></i>
-                                                    </a>
-                                                    <button onclick="openFeedbackModal(this, '<%= q.id %>')" data-comments="<%= q.hod_comments || '' %>" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 transition-colors" title="Message Faculty">
+                                                    <button onclick="event.stopPropagation(); openFeedbackModal(this, '<%= q.id %>')" data-comments="<%= q.hod_comments || '' %>" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-slate-700 transition-colors" title="Message Faculty">
                                                         <i class="far fa-comment-alt text-xs"></i>
                                                     </button>
                                                     <% if (q.status === 'pending') { %>
-                                                    <button onclick="updateStatus('<%= q.id %>', 'accepted')" class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500 hover:text-white transition-all" title="Approve">
+                                                    <button onclick="event.stopPropagation(); updateStatus('<%= q.id %>', 'accepted')" class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500 hover:text-white transition-all" title="Approve">
                                                         <i class="fas fa-check text-xs"></i>
                                                     </button>
-                                                    <button onclick="updateStatus('<%= q.id %>', 'rejected')" class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Reject">
+                                                    <button onclick="event.stopPropagation(); updateStatus('<%= q.id %>', 'rejected')" class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Reject">
                                                         <i class="fas fa-times text-xs"></i>
                                                     </button>
                                                     <% } %>
@@ -592,6 +588,12 @@
         function closeFeedbackModal() {
             document.getElementById('feedbackModal').classList.add('hidden');
             document.getElementById('feedbackModal').classList.remove('flex');
+        }
+
+        function handleQuestionRowClick(event, row) {
+            const interactiveElement = event.target.closest('button, a, input, select, textarea, label');
+            if (interactiveElement) return;
+            window.location.href = row.dataset.viewUrl;
         }
 
         // Initialize (Show pending by default)

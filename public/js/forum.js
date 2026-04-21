@@ -5,6 +5,7 @@
 let currentUser = null;
 let currentNavConfig = null;
 let forumTopics = [];
+const pendingReplyVotes = new Set();
 
 function normalizeTopicSlug(value) {
     const raw = String(value || '').trim().toLowerCase();
@@ -49,6 +50,9 @@ async function fetchUserContext() {
             renderRoleSidebar();
             bindProfileOverlay();
             bindNotificationDropdown();
+            if (typeof window.refreshForumThreadDetail === 'function') {
+                window.refreshForumThreadDetail();
+            }
         } else {
             // Not logged in -> Redirect home/login
             window.location.href = '/';
@@ -377,6 +381,47 @@ function setText(id, value) {
     if (el) el.textContent = value;
 }
 
+function getThreadViewUrl(threadId) {
+    const id = Number(threadId);
+    if (!Number.isInteger(id) || id <= 0) return '/forum/thread.html';
+
+    const path = window.location.pathname;
+    if (path.startsWith('/college/hod/')) return `/college/hod/forum/thread?id=${id}`;
+    if (path.startsWith('/hos/')) return `/hos/forum/thread?id=${id}`;
+    if (path.startsWith('/faculty/')) return `/faculty/forum/thread?id=${id}`;
+    if (path.startsWith('/student/')) return `/student/forum/thread?id=${id}`;
+    if (path.startsWith('/individual/')) return `/individual/thread?id=${id}`;
+    if (path.startsWith('/college/')) return `/college/forum/thread/${id}`;
+
+    const role = String(currentUser?.role || '').toLowerCase();
+    if (role === 'hod') return `/college/hod/forum/thread?id=${id}`;
+    if (role === 'hos') return `/hos/forum/thread?id=${id}`;
+    if (role === 'faculty') return `/faculty/forum/thread?id=${id}`;
+    if (role === 'student') return `/student/forum/thread?id=${id}`;
+    if (role === 'individual') return `/individual/thread?id=${id}`;
+    if (role === 'admin') return `/college/forum/thread/${id}`;
+    return `/forum/thread.html?id=${id}`;
+}
+
+function getCommunityUrl() {
+    const role = String(currentUser?.role || '').toLowerCase();
+    if (role === 'hod') return '/college/hod/forum';
+    if (role === 'hos') return '/hos/forum';
+    if (role === 'faculty') return '/faculty/forum';
+    if (role === 'student') return '/student/forum';
+    if (role === 'individual') return '/individual/forum';
+    if (role === 'admin') return '/college/community';
+
+    const path = window.location.pathname;
+    if (path.startsWith('/college/hod/')) return '/college/hod/forum';
+    if (path.startsWith('/hos/')) return '/hos/forum';
+    if (path.startsWith('/faculty/')) return '/faculty/forum';
+    if (path.startsWith('/student/')) return '/student/forum';
+    if (path.startsWith('/individual/')) return '/individual/forum';
+    if (path.startsWith('/college/')) return '/college/community';
+    return '/forum/forum.html';
+}
+
 // ==========================================
 // PAGE: FORUM LISTING
 // ==========================================
@@ -620,7 +665,7 @@ function initForumListing() {
 
                 container.innerHTML += `
                     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all cursor-pointer p-6 relative" 
-                         onclick="window.location.href='/forum/thread.html?id=${t.id}'">
+                         onclick="window.location.href='${getThreadViewUrl(t.id)}'">
                         ${deleteButtonHTML}
                         <div class="flex items-center space-x-3 mb-2">
                             <span class="px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}">${normalizedTopic.toUpperCase()}</span>
@@ -656,9 +701,9 @@ window.deleteThread = async function(id, e) {
         const res = await fetch(`/api/forum/threads/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if(data.success) {
-            if (window.location.pathname.includes('thread.html')) {
-                const forumLinkObj = currentNavConfig?.items.find(item => item.key === 'community');
-                window.location.href = forumLinkObj ? forumLinkObj.href : '/forum/forum.html';
+            const isThreadDetailPage = Boolean(document.getElementById('threadContentArea')) || window.location.pathname.includes('/forum/thread') || window.location.pathname.includes('thread.html');
+            if (isThreadDetailPage) {
+                window.location.href = getCommunityUrl();
             } else {
                 window.location.reload();
             }
@@ -669,6 +714,113 @@ window.deleteThread = async function(id, e) {
         alert("Network error.");
     }
 }
+
+window.editThread = function(thread) {
+    const existing = document.getElementById('threadEditOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'threadEditOverlay';
+    overlay.className = 'fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="w-full max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100">Edit Thread</h3>
+                <button id="closeThreadEditModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Title</label>
+                    <input id="threadEditTitle" type="text" class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 outline-none" maxlength="200">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Topic</label>
+                    <input id="threadEditTopic" type="text" class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 outline-none" maxlength="50">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Content</label>
+                    <textarea id="threadEditContent" class="w-full min-h-[220px] px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 outline-none"></textarea>
+                    <p id="threadEditError" class="mt-2 text-xs text-red-500 hidden"></p>
+                </div>
+            </div>
+            <div class="px-5 pb-5 flex items-center justify-end gap-2">
+                <button id="cancelThreadEditBtn" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+                <button id="saveThreadEditBtn" class="px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold">Save Changes</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    const titleInput = document.getElementById('threadEditTitle');
+    const topicInput = document.getElementById('threadEditTopic');
+    const contentInput = document.getElementById('threadEditContent');
+    const errEl = document.getElementById('threadEditError');
+    const saveBtn = document.getElementById('saveThreadEditBtn');
+
+    if (titleInput) titleInput.value = String(thread?.title || '');
+    if (topicInput) topicInput.value = String(thread?.topic || 'general');
+    if (contentInput) {
+        contentInput.value = String(thread?.content || '');
+        contentInput.focus();
+    }
+
+    document.getElementById('closeThreadEditModal')?.addEventListener('click', close);
+    document.getElementById('cancelThreadEditBtn')?.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const title = String(titleInput?.value || '').trim();
+            const topic = normalizeTopicSlug(topicInput?.value || 'general');
+            const content = String(contentInput?.value || '').trim();
+
+            if (!title || !content) {
+                if (errEl) {
+                    errEl.textContent = 'Title and content are required.';
+                    errEl.classList.remove('hidden');
+                }
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            try {
+                const res = await fetch(`/api/forum/threads/${thread.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, topic, content })
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    if (errEl) {
+                        errEl.textContent = data.message || 'Error editing thread';
+                        errEl.classList.remove('hidden');
+                    }
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Changes';
+                    return;
+                }
+                close();
+                if (typeof window.refreshForumThreadDetail === 'function') {
+                    window.refreshForumThreadDetail();
+                }
+            } catch (err) {
+                console.error(err);
+                if (errEl) {
+                    errEl.textContent = 'Network error.';
+                    errEl.classList.remove('hidden');
+                }
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
+        });
+    }
+};
 
 // ==========================================
 // PAGE: CREATE THREAD
@@ -867,9 +1019,28 @@ function initThreadDetail() {
                 if(downCount) downCount.innerText = t.downvotes || 0;
 
                 const deleteBtn = document.getElementById('deleteThreadBtn');
-                if (deleteBtn && currentUser && currentUser.role === 'superadmin') {
-                    deleteBtn.classList.remove('hidden');
-                    deleteBtn.onclick = () => deleteThread(t.id);
+                const editBtn = document.getElementById('editThreadBtn');
+                const isOwner = Number(currentUser?.id || 0) === Number(t.user_id || 0);
+                const isSuperadmin = String(currentUser?.role || '').toLowerCase() === 'superadmin';
+
+                if (editBtn) {
+                    if (isOwner || isSuperadmin) {
+                        editBtn.classList.remove('hidden');
+                        editBtn.onclick = () => editThread(t);
+                    } else {
+                        editBtn.classList.add('hidden');
+                        editBtn.onclick = null;
+                    }
+                }
+
+                if (deleteBtn) {
+                    if (isOwner || isSuperadmin) {
+                        deleteBtn.classList.remove('hidden');
+                        deleteBtn.onclick = () => deleteThread(t.id);
+                    } else {
+                        deleteBtn.classList.add('hidden');
+                        deleteBtn.onclick = null;
+                    }
                 }
 
                 const opAvatar = document.getElementById('opAvatar');
@@ -917,6 +1088,8 @@ function initThreadDetail() {
             if(threadOp) threadOp.innerHTML = `<div class="text-red-500">Error loading thread.</div>`;
         }
     }
+
+    window.refreshForumThreadDetail = fetchThread;
 
     // Helper to toggle thread-level votes
     async function toggleThreadVote(type) {
@@ -974,6 +1147,9 @@ function initThreadDetail() {
 
     // Expose toggleVote globally for inline onclick
     window.toggleVote = async function(replyId, type) {
+        const voteKey = String(Number(replyId || 0));
+        if (pendingReplyVotes.has(voteKey)) return;
+        pendingReplyVotes.add(voteKey);
         try {
             const res = await fetch('/api/forum/replies/vote', {
                 method: 'POST',
@@ -989,6 +1165,8 @@ function initThreadDetail() {
             }
         } catch(err) {
             console.error(err);
+        } finally {
+            pendingReplyVotes.delete(voteKey);
         }
     }
 

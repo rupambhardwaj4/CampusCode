@@ -259,11 +259,12 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.filter(p => p.status === 'accepted' || p.status === 'active').forEach(p => { %>
                                                 <tr data-problem-id="<%= p.id %>"
+                                                    data-view-url="/faculty/view-problem/<%= p.id %>"
                                                     data-problem-title="<%- (p.title || '').toLowerCase() %>"
                                                     data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
                                                     data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
                                                     data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
-                                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
                                                     <td class="px-6 py-4">
                                                         <div class="text-sm font-medium text-gray-900 dark:text-white"><%= p.title %></div>
                                                     </td>
@@ -298,13 +299,13 @@
                                                             <i class="fas fa-hourglass-half text-xs"></i> Pending
                                                         </span>
                                                         <% } %>
-                                                    </td>
+                                                     </td>
                                                      <td class="px-6 py-4 text-right">
                                                         <div class="flex justify-end items-center gap-1">
-                                                            <a href="/faculty/view-problem/<%= p.id %>"
-                                                                class="p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors" title="View">
-                                                                <i class="far fa-eye text-lg"></i>
-                                                            </a>
+                                                            <% const facIsBookmarked = (bookmarkedProblemIds || []).includes(p.id); %>
+                                                            <button class="bookmark-btn p-1.5 inline-block rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-500 transition-colors" title="Bookmark">
+                                                                <i class="<%= facIsBookmarked ? 'fas text-yellow-400' : 'far' %> fa-bookmark"></i>
+                                                            </button>
                                                         </div>
                                                      </td>
                                                 </tr>
@@ -331,11 +332,12 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.filter(p => p.faculty_id == user.id).forEach(p => { %>
                                                  <tr data-problem-id="<%= p.id %>"
+                                                     data-view-url="/faculty/view-problem/<%= p.id %>"
                                                      data-problem-title="<%- (p.title || '').toLowerCase() %>"
                                                      data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
                                                      data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
                                                      data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
-                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
                                                      <td class="px-6 py-4">
                                                          <div class="text-sm font-medium text-gray-900 dark:text-white"><%= p.title %></div>
                                                      </td>
@@ -362,21 +364,20 @@
                                                      </td>
                                                      <td class="px-6 py-4 text-right">
                                                          <div class="flex justify-end items-center gap-2">
-                                                             <a href="/faculty/view-problem/<%= p.id %>"
-                                                                 class="p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
-                                                                 title="View"><i class="far fa-eye"></i></a>
-                                                             <% if (user.isVerified) { %>
-                                                             <div class="hidden problem-description-store" data-base64="<%= Buffer.from(p.description || '').toString('base64') %>"></div>
-                                                             <button 
-                                                                 data-problem='<%- JSON.stringify({id: p.id, title: p.title, subject: p.subject, difficulty: p.difficulty, tags: p.tags, input_format: p.input_format, output_format: p.output_format, constraints: p.constraints, sample_input: p.sample_input, sample_output: p.sample_output, hidden_test_cases: p.hidden_test_cases}).replace(/'/g, "&#39;") %>'
-                                                                 class="edit-problem-btn p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 hover:text-blue-700 transition-colors"
-                                                                 title="Edit"><i class="fas fa-edit"></i></button>
-                                                             <button
-                                                                 class="delete-db-problem-btn p-1.5 inline-block rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-700 transition-colors"
-                                                                 data-id="<%= p.id %>"
-                                                                 title="Delete"><i class="fas fa-trash-alt"></i></button>
-                                                             <% } %>
-                                                         </div>
+                                                             <% const facCreatedIsBookmarked = (bookmarkedProblemIds || []).includes(p.id); %>
+                                                             <button class="bookmark-btn p-1.5 inline-block rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-500 transition-colors" title="Bookmark">
+                                                                 <i class="<%= facCreatedIsBookmarked ? 'fas text-yellow-400' : 'far' %> fa-bookmark"></i>
+                                                             </button>
+                                                            <div class="hidden problem-description-store" data-base64="<%= Buffer.from(p.description || '').toString('base64') %>"></div>
+                                                            <button 
+                                                                data-problem='<%- JSON.stringify({id: p.id, title: p.title, subject: p.subject, difficulty: p.difficulty, tags: p.tags, input_format: p.input_format, output_format: p.output_format, constraints: p.constraints, sample_input: p.sample_input, sample_output: p.sample_output, hidden_test_cases: p.hidden_test_cases}).replace(/'/g, "&#39;") %>'
+                                                                class="edit-problem-btn p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 hover:text-blue-700 transition-colors"
+                                                                title="Edit"><i class="fas fa-edit"></i></button>
+                                                            <button
+                                                                class="delete-db-problem-btn p-1.5 inline-block rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-700 transition-colors"
+                                                                data-id="<%= p.id %>"
+                                                                title="Delete"><i class="fas fa-trash-alt"></i></button>
+                                                        </div>
                                                      </td>
                                                  </tr>
                                                  <% }) %>
@@ -401,11 +402,12 @@
                                                 <% if (typeof bookmarkedProblems !== 'undefined' && bookmarkedProblems && bookmarkedProblems.length > 0) { %>
                                                     <% bookmarkedProblems.forEach(problem => { %>
                                                         <tr data-problem-id="<%= problem.id %>"
+                                                            data-view-url="/faculty/view-problem/<%= problem.id %>"
                                                             data-problem-title="<%- (problem.title || '').toLowerCase() %>"
                                                             data-problem-subject="<%- (problem.subject || '').toLowerCase() %>"
                                                             data-problem-tags="<%- (problem.tags || '').toLowerCase() %>"
                                                             data-problem-difficulty="<%- (problem.difficulty || '').toLowerCase() %>"
-                                                            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
                                                             <td class="px-6 py-4">
                                                                 <div class="text-sm font-medium text-gray-900 dark:text-white"><%= problem.title %></div>
                                                                 <div class="text-xs text-gray-500"><%= problem.subject || problem.tags || 'N/A' %></div>
@@ -415,9 +417,6 @@
                                                             </td>
                                                             <td class="px-6 py-4 text-right">
                                                                 <div class="flex justify-end items-center">
-                                                                    <a href="/faculty/view-problem/<%= problem.id %>" class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-blue-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                                                                        <i class="far fa-eye"></i> Solve
-                                                                    </a>
                                                                     <button class="text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 text-xs font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded ml-2" title="Remove Bookmark">
                                                                         <i class="fas fa-times"></i> Remove
                                                                     </button>
@@ -758,6 +757,13 @@
 
         // Event delegation for Edit buttons to avoid JSON string errors
         document.addEventListener('click', (e) => {
+            const clickableRow = e.target.closest('tr[data-view-url]');
+            const interactiveElement = e.target.closest('button, a, input, select, textarea, label');
+            if (clickableRow && !interactiveElement) {
+                window.location.href = clickableRow.dataset.viewUrl;
+                return;
+            }
+
             const btn = e.target.closest('.edit-problem-btn');
             if (btn) {
                 try {

@@ -8,6 +8,34 @@ const sanitizeHtml = require('sanitize-html');
 
 module.exports = (db) => {
     const router = express.Router();
+    const PG_ALIAS_KEYS = [
+        'acceptedSubmissions', 'activityAt', 'approverName', 'avgScore', 'contestCount', 'createdAt',
+        'creatorName', 'creatorRole', 'endDate', 'facultyName', 'globalRank', 'itemId', 'learnerReach',
+        'pointsEarned', 'problemTitle', 'solvedCount', 'startDate', 'totalContests', 'totalProblems',
+        'totalSubmissions'
+    ];
+    const normalizePgRow = (row) => {
+        if (!row || typeof row !== 'object') return row;
+        const normalized = { ...row };
+        PG_ALIAS_KEYS.forEach((key) => {
+            const lowerKey = key.toLowerCase();
+            if (normalized[key] === undefined && normalized[lowerKey] !== undefined) {
+                normalized[key] = normalized[lowerKey];
+            }
+        });
+        return normalized;
+    };
+    const normalizePgRows = (rows) => (rows || []).map((row) => normalizePgRow(row));
+    const dbGetCb = (query, params, callback) => {
+        const cb = typeof params === 'function' ? params : callback;
+        const values = Array.isArray(params) ? params : [];
+        return db.get(query, values, (err, row) => cb && cb(err, normalizePgRow(row)));
+    };
+    const dbAllCb = (query, params, callback) => {
+        const cb = typeof params === 'function' ? params : callback;
+        const values = Array.isArray(params) ? params : [];
+        return db.all(query, values, (err, rows) => cb && cb(err, normalizePgRows(rows)));
+    };
     const hiddenTestsUpload = multer({
         storage: multer.memoryStorage(),
         limits: { fileSize: 2 * 1024 * 1024 }
@@ -23,18 +51,51 @@ module.exports = (db) => {
         return req.session.user;
     }
 
+    router.use((req, res, next) => {
+        const sessionUser = req.session?.user;
+        const role = String(sessionUser?.role || '').toLowerCase();
+        if (!sessionUser?.id || !['faculty', 'hos', 'hod'].includes(role)) return next();
+
+        dbGetCb(
+            `SELECT fullName, email, post, collegeName, department, branch, program, course, joiningDate, github_link, location
+             FROM account_users
+             WHERE id = ?
+             LIMIT 1`,
+            [sessionUser.id],
+            (err, row) => {
+                if (!err && row) {
+                    req.session.user = {
+                        ...req.session.user,
+                        fullName: row.fullName || req.session.user.fullName || req.session.user.name,
+                        name: row.fullName || req.session.user.name || req.session.user.fullName,
+                        email: row.email || req.session.user.email,
+                        post: row.post || req.session.user.post,
+                        college: row.collegeName || req.session.user.college,
+                        collegeName: row.collegeName || req.session.user.collegeName,
+                        department: row.branch || row.department || req.session.user.department || '',
+                        course: row.program || row.course || req.session.user.course || '',
+                        joiningDate: row.joiningDate || '',
+                        github_link: row.github_link || req.session.user.github_link || '',
+                        location: row.location || req.session.user.location || ''
+                    };
+                }
+                next();
+            }
+        );
+    });
+
     // ==========================================
     // DASHBOARD
     // ==========================================
     const runQuery = (query, params) => new Promise((resolve, reject) => {
-        db.all(query, params, (err, rows) => {
+        dbAllCb(query, params, (err, rows) => {
             if (err) reject(err);
             else resolve(rows);
         });
     });
 
     const getSingle = (query, params) => new Promise((resolve, reject) => {
-        db.get(query, params, (err, row) => {
+        dbGetCb(query, params, (err, row) => {
             if (err) reject(err);
             else resolve(row);
         });
@@ -210,7 +271,7 @@ module.exports = (db) => {
     router.get('/problem', requireRole(['faculty', 'hos', 'hod']), checkScope, (req, res) => {
         const user = buildUser(req);
         // Fetch globally approved problems from the entire college, plus all problems belonging to this faculty
-        db.all(
+        dbAllCb(
             `SELECT p.*, u.fullName as facultyName, u.role as creatorRole FROM problems p 
              LEFT JOIN account_users u ON COALESCE(p.faculty_id, p.created_by) = u.id 
              WHERE (u.collegeName = ? AND p.status = 'accepted' AND LOWER(p.visibility_scope) = 'global')
@@ -220,19 +281,67 @@ module.exports = (db) => {
             [user.collegeName, user.id],
             (err, problems) => {
                 if (err) problems = [];
-                
-                db.all(`SELECT subject FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, assignments) => {
+                const allProblems = problems || [];
+
+                dbAllCb(`SELECT problem_id FROM problem_bookmarks WHERE user_id = ?`, [user.id], (bookmarkErr, bookmarkRows) => {
+                    if (bookmarkErr) return res.status(500).send(bookmarkErr.message);
+                    const bookmarkedProblemIds = (bookmarkRows || []).map((row) => Number(row.problem_id)).filter((id) => Number.isInteger(id));
+                    const bookmarkedSet = new Set(bookmarkedProblemIds);
+                    const bookmarkedProblems = allProblems.filter((problem) => bookmarkedSet.has(Number(problem.id)));
+
+                    dbAllCb(`SELECT subject FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, assignments) => {
                     const assignedSubjects = assignments ? assignments.map(a => a.subject) : [];
                     res.render('faculty/problem.html', { 
                         user, 
-                        problems, 
+                        problems: allProblems,
+                        bookmarkedProblemIds,
+                        bookmarkedProblems,
                         assignedSubjects,
                         currentPage: 'problem', 
                         pageTitle: 'Manage Problems' 
                     });
                 });
+                });
             }
         );
+    });
+
+    // ==========================================
+    // PROBLEM BOOKMARKS
+    // ==========================================
+    router.get('/api/problem-bookmarks', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+        dbAllCb(`SELECT problem_id FROM problem_bookmarks WHERE user_id = ?`, [req.session.user.id], (err, rows) => {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            res.json({ success: true, data: (rows || []).map((r) => Number(r.problem_id)).filter((id) => Number.isInteger(id)) });
+        });
+    });
+
+    router.post('/api/problem-bookmarks', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+        const problemId = Number(req.body.problemId);
+        if (!Number.isInteger(problemId)) return res.status(400).json({ success: false, message: 'Invalid problem ID' });
+
+        db.run(
+            `INSERT INTO problem_bookmarks (user_id, problem_id)
+             SELECT ?, ?
+             WHERE NOT EXISTS (
+                SELECT 1 FROM problem_bookmarks WHERE user_id = ? AND problem_id = ?
+             )`,
+            [req.session.user.id, problemId, req.session.user.id, problemId],
+            function (err) {
+                if (err) return res.status(500).json({ success: false, message: err.message });
+                res.json({ success: true, bookmarked: true });
+            }
+        );
+    });
+
+    router.delete('/api/problem-bookmarks/:problemId', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
+        const problemId = Number(req.params.problemId);
+        if (!Number.isInteger(problemId)) return res.status(400).json({ success: false, message: 'Invalid problem ID' });
+
+        db.run(`DELETE FROM problem_bookmarks WHERE user_id = ? AND problem_id = ?`, [req.session.user.id, problemId], function (err) {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            res.json({ success: true, bookmarked: false });
+        });
     });
 
     // ==========================================
@@ -242,7 +351,7 @@ module.exports = (db) => {
         const user = buildUser(req);
         // Re-fetch isVerified from DB to avoid stale session data
         // (admin may have approved the faculty after they logged in)
-        db.get(`SELECT isVerified FROM account_users WHERE id = ?`, [user.id], (err, row) => {
+        dbGetCb(`SELECT isVerified FROM account_users WHERE id = ?`, [user.id], (err, row) => {
             if (!err && row) {
                 const freshIsVerified = row.isVerified === 1 || row.isVerified === true;
                 // Sync the session so other pages also see the updated value
@@ -250,7 +359,7 @@ module.exports = (db) => {
                 user.isVerified = freshIsVerified;
             }
             
-            db.all(`SELECT subject FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, assignments) => {
+            dbAllCb(`SELECT subject FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, assignments) => {
                 const assignedSubjects = assignments ? assignments.map(a => a.subject) : [];
                 res.render('faculty/create-problem.html', { 
                     user, 
@@ -373,7 +482,7 @@ module.exports = (db) => {
     // ==========================================
     router.get('/problem/edit/:id', requireRole(['faculty', 'hos', 'hod']), checkScope, (req, res) => {
         const user = buildUser(req);
-        db.get(`SELECT * FROM problems WHERE id = ? AND faculty_id = ?`, [req.params.id, user.id], (err, problem) => {
+        dbGetCb(`SELECT * FROM problems WHERE id = ? AND faculty_id = ?`, [req.params.id, user.id], (err, problem) => {
             if (err || !problem) return res.status(404).send("Problem not found.");
             res.render('faculty/edit-problem.html', { user, problem, currentPage: 'problem', pageTitle: 'Edit Problem' });
         });
@@ -469,7 +578,7 @@ module.exports = (db) => {
     router.get('/view-problem/:id', requireRole(['faculty', 'hos', 'hod']), (req, res) => {
         const problemId = req.params.id;
         const collegeName = req.session.user.collegeName;
-        db.get('SELECT * FROM problems WHERE id = ?', [problemId], (err, problem) => {
+        dbGetCb('SELECT * FROM problems WHERE id = ?', [problemId], (err, problem) => {
             if (err) return res.status(500).send('Database error');
             if (!problem) return res.status(404).send('Problem not found');
             if (problem.description) {
@@ -1260,7 +1369,7 @@ module.exports = (db) => {
 
         query += ` ORDER BY fullName ASC`;
 
-        db.all(query, params, (err, rows) => {
+        dbAllCb(query, params, (err, rows) => {
             if (err) return res.status(500).json({ success: false, error: err.message });
             res.json({ success: true, students: rows });
         });
@@ -1407,7 +1516,7 @@ module.exports = (db) => {
             status = 'pending';
         }
         
-        const visibilityScope = 'college';
+        const visibilityScope = 'department';
 
         db.run(
             `INSERT INTO contests (title, startDate, endDate, registrationEndDate, deadline, duration, eligibility, description, rulesAndDescription, guidelines, problems, createdBy, created_by, collegeName, department, subject, visibility_scope, scope, level, status, hos_verified, hod_verified, isVerified, approved_by, approved_at, is_live, live_mode, live_user_ids, live_at)
@@ -1436,13 +1545,13 @@ module.exports = (db) => {
         const approvedAt = isAutoApproved ? new Date().toISOString() : null;
 
         db.run(
-            `UPDATE contests SET title=?, startDate=?, endDate=?, registrationEndDate=?, deadline=?, duration=?, eligibility=?, description=?, rulesAndDescription=?, guidelines=?, problems=?, subject=?, status=?, isVerified=?, hos_verified=?, hod_verified=?, approved_by=?, approved_at=?
+            `UPDATE contests SET title=?, startDate=?, endDate=?, registrationEndDate=?, deadline=?, duration=?, eligibility=?, description=?, rulesAndDescription=?, guidelines=?, problems=?, subject=?, status=?, isVerified=?, hos_verified=?, hod_verified=?, approved_by=?, approved_at=?, visibility_scope='department', scope='department', level='department', department=?
              WHERE id=? AND createdBy=?`,
             [
                 title, startDate, endDate, registrationEndDate || deadline || null, registrationEndDate || deadline || null, 
                 computedDuration, eligibility || null, description || null, rulesAndDescription || null, guidelines || '', 
                 JSON.stringify(problems || []), subject || '', status, isVerified, hosVerified, hodVerified, 
-                approvedBy, approvedAt, id, user.id
+                approvedBy, approvedAt, user.department || '', id, user.id
             ],
             function(err) {
                 if (err) { console.error('Update Contest Error:', err); return res.json({ success: false, message: err.message }); }
@@ -1480,13 +1589,13 @@ module.exports = (db) => {
             });
         });
         const all = (query, params = []) => new Promise((resolve, reject) => {
-            db.all(query, params, (err, rows) => {
+            dbAllCb(query, params, (err, rows) => {
                 if (err) return reject(err);
                 resolve(rows || []);
             });
         });
         const get = (query, params = []) => new Promise((resolve, reject) => {
-            db.get(query, params, (err, row) => {
+            dbGetCb(query, params, (err, row) => {
                 if (err) return reject(err);
                 resolve(row || null);
             });
@@ -1681,6 +1790,20 @@ module.exports = (db) => {
 
             if (!contestRaw) return res.status(404).send('Contest not found');
             const contest = normalizeContestRecord(contestRaw);
+
+            const richTextOptions = {
+                allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']),
+                allowedAttributes: {
+                    a: ['href', 'name', 'target', 'rel'],
+                    img: ['src', 'alt', 'title'],
+                    '*': ['class', 'style']
+                },
+                allowedSchemes: ['http', 'https', 'mailto', 'data']
+            };
+
+            contest.description = sanitizeHtml(contest.description || '', richTextOptions);
+            contest.rulesAndDescription = sanitizeHtml(contest.rulesAndDescription || '', richTextOptions);
+            contest.guidelines = sanitizeHtml(contest.guidelines || '', richTextOptions);
 
             // Fetch problems
             const problemIds = await getContestProblemIds(contest);

@@ -120,14 +120,14 @@ async function run() {
 
     for (const t of tables) {
         const table = t.name;
-        console.log(`\n[1/3] Create table ${table}`);
-        await createTableFromSqlite(table);
+        console.log(`\n[1/3] Drop existing table ${table}`);
+        await pg.query(`DROP TABLE IF EXISTS ${quoteIdent(table)} CASCADE`);
     }
 
     for (const t of tables) {
         const table = t.name;
-        console.log(`[2/3] Truncate ${table}`);
-        await pg.query(`TRUNCATE TABLE ${quoteIdent(table)} RESTART IDENTITY CASCADE`);
+        console.log(`[2/3] Create table ${table}`);
+        await createTableFromSqlite(table);
     }
 
     for (const t of tables) {

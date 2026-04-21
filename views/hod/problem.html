@@ -387,11 +387,12 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.filter(p => p.status === 'accepted' || p.status === 'active' || (p.isVerified && String(p.visibility_scope||'').toLowerCase() === 'global')).forEach(p => { %>
                                                 <tr data-problem-id="<%= p.id %>"
+                                                    data-view-url="/college/hod/view-problem/<%= p.id %>"
                                                     data-problem-title="<%- (p.title || '').toLowerCase() %>"
                                                     data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
                                                     data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
                                                     data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
-                                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                    class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
 
                                                     <td class="px-6 py-4">
                                                         <% const creatorRole = String(p.creatorRole || '').toLowerCase(); %>
@@ -406,13 +407,9 @@
                                                     <td class="px-6 py-4">
                                                         <span
                                                             class="px-2 py-1 text-xs font-medium rounded-full <%= p.difficulty === 'Easy' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : p.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' %>"><%= p.difficulty %></span>
-                                                    </td>
+                                                     </td>
                                                      <td class="px-6 py-4 text-right">
                                                         <div class="flex justify-end items-center gap-1">
-                                                            <a href="/college/hod/view-problem/<%= p.id %>"
-                                                                class="p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors" title="View">
-                                                                <i class="far fa-eye text-lg"></i>
-                                                            </a>
                                                             <% const hodIsBookmarked = (bookmarkedProblemIds || []).includes(p.id); %>
                                                             <button class="bookmark-btn p-1.5 inline-block rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-500 transition-colors" title="Bookmark">
                                                                 <i class="<%= hodIsBookmarked ? 'fas text-yellow-400' : 'far' %> fa-bookmark"></i>
@@ -442,11 +439,12 @@
                                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                                 <% problems.filter(p => p.faculty_id == user.id).forEach(p => { %>
                                                  <tr data-problem-id="<%= p.id %>"
+                                                     data-view-url="/college/hod/view-problem/<%= p.id %>"
                                                      data-problem-title="<%- (p.title || '').toLowerCase() %>"
                                                      data-problem-subject="<%- (p.subject || '').toLowerCase() %>"
                                                      data-problem-tags="<%- (p.tags || '').toLowerCase() %>"
                                                      data-problem-difficulty="<%- (p.difficulty || '').toLowerCase() %>"
-                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                     class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
                                                      <td class="px-6 py-4">
                                                          <div class="text-sm font-medium text-gray-900 dark:text-white">
                                                              <%- p.title %></div>
@@ -470,13 +468,9 @@
                                                                 <i class="fas fa-clock text-xs"></i> Pending
                                                             </span>
                                                         <% } %>
-                                                     </td>
+                                                      </td>
                                                       <td class="px-6 py-4 text-right">
                                                          <div class="flex justify-end items-center gap-1">
-                                                             <a href="/college/hod/view-problem/<%= p.id %>"
-                                                                class="p-1.5 inline-block rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors" title="View">
-                                                                <i class="far fa-eye text-lg"></i>
-                                                             </a>
                                                              <% const hodCreatedIsBookmarked = (bookmarkedProblemIds || []).includes(p.id); %>
                                                              <button class="bookmark-btn p-1.5 inline-block rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-yellow-500 transition-colors" title="Bookmark">
                                                                  <i class="<%= hodCreatedIsBookmarked ? 'fas text-yellow-400' : 'far' %> fa-bookmark"></i>
@@ -517,7 +511,7 @@
                                                    const bookmarkedProblems = problems.filter(p => (bookmarkedProblemIds || []).includes(p.id));
                                                    if (bookmarkedProblems.length > 0) { 
                                                        bookmarkedProblems.forEach(problem => { %>
-                                                        <tr data-problem-id="<%= problem.id %>" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                                                        <tr data-problem-id="<%= problem.id %>" data-view-url="/college/hod/view-problem/<%= problem.id %>" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer">
                                                             <td class="px-6 py-4">
                                                                 <div class="text-sm font-medium text-gray-900 dark:text-white"><%- problem.title %></div>
                                                                 <div class="text-xs text-gray-500 dark:text-gray-400"><%= problem.subject %></div>
@@ -530,9 +524,6 @@
                                                             <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400"><%= problem.tags || 'N/A' %></td>
                                                             <td class="px-6 py-4 text-right">
                                                                 <div class="flex justify-end items-center gap-2">
-                                                                    <a href="/college/hod/view-problem/<%= problem.id %>" class="bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-blue-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1">
-                                                                        <i class="far fa-eye"></i> View
-                                                                    </a>
                                                                     <button class="text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 text-xs font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded ml-2" title="Remove Bookmark">
                                                                         <i class="fas fa-times"></i> Remove
                                                                     </button>
@@ -998,6 +989,13 @@
 
         // Edit button functionality
         document.addEventListener('click', (e) => {
+            const clickableRow = e.target.closest('tr[data-view-url]');
+            const interactiveElement = e.target.closest('button, a, input, select, textarea, label');
+            if (clickableRow && !interactiveElement) {
+                window.location.href = clickableRow.dataset.viewUrl;
+                return;
+            }
+
             const btn = e.target.closest('.edit-problem-btn');
             if (btn) {
                 try {

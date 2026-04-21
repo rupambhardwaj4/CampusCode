@@ -11,6 +11,74 @@ const pool = new Pool({
     ssl: String(process.env.PGSSL || 'false').toLowerCase() === 'true' ? { rejectUnauthorized: false } : false
 });
 
+function replaceGroupConcat(sql) {
+    let out = String(sql || '');
+    let result = '';
+    let i = 0;
+    
+    while (i < out.length) {
+        const remaining = out.substring(i);
+        const gcMatch = remaining.match(/^([\s\S]*?)GROUP_CONCAT\s*\(/i);
+        
+        if (!gcMatch) {
+            result += remaining;
+            break;
+        }
+        
+        result += gcMatch[1] + 'STRING_AGG(';
+        i += gcMatch[0].length;
+        
+        // Find matching closing parenthesis
+        let parenDepth = 1;
+        let j = i;
+        let inString = false;
+        let stringChar = '';
+        
+        while (j < out.length && parenDepth > 0) {
+            const char = out[j];
+            
+            if (inString) {
+                if (char === stringChar && out[j-1] !== '\\') {
+                    inString = false;
+                }
+            } else {
+                if (char === '"' || char === "'" || char === '`') {
+                    inString = true;
+                    stringChar = char;
+                } else if (char === '(') {
+                    parenDepth++;
+                } else if (char === ')') {
+                    parenDepth--;
+                }
+            }
+            
+            if (parenDepth > 0) j++;
+        }
+        
+        if (parenDepth === 0) {
+            const gcContent = out.substring(i, j);
+            const parts = gcContent.match(/^(DISTINCT\s+)?(.*?)(?:,\s*'([^']*)'\s*)?$/i);
+            
+            if (parts) {
+                // Note: DISTINCT is handled separately in application logic, not in STRING_AGG
+                const expression = parts[2].trim();
+                const separator = parts[3] || ',';
+                
+                result += `(${expression})::text, '${separator}')`;
+            } else {
+                result += `(${gcContent})::text, ',')`;
+            }
+            
+            i = j + 1;
+        } else {
+            result += out.substring(i);
+            break;
+        }
+    }
+    
+    return result;
+}
+
 function rewriteSql(sql) {
     let out = String(sql || '');
     // Keep existing route SQL compatible with Postgres when schema has camelCase column names.
@@ -25,9 +93,8 @@ function rewriteSql(sql) {
         const re = new RegExp(`\\b${ident}\\b`, 'g');
         out = out.replace(re, `"${ident}"`);
     }
-    // SQLite aggregate compatibility
-    out = out.replace(/GROUP_CONCAT\(\s*([^,()]+)\s*,\s*'([^']*)'\s*\)/gi, `STRING_AGG($1::text, '$2')`);
-    out = out.replace(/GROUP_CONCAT\(\s*([^)]+)\s*\)/gi, `STRING_AGG($1::text, ',')`);
+    // SQLite aggregate compatibility - handle GROUP_CONCAT with proper parenthesis matching
+    out = replaceGroupConcat(out);
     out = out.replace(/strftime\('%Y-%m-%d'\s*,\s*([^)]+)\)/gi, `TO_CHAR($1, 'YYYY-MM-DD')`);
     out = out.replace(/strftime\('%Y-%m'\s*,\s*([^)]+)\)/gi, `TO_CHAR($1, 'YYYY-MM')`);
     out = out.replace(/strftime\('%m'\s*,\s*([^)]+)\)/gi, `TO_CHAR($1, 'MM')`);

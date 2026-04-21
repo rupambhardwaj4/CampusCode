@@ -168,6 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Clone problem to bookmarked tab if it exists
                 if (problemId) {
                     addToBookmarkedTab(problemRow);
+                    saveBookmarkState(problemId, true);
                 }
             } else {
                 // Unbookmark the problem
@@ -177,6 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Remove from bookmarked tab
                 if (problemId) {
                     removeFromBookmarkedTab(problemId);
+                    saveBookmarkState(problemId, false);
                 }
             }
         }
@@ -229,17 +231,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 setTimeout(() => {
                     problemRow.remove();
 
-                    // Also update bookmark icon in All Problems tab
-                    const allProblemsRow = document.querySelector(`#all-problems tr[data-problem-id="${problemId}"]`);
-                    if (allProblemsRow) {
-                        const bookmarkIcon = allProblemsRow.querySelector('.bookmark-btn i');
-                        if (bookmarkIcon) {
-                            bookmarkIcon.classList.add('far');
-                            bookmarkIcon.classList.remove('fas', 'text-yellow-400');
-                        }
-                    }
+                    document.querySelectorAll(`tr[data-problem-id="${problemId}"] .bookmark-btn i`).forEach((bookmarkIcon) => {
+                        bookmarkIcon.classList.add('far');
+                        bookmarkIcon.classList.remove('fas', 'text-yellow-400');
+                    });
 
                     showToast('Removed from bookmarks', 'info');
+                    saveBookmarkState(problemId, false);
                 }, 300);
             }
         }
@@ -256,22 +254,39 @@ document.addEventListener("DOMContentLoaded", function () {
         const existingBookmark = bookmarkedTable.querySelector(`tr[data-problem-id="${problemId}"]`);
         if (existingBookmark) return;
 
-        // Clone the row
-        const clonedRow = problemRow.cloneNode(true);
+        const emptyRow = bookmarkedTable.querySelector('tr td[colspan="3"]');
+        if (emptyRow) emptyRow.parentElement.remove();
 
-        // Modify the action buttons for bookmarked tab
-        const actionsCell = clonedRow.querySelector('td:last-child > div');
-        if (actionsCell) {
-            actionsCell.innerHTML = `
-                <a href="/faculty/view-problem/${problemId}"
-                    class="bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-1 rounded-md text-xs font-medium transition-colors">Solve</a>
-                <button
-                    class="text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 text-xs font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded ml-2"
-                    title="Remove Bookmark">
-                    <i class="fas fa-times"></i> Remove
-                </button>
-            `;
-        }
+        const title = problemRow.querySelector('.text-sm.font-medium')?.textContent.trim() || '';
+        const subject = problemRow.dataset.problemSubject || '';
+        const tags = problemRow.dataset.problemTags || '';
+        const difficulty = problemRow.querySelector('span[class*="rounded-full"]')?.textContent.trim() || '';
+        const difficultyClass = problemRow.querySelector('span[class*="rounded-full"]')?.className || '';
+
+        const clonedRow = document.createElement('tr');
+        clonedRow.dataset.problemId = problemId;
+        clonedRow.dataset.viewUrl = `/faculty/view-problem/${problemId}`;
+        clonedRow.dataset.problemTitle = (problemRow.dataset.problemTitle || '').toLowerCase();
+        clonedRow.dataset.problemSubject = subject.toLowerCase();
+        clonedRow.dataset.problemTags = tags.toLowerCase();
+        clonedRow.dataset.problemDifficulty = (problemRow.dataset.problemDifficulty || '').toLowerCase();
+        clonedRow.className = 'hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group cursor-pointer';
+        clonedRow.innerHTML = `
+            <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">${title}</div>
+                <div class="text-xs text-gray-500">${subject || tags || 'N/A'}</div>
+            </td>
+            <td class="px-6 py-4">
+                <span class="${difficultyClass}">${difficulty}</span>
+            </td>
+            <td class="px-6 py-4 text-right">
+                <div class="flex justify-end items-center">
+                    <button class="text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 text-xs font-medium bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded ml-2" title="Remove Bookmark">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+            </td>
+        `;
 
         bookmarkedTable.appendChild(clonedRow);
     }
@@ -288,9 +303,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
             setTimeout(() => {
                 bookmarkedRow.remove();
+                if (!bookmarkedTable.querySelector('tr[data-problem-id]')) {
+                    bookmarkedTable.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500 dark:text-gray-400">No bookmarked problems.</td></tr>';
+                }
             }, 300);
         }
     }
+
+    async function saveBookmarkState(problemId, isBookmarked) {
+        try {
+            const id = parseInt(problemId, 10);
+            if (!id) return;
+            if (isBookmarked) {
+                await fetch('/faculty/api/problem-bookmarks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ problemId: id })
+                });
+                return;
+            }
+            await fetch(`/faculty/api/problem-bookmarks/${id}`, { method: 'DELETE' });
+        } catch (e) {
+            console.error('Error saving bookmark state', e);
+        }
+    }
+
+    async function initBookmarks() {
+        try {
+            const res = await fetch('/faculty/api/problem-bookmarks');
+            if (!res.ok) return;
+            const payload = await res.json();
+            const bookmarks = Array.isArray(payload?.data) ? payload.data.map((value) => Number(value)) : [];
+            if (!bookmarks.length) return;
+            const allProblemsRows = document.querySelectorAll('#all-problems table tbody tr[data-problem-id]');
+            allProblemsRows.forEach((row) => {
+                const id = parseInt(row.dataset.problemId, 10);
+                if (!bookmarks.includes(id)) return;
+                const icon = row.querySelector('.bookmark-btn i');
+                if (icon) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas', 'text-yellow-400');
+                }
+                addToBookmarkedTab(row);
+            });
+        } catch (e) {
+            console.error('Error init bookmarks', e);
+        }
+    }
+    initBookmarks();
 
     // Toast notification helper
     function showToast(message, type = 'info') {

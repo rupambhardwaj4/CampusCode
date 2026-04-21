@@ -3,6 +3,29 @@ let currentTab = 'pending';
 let currentSearch = '';
 let currentSubject = '';
 
+function normalizeContestId(value) {
+    return String(value ?? '').trim();
+}
+
+function getSharedFilteredContests() {
+    let filteredData = [...allContests];
+
+    if (currentSubject) {
+        filteredData = filteredData.filter(c => c.subject === currentSubject);
+    }
+
+    if (currentSearch) {
+        const s = currentSearch.toLowerCase();
+        filteredData = filteredData.filter(c =>
+            (c.title || '').toLowerCase().includes(s) ||
+            (c.faculty || '').toLowerCase().includes(s) ||
+            (c.creatorName || '').toLowerCase().includes(s)
+        );
+    }
+
+    return filteredData;
+}
+
 // ============================================
 // CONFLICT DETECTION SYSTEM
 // ============================================
@@ -13,12 +36,13 @@ function parseTime(timeStr) {
 }
 
 function detectConflicts(contestId) {
-    const contest = allContests.find(c => c.id === contestId);
+    const normalizedId = normalizeContestId(contestId);
+    const contest = allContests.find(c => normalizeContestId(c.id) === normalizedId);
     if (!contest || contest.status !== 'pending') return [];
 
     const conflicts = [];
     allContests.forEach(other => {
-        if (other.id === contestId || other.status !== 'pending') return;
+        if (normalizeContestId(other.id) === normalizedId || other.status !== 'pending') return;
 
         if (contest.subject === other.subject &&
             contest.section === other.section &&
@@ -86,8 +110,9 @@ async function apiApproveContest(contestId, status, comments) {
 function renderTable() {
     const tbody = document.getElementById('contestsTableBody');
     const noData = document.getElementById('noDataMessage');
+    updateStats();
     
-    let filteredData = [...allContests];
+    let filteredData = getSharedFilteredContests();
 
     // Status Tab Filtering
     if (currentTab === 'pending') filteredData = filteredData.filter(c => c.status === 'pending');
@@ -95,21 +120,6 @@ function renderTable() {
     else if (currentTab === 'rejected') filteredData = filteredData.filter(c => c.status === 'rejected');
     else if (currentTab === 'active') filteredData = filteredData.filter(c => c.status === 'accepted' && new Date(c.start_date) <= new Date());
     else if (currentTab === 'conflicts') filteredData = getAllConflictingContests();
-
-    // Subject Filter
-    if (currentSubject) {
-        filteredData = filteredData.filter(c => c.subject === currentSubject);
-    }
-
-    // Search Filter
-    if (currentSearch) {
-        const s = currentSearch.toLowerCase();
-        filteredData = filteredData.filter(c => 
-            (c.title || '').toLowerCase().includes(s) || 
-            (c.faculty || '').toLowerCase().includes(s) ||
-            (c.creatorName || '').toLowerCase().includes(s)
-        );
-    }
 
     document.getElementById('displayCount').textContent = `${filteredData.length} item(s) showing`;
 
@@ -131,7 +141,7 @@ function renderTable() {
         const startTimeStr = startDate && !isNaN(startDate) ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (c.start_time || 'No Time');
 
         return `
-            <tr class="group hover:bg-slate-50 dark:hover:bg-dark-lighter/30 transition-all duration-200 border-b border-slate-50 dark:border-dark-border last:border-0" data-id="${c.id}">
+            <tr class="group hover:bg-slate-50 dark:hover:bg-dark-lighter/30 transition-all duration-200 border-b border-slate-50 dark:border-dark-border last:border-0 cursor-pointer contest-row" data-id="${c.id}">
                 <td class="px-8 py-5 text-center">
                     <input type="checkbox" class="row-checkbox rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 bg-transparent cursor-pointer">
                 </td>
@@ -185,11 +195,7 @@ function renderTable() {
                 <td class="px-6 py-5">
                     ${getStatusBadge(c)}
                 </td>
-                <td class="px-8 py-5 text-right">
-                    <button onclick="showContestDetails(${c.id})" class="p-2 text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </td>
+                <td class="px-8 py-5 text-right"></td>
             </tr>
         `;
     }).join('');
@@ -248,7 +254,7 @@ async function showConfirm(title, message, type = 'info') {
 
 // Show Contest Details Modal
 function showContestDetails(id) {
-    const contest = allContests.find(c => c.id === id);
+    const contest = allContests.find(c => normalizeContestId(c.id) === normalizeContestId(id));
     if (!contest) return;
     const content = document.getElementById('contestDetailContent');
     const conflicts = detectConflicts(id);
@@ -393,7 +399,6 @@ async function handleAction(id, action) {
             await apiApproveContest(id, status, comments);
             document.getElementById('contestDetailModal').classList.add('hidden');
             renderTable();
-            updateStats();
         } catch (e) {
             alert(e.message);
         }
@@ -404,10 +409,11 @@ async function handleAction(id, action) {
 window.handleAction = handleAction;
 
 function updateStats() {
-    document.getElementById('statPending').textContent = allContests.filter(c => c.status === 'pending').length;
-    document.getElementById('statApproved').textContent = allContests.filter(c => c.status === 'accepted' || c.status === 'approved').length;
-    document.getElementById('statRejected').textContent = allContests.filter(c => c.status === 'rejected').length;
-    document.getElementById('statConflicts').textContent = getAllConflictingContests().length;
+    const filteredContests = getSharedFilteredContests();
+    document.getElementById('statPending').textContent = filteredContests.filter(c => c.status === 'pending').length;
+    document.getElementById('statApproved').textContent = filteredContests.filter(c => c.status === 'accepted' || c.status === 'approved').length;
+    document.getElementById('statRejected').textContent = filteredContests.filter(c => c.status === 'rejected').length;
+    document.getElementById('statConflicts').textContent = filteredContests.filter(c => c.status === 'pending' && hasConflict(c.id)).length;
 }
 
 // Event Listeners
@@ -449,6 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    document.getElementById('contestsTableBody').addEventListener('click', (e) => {
+        const row = e.target.closest('tr[data-id]');
+        const interactiveElement = e.target.closest('button, a, input, select, textarea, label');
+        if (row && !interactiveElement) {
+            showContestDetails(parseInt(row.dataset.id, 10));
+        }
+    });
+
     function updateBulkVisibility() {
         const checked = document.querySelectorAll('.row-checkbox:checked').length;
         const btn = document.getElementById('btnBulkApprove');
@@ -466,12 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 try { await apiApproveContest(id, 'accepted', 'Bulk approved'); } catch(e) {}
             }
             renderTable();
-            updateStats();
             updateBulkVisibility();
         }
     });
 
     // Initial render
     renderTable();
-    updateStats();
 });

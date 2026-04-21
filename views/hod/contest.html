@@ -34,6 +34,16 @@
         };
     </script>
     <style>
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 13px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .dark .CodeMirror {
+            border-left: 1px solid #1f2937;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -762,11 +772,11 @@
                         <div id="ide-content-samples" class="flex-1 grid grid-cols-2 divide-x divide-gray-50 dark:divide-gray-700/50 overflow-hidden">
                             <div class="p-4 overflow-y-auto custom-scrollbar">
                                 <p class="text-[9px] font-bold text-gray-400 uppercase mb-2">Sample Input</p>
-                                <pre id="ideSampleInput" class="text-xs font-mono text-gray-600 dark:text-gray-300"></pre>
+                                <pre id="ideSampleInput" class="m-0 text-xs font-mono text-gray-600 dark:text-gray-300 whitespace-pre-wrap"></pre>
                             </div>
                             <div class="p-4 overflow-y-auto custom-scrollbar">
                                 <p class="text-[9px] font-bold text-gray-400 uppercase mb-2">Sample Output</p>
-                                <pre id="ideSampleOutput" class="text-xs font-mono text-gray-600 dark:text-gray-300"></pre>
+                                <pre id="ideSampleOutput" class="m-0 text-xs font-mono text-gray-600 dark:text-gray-300 whitespace-pre-wrap"></pre>
                             </div>
                         </div>
 
@@ -989,7 +999,8 @@
 
                 function createContestCard(contest, listType) {
                     const div = document.createElement('div');
-                    div.className = "bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-all animate-fadeIn group";
+                    div.className = "bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 hover:shadow-md transition-all animate-fadeIn group cursor-pointer";
+                    div.onclick = () => { window.location.href = `/college/hod/contest/view/${contest.id}`; };
 
                     const dateObj = new Date(contest.startDate || contest.date);
                     const dateStr = dateObj.toLocaleDateString();
@@ -1019,22 +1030,19 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 w-full md:w-auto mt-4 md:mt-0">
-                            <button onclick="window.location.href='/college/hod/contest/view/${contest.id}'" class="flex-1 md:flex-none p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-500 hover:bg-blue-500 hover:text-white transition-all" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
                             ${listType === 'upcoming' ? `
-                            <button onclick="window.location.href='/college/hod/contest/leaderboard/${contest.id}'" class="flex-1 md:flex-none p-2 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white transition-all" title="Leaderboard">
+                            <button onclick="event.stopPropagation(); window.location.href='/college/hod/contest/leaderboard/${contest.id}'" class="flex-1 md:flex-none p-2 rounded-xl bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 text-primary-600 dark:text-primary-400 hover:bg-primary-500 hover:text-white transition-all" title="Leaderboard">
                                 <i class="fas fa-trophy"></i>
                             </button>` : ''}
                             ${listType === 'created' ? `
-                            <button onclick="editContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title="Edit">
+                            <button onclick="event.stopPropagation(); editContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Delete">
+                            <button onclick="event.stopPropagation(); deleteContest(${contest.id})" class="flex-1 md:flex-none p-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-500 hover:bg-red-500 hover:text-white transition-all" title="Delete">
                                 <i class="fas fa-trash-alt"></i>
                             </button>` : ''}
                             ${listType === 'past' ? `
-                            <button onclick="openResultsModal()" class="flex-1 md:flex-none p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all" title="Results">
+                            <button onclick="event.stopPropagation(); openResultsModal()" class="flex-1 md:flex-none p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all" title="Results">
                                 <i class="fas fa-chart-bar"></i>
                             </button>` : ''}
                         </div>
@@ -1144,10 +1152,15 @@
                     filtered.forEach(p => {
                         const isSelected = selectedProblems.some(sp => sp.id === p.id);
                         const tr = document.createElement('tr');
-                        tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors";
+                        tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer";
+                        tr.onclick = (event) => {
+                            const interactiveElement = event.target.closest('button, a, input, select, textarea, label');
+                            if (interactiveElement) return;
+                            viewProblemDetails(p.id);
+                        };
                         tr.innerHTML = `
                         <td class="px-6 py-4 text-center">
-                            <input type="checkbox" value="${p.id}" ${isSelected ? 'checked' : ''} 
+                            <input type="checkbox" onclick="event.stopPropagation()" value="${p.id}" ${isSelected ? 'checked' : ''} 
                                 class="problem-cb rounded border-gray-300 text-primary-600 focus:ring-0">
                         </td>
                         <td class="px-6 py-4">
@@ -1163,7 +1176,7 @@
                             ${p.facultyName || 'HOD'}
                         </td>
                         <td class="px-6 py-4 text-center">
-                            <button onclick="viewProblemDetails(${p.id})" class="p-2 text-primary-600 dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="View Details">
+                            <button onclick="event.stopPropagation(); viewProblemDetails(${p.id})" class="p-2 text-primary-600 dark:text-blue-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="View Details">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </td>
@@ -1184,10 +1197,12 @@
                 if (saveAssignedProblemsBtn) {
                     saveAssignedProblemsBtn.addEventListener('click', () => {
                         const checkboxes = document.querySelectorAll('.problem-cb:checked');
-                        selectedProblems = Array.from(checkboxes).map(cb => {
-                            const id = parseInt(cb.value);
-                            return availableProblems.find(p => p.id === id);
-                        });
+                        selectedProblems = Array.from(checkboxes)
+                            .map(cb => {
+                                const id = parseInt(cb.value, 10);
+                                return availableProblems.find(p => Number(p.id) === id);
+                            })
+                            .filter(Boolean);
                         updateSelectedProblemsPreview();
                         problemModal.classList.add('hidden');
                     });
@@ -1208,7 +1223,12 @@
 
                     selectedProblems.forEach(p => {
                         const div = document.createElement('div');
-                        div.className = "flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm transition-all animate-fadeIn";
+                        div.className = "flex items-center justify-between p-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm transition-all animate-fadeIn cursor-pointer";
+                        div.onclick = (event) => {
+                            const interactiveElement = event.target.closest('button, a, input, select, textarea, label');
+                            if (interactiveElement) return;
+                            viewProblemDetails(p.id);
+                        };
                         div.innerHTML = `
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center text-gray-400">
@@ -1219,7 +1239,7 @@
                                 <p class="text-[10px] text-gray-500 uppercase">${p.difficulty}</p>
                             </div>
                         </div>
-                        <button type="button" onclick="removeProblem(${p.id})" class="p-1.5 hover:text-red-500 transition-colors">
+                        <button type="button" onclick="event.stopPropagation(); removeProblem(${p.id})" class="p-1.5 hover:text-red-500 transition-colors">
                             <i class="fas fa-times text-xs"></i>
                         </button>
                     `;

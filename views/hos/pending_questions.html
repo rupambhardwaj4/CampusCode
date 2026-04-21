@@ -167,9 +167,9 @@
             });
 
             body.innerHTML = data.map(q => `
-                <tr class="q-row group transition-all">
+                <tr onclick="handleHosQuestionRowClick(event, this)" class="q-row group transition-all cursor-pointer" data-view-url="/hos/pending-question/${q.id}">
                     <td class="px-8 py-5">
-                        ${q.status === 'pending' ? `<input type="checkbox" class="q-checkbox rounded border-slate-300 text-primary-600" data-id="${q.id}">` : '<i class="fas fa-lock text-slate-300 dark:text-slate-700 text-[10px]"></i>'}
+                        ${q.status === 'pending' ? `<input type="checkbox" onclick="event.stopPropagation()" class="q-checkbox rounded border-slate-300 text-primary-600" data-id="${q.id}">` : '<i class="fas fa-lock text-slate-300 dark:text-slate-700 text-[10px]"></i>'}
                     </td>
                     <td class="px-4 py-5">
                         <div class="flex flex-col">
@@ -189,11 +189,7 @@
                     <td class="px-4 py-5">
                         <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest">${q.subject}</span>
                     </td>
-                    <td class="px-8 py-5 text-right">
-                        <a href="/hos/pending-question/${q.id}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500/10 hover:bg-primary-500 text-primary-600 hover:text-white rounded-xl text-xs font-bold transition-all">
-                           <i class="fas fa-eye"></i> Review
-                        </a>
-                    </td>
+                    <td class="px-8 py-5 text-right"></td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="px-8 py-20 text-center text-slate-400 italic font-medium">No records found.</td></tr>`;
 
@@ -238,6 +234,12 @@
                     location.reload();
                 } else alert(d.error);
             } catch (e) { alert('Network Error'); }
+        }
+
+        function handleHosQuestionRowClick(event, row) {
+            const interactiveElement = event.target.closest('button, a, input, select, textarea, label');
+            if (interactiveElement) return;
+            window.location.href = row.dataset.viewUrl;
         }
 
         render();

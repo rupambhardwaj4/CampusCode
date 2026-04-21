@@ -346,17 +346,63 @@ module.exports = (db) => {
     });
 
     // ==========================================
-    // 5. DELETE THREAD (SUPER ADMIN)
+    // 5. EDIT THREAD (OWNER OR SUPERADMIN)
+    // ==========================================
+    router.put('/threads/:id', requireAuth, (req, res) => {
+        const threadId = req.params.id;
+        const title = String(req.body?.title || '').trim();
+        const content = String(req.body?.content || '').trim();
+        const topic = String(req.body?.topic || 'general').trim() || 'general';
+        const userId = Number(req.session.user.id || 0);
+        const userRole = String(req.session.user.role || '').toLowerCase();
+
+        if (!title || !content) {
+            return res.status(400).json({ success: false, message: 'Title and content are required.' });
+        }
+
+        db.get(`SELECT id, user_id FROM forum_threads WHERE id = ?`, [threadId], (findErr, thread) => {
+            if (findErr) return res.status(500).json({ success: false, message: 'Database error' });
+            if (!thread) return res.status(404).json({ success: false, message: 'Thread not found.' });
+
+            const isOwner = Number(thread.user_id || 0) === userId;
+            const isSuperadmin = userRole === 'superadmin';
+            if (!isOwner && !isSuperadmin) {
+                return res.status(403).json({ success: false, message: 'You can edit only your own thread.' });
+            }
+
+            db.run(
+                `UPDATE forum_threads SET title = ?, content = ?, topic = ? WHERE id = ?`,
+                [title, content, topic, threadId],
+                function (updateErr) {
+                    if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
+                    return res.json({ success: true, message: 'Thread updated.' });
+                }
+            );
+        });
+    });
+
+    // ==========================================
+    // 5b. DELETE THREAD (OWNER OR SUPERADMIN)
     // ==========================================
     router.delete('/threads/:id', requireAuth, (req, res) => {
-        if (req.session.user.role !== 'superadmin') {
-            return res.status(403).json({ success: false, message: 'Forbidden: Super Admin access required.' });
-        }
         const threadId = req.params.id;
+        const userId = Number(req.session.user.id || 0);
+        const userRole = String(req.session.user.role || '').toLowerCase();
 
-        db.run(`DELETE FROM forum_threads WHERE id = ?`, [threadId], function (err) {
-            if (err) return res.status(500).json({ success: false, message: 'Database error' });
-            res.json({ success: true, message: 'Thread deleted successfully' });
+        db.get(`SELECT id, user_id FROM forum_threads WHERE id = ?`, [threadId], (findErr, thread) => {
+            if (findErr) return res.status(500).json({ success: false, message: 'Database error' });
+            if (!thread) return res.status(404).json({ success: false, message: 'Thread not found.' });
+
+            const isOwner = Number(thread.user_id || 0) === userId;
+            const isSuperadmin = userRole === 'superadmin';
+            if (!isOwner && !isSuperadmin) {
+                return res.status(403).json({ success: false, message: 'You can delete only your own thread.' });
+            }
+
+            db.run(`DELETE FROM forum_threads WHERE id = ?`, [threadId], function (deleteErr) {
+                if (deleteErr) return res.status(500).json({ success: false, message: 'Database error' });
+                return res.json({ success: true, message: 'Thread deleted successfully' });
+            });
         });
     });
 
@@ -410,62 +456,82 @@ module.exports = (db) => {
     // 7. VOTE ON REPLY
     // ==========================================
     router.post('/replies/vote', requireAuth, (req, res) => {
-        const { reply_id, vote_type } = req.body; // vote_type: 1 or -1
-        const user_id = req.session.user.id;
+        const replyId = Number(req.body?.reply_id || 0);
+        const numericVote = Number(req.body?.vote_type);
+        const userId = Number(req.session.user.id || 0);
 
-        if (!reply_id || ![1, -1].includes(Number(vote_type))) {
+        if (!replyId || ![1, -1].includes(numericVote)) {
             return res.status(400).json({ success: false, message: 'Invalid payload' });
         }
 
-        const numericVote = Number(vote_type);
+        db.get(`SELECT id FROM forum_replies WHERE id = ?`, [replyId], (replyErr, replyRow) => {
+            if (replyErr) return res.status(500).json({ success: false, message: 'Database error' });
+            if (!replyRow) return res.status(404).json({ success: false, message: 'Reply not found' });
 
-        // Check if user already voted
-        db.get(`SELECT vote_type FROM forum_votes WHERE reply_id = ? AND user_id = ?`,
-            [reply_id, user_id],
-            (err, row) => {
-                if (err) return res.status(500).json({ success: false, message: 'Database error' });
+            db.all(
+                `SELECT id, vote_type
+                 FROM forum_votes
+                 WHERE reply_id = ? AND user_id = ?
+                 ORDER BY id ASC`,
+                [replyId, userId],
+                (voteErr, rows) => {
+                    if (voteErr) return res.status(500).json({ success: false, message: 'Database error' });
 
-                if (row) {
-                    const existingVote = row.vote_type;
-                    
-                    if (existingVote === numericVote) {
-                        // User clicking same vote button -> Toggle off (remove vote)
-                        db.run(`DELETE FROM forum_votes WHERE reply_id = ? AND user_id = ?`, [reply_id, user_id], (err) => {
-                            if (err) return res.status(500).json({ success: false });
-                            
-                            // Adjust counts
-                            const col = numericVote === 1 ? 'upvotes' : 'downvotes';
-                            db.run(`UPDATE forum_replies SET ${col} = ${col} - 1 WHERE id = ?`, [reply_id], (err) => {
-                                res.json({ success: true, action: 'removed' });
-                            });
-                        });
-                    } else {
-                        // User changing vote (e.g. from +1 to -1)
-                        db.run(`UPDATE forum_votes SET vote_type = ? WHERE reply_id = ? AND user_id = ?`, [numericVote, reply_id, user_id], (err) => {
-                            if (err) return res.status(500).json({ success: false });
+                    const existingVote = rows.length ? Number(rows[0].vote_type || 0) : 0;
+                    const nextVote = existingVote === numericVote ? 0 : numericVote;
 
-                            const incCol = numericVote === 1 ? 'upvotes' : 'downvotes';
-                            const decCol = existingVote === 1 ? 'upvotes' : 'downvotes';
+                    db.run(`DELETE FROM forum_votes WHERE reply_id = ? AND user_id = ?`, [replyId, userId], (deleteErr) => {
+                        if (deleteErr) return res.status(500).json({ success: false, message: 'Database error' });
 
-                            db.run(`UPDATE forum_replies SET ${incCol} = ${incCol} + 1, ${decCol} = CASE WHEN ${decCol} > 0 THEN ${decCol} - 1 ELSE 0 END WHERE id = ?`, [reply_id], (err) => {
-                                if (err) return res.status(500).json({ success: false });
-                                res.json({ success: true, action: 'changed' });
-                            });
-                        });
-                    }
-                } else {
-                    // New vote
-                    db.run(`INSERT INTO forum_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)`, [reply_id, user_id, numericVote], (err) => {
-                        if (err) return res.status(500).json({ success: false, message: 'Database error' });
+                        const persistVote = (done) => {
+                            if (nextVote === 0) return done();
+                            db.run(
+                                `INSERT INTO forum_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)`,
+                                [replyId, userId, nextVote],
+                                (insertErr) => {
+                                    if (insertErr) return res.status(500).json({ success: false, message: 'Database error' });
+                                    done();
+                                }
+                            );
+                        };
 
-                        const col = numericVote === 1 ? 'upvotes' : 'downvotes';
-                        db.run(`UPDATE forum_replies SET ${col} = ${col} + 1 WHERE id = ?`, [reply_id], (err) => {
-                            res.json({ success: true, action: 'added' });
+                        persistVote(() => {
+                            db.get(
+                                `SELECT
+                                    COALESCE(SUM(CASE WHEN vote_type = 1 THEN 1 ELSE 0 END), 0) as upvotes,
+                                    COALESCE(SUM(CASE WHEN vote_type = -1 THEN 1 ELSE 0 END), 0) as downvotes
+                                 FROM forum_votes
+                                 WHERE reply_id = ?`,
+                                [replyId],
+                                (countErr, counts) => {
+                                    if (countErr) return res.status(500).json({ success: false, message: 'Database error' });
+
+                                    const upvotes = Number(counts?.upvotes || 0);
+                                    const downvotes = Number(counts?.downvotes || 0);
+
+                                    db.run(
+                                        `UPDATE forum_replies SET upvotes = ?, downvotes = ? WHERE id = ?`,
+                                        [upvotes, downvotes, replyId],
+                                        (updateErr) => {
+                                            if (updateErr) return res.status(500).json({ success: false, message: 'Database error' });
+
+                                            const action = nextVote === 0 ? 'removed' : (existingVote ? 'changed' : 'added');
+                                            res.json({
+                                                success: true,
+                                                action,
+                                                currentVote: nextVote,
+                                                upvotes,
+                                                downvotes
+                                            });
+                                        }
+                                    );
+                                }
+                            );
                         });
                     });
                 }
-            }
-        );
+            );
+        });
     });
 
     // ==========================================

@@ -141,28 +141,28 @@
                             <div
                                 class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Overview</h2>
-                                <p
-                                    class="mt-4 whitespace-pre-wrap text-sm leading-7 text-gray-600 dark:text-gray-300">
-                                    <%= contest.description || 'No description added yet.' %>
-                                </p>
+                                <div
+                                    class="mt-4 prose prose-sm max-w-none text-gray-600 dark:prose-invert dark:text-gray-300">
+                                    <%- contest.description || '<p>No description added yet.</p>' %>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                                 <div
                                     class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Rules</h2>
-                                    <p
-                                        class="mt-4 whitespace-pre-wrap text-sm leading-7 text-gray-600 dark:text-gray-300">
-                                        <%= contest.rulesAndDescription || 'No rules were provided.' %>
-                                    </p>
+                                    <div
+                                        class="mt-4 prose prose-sm max-w-none text-gray-600 dark:prose-invert dark:text-gray-300">
+                                        <%- contest.rulesAndDescription || '<p>No rules were provided.</p>' %>
+                                    </div>
                                 </div>
                                 <div
                                     class="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Guidelines</h2>
-                                    <p
-                                        class="mt-4 whitespace-pre-wrap text-sm leading-7 text-gray-600 dark:text-gray-300">
-                                        <%= contest.guidelines || 'No additional guidelines were provided.' %>
-                                    </p>
+                                    <div
+                                        class="mt-4 prose prose-sm max-w-none text-gray-600 dark:prose-invert dark:text-gray-300">
+                                        <%- contest.guidelines || '<p>No additional guidelines were provided.</p>' %>
+                                    </div>
                                 </div>
                             </div>
 

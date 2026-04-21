@@ -8,6 +8,34 @@ const sanitizeHtml = require('sanitize-html');
 
 module.exports = (db) => {
     const router = express.Router();
+    const PG_ALIAS_KEYS = [
+        'acceptedSubmissions', 'approverName', 'avgPoints', 'creatorName', 'creatorRole', 'endDate',
+        'facultyName', 'itemId', 'joiningDate', 'pointsEarned', 'problemTitle', 'sectionName',
+        'solvedCount', 'startDate', 'studentCount', 'teachingSubjects', 'totalContests', 'totalProblems',
+        'totalSubmissions'
+    ];
+    const normalizePgRow = (row) => {
+        if (!row || typeof row !== 'object') return row;
+        const normalized = { ...row };
+        PG_ALIAS_KEYS.forEach((key) => {
+            const lowerKey = key.toLowerCase();
+            if (normalized[key] === undefined && normalized[lowerKey] !== undefined) {
+                normalized[key] = normalized[lowerKey];
+            }
+        });
+        return normalized;
+    };
+    const normalizePgRows = (rows) => (rows || []).map((row) => normalizePgRow(row));
+    const dbGetCb = (query, params, callback) => {
+        const cb = typeof params === 'function' ? params : callback;
+        const values = Array.isArray(params) ? params : [];
+        return db.get(query, values, (err, row) => cb && cb(err, normalizePgRow(row)));
+    };
+    const dbAllCb = (query, params, callback) => {
+        const cb = typeof params === 'function' ? params : callback;
+        const values = Array.isArray(params) ? params : [];
+        return db.all(query, values, (err, rows) => cb && cb(err, normalizePgRows(rows)));
+    };
     const hiddenTestsUpload = multer({
         storage: multer.memoryStorage(),
         limits: { fileSize: 2 * 1024 * 1024 }
@@ -15,6 +43,39 @@ module.exports = (db) => {
         { name: 'hidden_input_file', maxCount: 1 },
         { name: 'hidden_output_file', maxCount: 1 }
     ]);
+
+    router.use((req, res, next) => {
+        const sessionUser = req.session?.user;
+        const role = String(sessionUser?.role || '').toLowerCase();
+        if (!sessionUser?.id || role !== 'hos') return next();
+
+        dbGetCb(
+            `SELECT fullName, email, post, collegeName, department, branch, program, course, joiningDate, github_link, location
+             FROM account_users
+             WHERE id = ?
+             LIMIT 1`,
+            [sessionUser.id],
+            (err, row) => {
+                if (!err && row) {
+                    req.session.user = {
+                        ...req.session.user,
+                        fullName: row.fullName || req.session.user.fullName || req.session.user.name,
+                        name: row.fullName || req.session.user.name || req.session.user.fullName,
+                        email: row.email || req.session.user.email,
+                        post: row.post || req.session.user.post,
+                        college: row.collegeName || req.session.user.college,
+                        collegeName: row.collegeName || req.session.user.collegeName,
+                        department: row.branch || row.department || req.session.user.department || '',
+                        course: row.program || row.course || req.session.user.course || '',
+                        joiningDate: row.joiningDate || '',
+                        github_link: row.github_link || req.session.user.github_link || '',
+                        location: row.location || req.session.user.location || ''
+                    };
+                }
+                next();
+            }
+        );
+    });
 
     // Helper: Get HOS's assigned subjects
     const getAssignedSubjects = (userId, collegeName = '') => {
@@ -25,7 +86,7 @@ module.exports = (db) => {
                 sql += ` AND COALESCE(collegeName, '') = ?`;
                 params.push(collegeName);
             }
-            db.all(sql, params, (err, rows) => {
+            dbAllCb(sql, params, (err, rows) => {
                 if (err) return reject(err);
                 resolve(rows.map(r => r.subject));
             });
@@ -45,7 +106,7 @@ module.exports = (db) => {
                   AND ua.subject IN (${placeholders})
                   AND (COALESCE(ua.collegeName, '') = ? OR COALESCE(u.collegeName, '') = ?)
             `;
-            db.all(sql, [hosId, ...subjects, collegeName, collegeName], (err, rows) => {
+            dbAllCb(sql, [hosId, ...subjects, collegeName, collegeName], (err, rows) => {
                 if (err) return reject(err);
                 resolve((rows || []).map((row) => row.id));
             });
@@ -144,7 +205,7 @@ module.exports = (db) => {
 
             // 2. Faculty Count (Unique teachers teaching these subjects)
             const facultyCountRow = await new Promise((resolve, reject) => {
-                db.get(`SELECT COUNT(DISTINCT user_id) as count FROM faculty_assignments WHERE subject IN (${subjectPlaceholders})`, subjects, (err, row) => {
+                dbGetCb(`SELECT COUNT(DISTINCT user_id) as count FROM faculty_assignments WHERE subject IN (${subjectPlaceholders})`, subjects, (err, row) => {
                     if (err) reject(err); else resolve(row);
                 });
             });
@@ -152,7 +213,7 @@ module.exports = (db) => {
 
             // 3. Students Count (College & Department scoped)
             const studentCountRow = await new Promise((resolve, reject) => {
-                db.get(`SELECT COUNT(*) as count FROM account_users WHERE role = 'student' AND collegeName = ? AND department = ?`, [college, req.session.user.department], (err, row) => {
+                dbGetCb(`SELECT COUNT(*) as count FROM account_users WHERE role = 'student' AND collegeName = ? AND department = ?`, [college, req.session.user.department], (err, row) => {
                     if (err) reject(err); else resolve(row);
                 });
             });
@@ -160,7 +221,7 @@ module.exports = (db) => {
 
             // 4. Sections Count (Unique sections across all assigned subjects)
             const sectionsCountRow = await new Promise((resolve, reject) => {
-                db.get(`SELECT COUNT(DISTINCT section) as count FROM faculty_assignments WHERE subject IN (${subjectPlaceholders})`, subjects, (err, row) => {
+                dbGetCb(`SELECT COUNT(DISTINCT section) as count FROM faculty_assignments WHERE subject IN (${subjectPlaceholders})`, subjects, (err, row) => {
                     if (err) reject(err); else resolve(row);
                 });
             });
@@ -168,20 +229,20 @@ module.exports = (db) => {
 
             // Recently Pending Items
             const pendingQuestions = await new Promise((resolve, reject) => {
-                db.all(`SELECT p.*, u.fullName as facultyName FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE (p.subject IN (${subjectPlaceholders}) OR p.faculty_id = ?) AND p.status = 'pending' ORDER BY p.id DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
+                dbAllCb(`SELECT p.*, u.fullName as facultyName FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE (p.subject IN (${subjectPlaceholders}) OR p.faculty_id = ?) AND p.status = 'pending' ORDER BY p.id DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
                     if (err) reject(err); else resolve(rows);
                 });
             });
 
             const pendingContests = await new Promise((resolve, reject) => {
-                db.all(`SELECT c.*, u.fullName as creatorName FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE (c.subject IN (${subjectPlaceholders}) OR c.createdBy = ?) AND c.status = 'pending' ORDER BY c.id DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
+                dbAllCb(`SELECT c.*, u.fullName as creatorName FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE (c.subject IN (${subjectPlaceholders}) OR c.createdBy = ?) AND c.status = 'pending' ORDER BY c.id DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
                     if (err) reject(err); else resolve(rows);
                 });
             });
 
             // Graphs Logic (Similar to HOD but subject-scoped)
             const diffRows = await new Promise((resolve, reject) => {
-                db.all(`SELECT difficulty, COUNT(*) as count FROM problems WHERE subject IN (${subjectPlaceholders}) GROUP BY difficulty`, subjects, (err, rows) => {
+                dbAllCb(`SELECT difficulty, COUNT(*) as count FROM problems WHERE subject IN (${subjectPlaceholders}) GROUP BY difficulty`, subjects, (err, rows) => {
                     if (err) reject(err); else resolve(rows);
                 });
             });
@@ -189,7 +250,7 @@ module.exports = (db) => {
             diffRows.forEach(r => { if (r.difficulty in difficultySpread) difficultySpread[r.difficulty] = r.count; });
 
             const trendRows = await new Promise((resolve, reject) => {
-                db.all(`SELECT strftime('%m', createdAt) as month, COUNT(*) as count FROM problems WHERE subject IN (${subjectPlaceholders}) AND createdAt >= date('now', '-6 months') GROUP BY month ORDER BY month ASC`, subjects, (err, rows) => {
+                dbAllCb(`SELECT strftime('%m', createdAt) as month, COUNT(*) as count FROM problems WHERE subject IN (${subjectPlaceholders}) AND createdAt >= date('now', '-6 months') GROUP BY month ORDER BY month ASC`, subjects, (err, rows) => {
                     if (err) reject(err); else resolve(rows);
                 });
             });
@@ -221,12 +282,12 @@ module.exports = (db) => {
 
             // Recent Activity (last 5 problems + contests, any status)
             const recentProblems = await new Promise((resolve, reject) => {
-                db.all(`SELECT p.title, p.status, p.createdAt, 'problem' as type, u.fullName as author FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE (p.subject IN (${subjectPlaceholders}) OR p.faculty_id = ?) ORDER BY p.createdAt DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
+                dbAllCb(`SELECT p.title, p.status, p.createdAt, 'problem' as type, u.fullName as author FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE (p.subject IN (${subjectPlaceholders}) OR p.faculty_id = ?) ORDER BY p.createdAt DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
                     if (err) reject(err); else resolve(rows || []);
                 });
             });
             const recentContestsAll = await new Promise((resolve, reject) => {
-                db.all(`SELECT c.title, c.status, c.createdAt, 'contest' as type, u.fullName as author FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE (c.subject IN (${subjectPlaceholders}) OR c.createdBy = ?) ORDER BY c.createdAt DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
+                dbAllCb(`SELECT c.title, c.status, c.createdAt, 'contest' as type, u.fullName as author FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE (c.subject IN (${subjectPlaceholders}) OR c.createdBy = ?) ORDER BY c.createdAt DESC LIMIT 5`, [...subjects, hosId], (err, rows) => {
                     if (err) reject(err); else resolve(rows || []);
                 });
             });
@@ -281,7 +342,7 @@ module.exports = (db) => {
             }
 
             const questions = await new Promise((resolve, reject) => {
-                db.all(sql, params, (err, rows) => {
+                dbAllCb(sql, params, (err, rows) => {
                     if (err) reject(err); else resolve(rows || []);
                 });
             });
@@ -315,7 +376,7 @@ module.exports = (db) => {
             const facultyIds = await getFacultyUnderHos(hosId, college, subjects);
 
             const problem = await new Promise((resolve, reject) => {
-                db.get(
+                dbGetCb(
                     `SELECT p.*, u.fullName as facultyName
                      FROM problems p
                      LEFT JOIN account_users u ON p.faculty_id = u.id
@@ -371,7 +432,7 @@ module.exports = (db) => {
             }
 
             const contests = await new Promise((resolve, reject) => {
-                db.all(sql, params, (err, rows) => {
+                dbAllCb(sql, params, (err, rows) => {
                     if (err) reject(err); else resolve((rows || []).map(normalizeContestRecord));
                 });
             });
@@ -401,7 +462,7 @@ module.exports = (db) => {
         const hosId = req.session.user.id;
         try {
             const subjects = await getAssignedSubjects(hosId);
-            db.get(`SELECT subject FROM problems WHERE id = ?`, [problemId], (err, row) => {
+            dbGetCb(`SELECT subject FROM problems WHERE id = ?`, [problemId], (err, row) => {
                 if (err) return res.status(500).json({ success: false, error: err.message });
                 if (!row || !subjects.includes(row.subject)) {
                     return res.status(403).json({ success: false, error: "Access Denied: You can only approve questions for your assigned subjects." });
@@ -447,7 +508,7 @@ module.exports = (db) => {
                 if (!problemId) continue;
 
                 await new Promise((resolve) => {
-                    db.get(`SELECT subject FROM problems WHERE id = ?`, [problemId], (err, row) => {
+                    dbGetCb(`SELECT subject FROM problems WHERE id = ?`, [problemId], (err, row) => {
                         if (err || !row) { errors.push(problemId); return resolve(); }
                         // Scope check: HOS can approve their own problems or problems in their subjects
                         if (subjects.length > 0 && !subjects.includes(row.subject)) {
@@ -497,7 +558,7 @@ module.exports = (db) => {
                 return res.status(403).json({ success: false, error: "Access Denied: No mapped faculty found under this HOS." });
             }
             const facultyPlaceholders = facultyIds.map(() => '?').join(',');
-            db.get(`SELECT c.id FROM contests c JOIN account_users u ON u.id = c.createdBy WHERE c.id = ? AND LOWER(COALESCE(u.role,'')) = 'faculty' AND c.createdBy IN (${facultyPlaceholders})`, [contestId, ...facultyIds], (err, row) => {
+            dbGetCb(`SELECT c.id FROM contests c JOIN account_users u ON u.id = c.createdBy WHERE c.id = ? AND LOWER(COALESCE(u.role,'')) = 'faculty' AND c.createdBy IN (${facultyPlaceholders})`, [contestId, ...facultyIds], (err, row) => {
                 if (err) return res.status(500).json({ success: false, error: err.message });
                 if (!row) {
                     return res.status(403).json({ success: false, error: "Access Denied: This contest creator is not mapped under your HOS scope." });
@@ -533,12 +594,12 @@ module.exports = (db) => {
             }
             problemSql += ` ORDER BY p.createdAt DESC`;
             
-            db.all(problemSql, sqlParams, (err, problems) => {
+            dbAllCb(problemSql, sqlParams, (err, problems) => {
                 if (err) return res.status(500).send(err.message);
                 const allProblems = problems || [];
                 const myProblems = allProblems.filter(p => p.faculty_id === hosId);
 
-                db.all(
+                dbAllCb(
                     `SELECT problem_id FROM problem_bookmarks WHERE user_id = ?`,
                     [hosId],
                     (bookmarkErr, bookmarkRows) => {
@@ -565,7 +626,7 @@ module.exports = (db) => {
     // HOS: Problem View Page (IDE-like view)
     router.get('/hos/view-problem/:id', requireRole('hos'), checkScope, async (req, res) => {
         const problemId = req.params.id;
-        db.get('SELECT * FROM problems WHERE id = ?', [problemId], (err, problem) => {
+        dbGetCb('SELECT * FROM problems WHERE id = ?', [problemId], (err, problem) => {
             if (err) return res.status(500).send('Database error');
             if (!problem) return res.status(404).send('Problem not found');
             if (problem.description) {
@@ -602,7 +663,7 @@ module.exports = (db) => {
             query += ` ORDER BY c.createdAt DESC`;
 
             const contests = await new Promise((resolve, reject) => {
-                db.all(query, params, (err, rows) => {
+                dbAllCb(query, params, (err, rows) => {
                     if (err) reject(err); else resolve((rows || []).map(normalizeContestRecord));
                 });
             });
@@ -618,7 +679,7 @@ module.exports = (db) => {
             let problemsParams = [college];
 
             const problems = await new Promise((resolve, reject) => {
-                db.all(problemsQuery, problemsParams, (err, rows) => {
+                dbAllCb(problemsQuery, problemsParams, (err, rows) => {
                     if (err) reject(err); else resolve(rows || []);
                 });
             });
@@ -638,12 +699,12 @@ module.exports = (db) => {
     // ── HOS Contest Helpers ────────────────────────────────────────────────
     function hosDbGet(query, params = []) {
         return new Promise((resolve, reject) => {
-            db.get(query, params, (err, row) => err ? reject(err) : resolve(row));
+            dbGetCb(query, params, (err, row) => err ? reject(err) : resolve(row));
         });
     }
     function hosDbAll(query, params = []) {
         return new Promise((resolve, reject) => {
-            db.all(query, params, (err, rows) => err ? reject(err) : resolve(rows || []));
+            dbAllCb(query, params, (err, rows) => err ? reject(err) : resolve(rows || []));
         });
     }
 
@@ -759,6 +820,20 @@ module.exports = (db) => {
 
             if (!contest) return res.status(404).send("Contest not found or access denied.");
 
+            const richTextOptions = {
+                allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']),
+                allowedAttributes: {
+                    a: ['href', 'name', 'target', 'rel'],
+                    img: ['src', 'alt', 'title'],
+                    '*': ['class', 'style']
+                },
+                allowedSchemes: ['http', 'https', 'mailto', 'data']
+            };
+
+            contest.description = sanitizeHtml(contest.description || '', richTextOptions);
+            contest.rulesAndDescription = sanitizeHtml(contest.rulesAndDescription || '', richTextOptions);
+            contest.guidelines = sanitizeHtml(contest.guidelines || '', richTextOptions);
+
             const problemIds = await hosGetContestProblemIds(contest);
             let contestProblems = [];
             if (problemIds.length) {
@@ -858,10 +933,10 @@ module.exports = (db) => {
             const placeholders = subjects.map(() => '?').join(',');
             const collegeName = req.session.user.collegeName;
             const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
-                db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
+                dbAllCb(sql, params, (err, rows) => (err ? reject(err) : resolve(rows || [])));
             });
             const dbGet = (sql, params = []) => new Promise((resolve, reject) => {
-                db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row || {})));
+                dbGetCb(sql, params, (err, row) => (err ? reject(err) : resolve(row || {})));
             });
 
             const [facultyRows, sectionsRows, activeContestRows] = await Promise.all([
@@ -982,7 +1057,7 @@ module.exports = (db) => {
         const department = req.session.user.department;
         try {
             const students = await new Promise((resolve, reject) => {
-                db.all(`SELECT id, fullName, email, course, department, joiningDate, status, year, section 
+                dbAllCb(`SELECT id, fullName, email, course, department, joiningDate, status, year, section 
                         FROM account_users 
                         WHERE role = 'student' AND collegeName = ? AND department = ? 
                         ORDER BY fullName ASC`,
@@ -1007,7 +1082,7 @@ module.exports = (db) => {
     });
     router.get('/hos/community', requireRole('hos'), checkScope, (req, res) => res.render('hos/community.html', { user: req.session.user, currentPage: 'community' }));
     const renderHosProfile = async (req, res) => {
-        const dbGet = (sql, params = []) => new Promise((resolve) => db.get(sql, params, (err, row) => resolve(err ? null : row)));
+        const dbGet = (sql, params = []) => new Promise((resolve) => dbGetCb(sql, params, (err, row) => resolve(err ? null : row)));
         try {
             const hosId = req.session.user.id;
             const college = req.session.user.collegeName;
@@ -1122,7 +1197,7 @@ module.exports = (db) => {
         try {
             const user = req.session.user;
             const assignments = await new Promise((resolve) => {
-                db.all(`SELECT subject, year, section FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, rows) => {
+                dbAllCb(`SELECT subject, year, section FROM faculty_assignments WHERE user_id = ?`, [user.id], (err, rows) => {
                     resolve(rows || []);
                 });
             });
@@ -1177,7 +1252,7 @@ module.exports = (db) => {
             const ph = subjects.map(() => '?').join(',');
 
             const questions = await new Promise((resolve, reject) => {
-                db.all(`SELECT p.id, p.title, p.difficulty, p.subject, p.status, p.createdAt, p.description, p.input_format, p.output_format, p.constraints, p.sample_input, p.sample_output, p.hod_comments, u.fullName as faculty
+                dbAllCb(`SELECT p.id, p.title, p.difficulty, p.subject, p.status, p.createdAt, p.description, p.input_format, p.output_format, p.constraints, p.sample_input, p.sample_output, p.hod_comments, u.fullName as faculty
                     FROM problems p JOIN account_users u ON p.faculty_id = u.id
                     WHERE (p.subject IN (${ph}) OR p.faculty_id = ?)
                     ORDER BY p.createdAt DESC`, [...subjects, hosId], (err, rows) => {
@@ -1187,7 +1262,7 @@ module.exports = (db) => {
 
             // Calculate accurate stats across all statuses for the HOS's subjects
             const statsRows = await new Promise((resolve) => {
-                db.all(`SELECT status, COUNT(*) as count FROM problems WHERE subject IN (${ph}) OR faculty_id = ? GROUP BY status`, [...subjects, hosId], (err, rows) => {
+                dbAllCb(`SELECT status, COUNT(*) as count FROM problems WHERE subject IN (${ph}) OR faculty_id = ? GROUP BY status`, [...subjects, hosId], (err, rows) => {
                     resolve(rows || []);
                 });
             });
@@ -1235,7 +1310,7 @@ module.exports = (db) => {
             
             // First check authorization for all questions
             const checkRows = await new Promise((resolve, reject) => {
-                db.all(`SELECT subject FROM problems WHERE id IN (${placeholders})`, questionIds, (err, rows) => {
+                dbAllCb(`SELECT subject FROM problems WHERE id IN (${placeholders})`, questionIds, (err, rows) => {
                     if (err) reject(err); else resolve(rows);
                 });
             });
@@ -1306,7 +1381,7 @@ module.exports = (db) => {
             const facultyPh = facultyIds.map(() => '?').join(',');
 
             const contests = await new Promise((resolve, reject) => {
-                db.all(`SELECT c.*, c.startDate as start_date, c.endDate as end_date,
+                dbAllCb(`SELECT c.*, c.startDate as start_date, c.endDate as end_date,
                                u.fullName as faculty, u.role as creatorRole
                     FROM contests c JOIN account_users u ON c.createdBy = u.id
                     WHERE c.status = 'pending'
@@ -1346,7 +1421,7 @@ module.exports = (db) => {
                OR (p.status IN ('accepted', 'active') AND LOWER(COALESCE(u.role, '')) IN ('superadmin', 'admin'))
             ORDER BY p.id DESC
         `;
-        db.all(query, [user.collegeName], (err, rows) => {
+        dbAllCb(query, [user.collegeName], (err, rows) => {
             if (err) {
                 console.error("Error fetching available problems:", err);
                 return res.status(500).json({ success: false, message: "Database Error" });
@@ -1376,7 +1451,7 @@ module.exports = (db) => {
         }
         query += ' ORDER BY c.id DESC';
 
-        db.all(query, params, (err, rows) => {
+        dbAllCb(query, params, (err, rows) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.json({ success: true, data: (rows || []).map(normalizeContestRecord) });
         });
@@ -1397,8 +1472,8 @@ module.exports = (db) => {
         db.run(
             `INSERT INTO contests (
                 title, date, startDate, endDate, registrationEndDate, deadline, duration, eligibility, description,
-                rulesAndDescription, guidelines, problems, createdBy, created_by, status, department, collegeName, subject, hos_verified, hod_verified
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, 1, 0)`,
+                rulesAndDescription, guidelines, problems, createdBy, created_by, status, department, collegeName, subject, visibility_scope, scope, level, hos_verified, hod_verified
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, 'department', 'department', 'department', 1, 0)`,
             [
                 title, start, start, resolvedEndDate, regDeadline, regDeadline, computedDuration, eligibility || null, description || null,
                 rulesAndDescription || null, guidelines || '', problems, user.id, user.id, user.department, user.collegeName, subject || ''
@@ -1426,11 +1501,13 @@ module.exports = (db) => {
         db.run(
             `UPDATE contests SET 
                 title = ?, date = ?, startDate = ?, endDate = ?, registrationEndDate = ?, deadline = ?, 
-                duration = ?, eligibility = ?, description = ?, rulesAndDescription = ?, guidelines = ?, problems = ?, subject = ?
+                duration = ?, eligibility = ?, description = ?, rulesAndDescription = ?, guidelines = ?, problems = ?, subject = ?,
+                visibility_scope = 'department', scope = 'department', level = 'department', department = ?, collegeName = ?
             WHERE id = ? AND createdBy = ?`,
             [
                 title, start, start, resolvedEndDate, regDeadline, regDeadline,
                 computedDuration, eligibility || null, description || null, rulesAndDescription || null, guidelines || '', problems, subject || '',
+                user.department || '', user.collegeName || '',
                 id, user.id
             ],
             function(err) {
@@ -1486,7 +1563,7 @@ module.exports = (db) => {
                     res.json({ success: true, message: 'Problem rejected.' });
                 });
             }
-            db.get(`SELECT u.role as creatorRole FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE p.id = ?`, [id], (roleErr, row) => {
+            dbGetCb(`SELECT u.role as creatorRole FROM problems p JOIN account_users u ON p.faculty_id = u.id WHERE p.id = ?`, [id], (roleErr, row) => {
                 if (roleErr) return res.status(500).json({ success: false, message: roleErr.message });
                 if (!row) return res.status(404).json({ success: false, message: 'Problem not found.' });
                 if (String(row.creatorRole || '').toLowerCase() !== 'faculty') {
@@ -1509,7 +1586,7 @@ module.exports = (db) => {
                     res.json({ success: true, message: 'Contest rejected.' });
                 });
             }
-            db.get(`SELECT c.hod_verified, u.role as creatorRole FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE c.id = ?`, [id], (infoErr, infoRow) => {
+            dbGetCb(`SELECT c.hod_verified, u.role as creatorRole FROM contests c JOIN account_users u ON c.createdBy = u.id WHERE c.id = ?`, [id], (infoErr, infoRow) => {
                 if (infoErr) return res.status(500).json({ success: false, message: infoErr.message });
                 if (!infoRow) return res.status(404).json({ success: false, message: 'Contest not found' });
                 if (String(infoRow.creatorRole || '').toLowerCase() !== 'faculty') {
@@ -1519,8 +1596,8 @@ module.exports = (db) => {
                     if (err) return res.status(500).json({ success: false, message: err.message });
                     if (infoRow.hod_verified === 1) {
                         db.run(
-                            `UPDATE contests SET status = 'accepted', isVerified = 1, visibility_scope = 'department', approved_by = ?, approved_at = ? WHERE id = ?`,
-                            [user.id, new Date().toISOString(), id],
+                            `UPDATE contests SET status = 'accepted', isVerified = 1, visibility_scope = 'department', scope = 'department', level = 'department', department = ?, collegeName = ?, approved_by = ?, approved_at = ? WHERE id = ?`,
+                            [user.department || '', user.collegeName || '', user.id, new Date().toISOString(), id],
                             function(updErr) {
                                 if (updErr) return res.status(500).json({ success: false, message: updErr.message });
                                 res.json({ success: true, message: 'Contest approved and now visible to students.' });
@@ -1590,7 +1667,7 @@ module.exports = (db) => {
     });
 
     router.get('/hos/problem/api/edit/:id', requireRole('hos'), (req, res) => {
-        db.get(`SELECT * FROM problems WHERE id = ?`, [req.params.id], (err, problem) => {
+        dbGetCb(`SELECT * FROM problems WHERE id = ?`, [req.params.id], (err, problem) => {
             if (err || !problem) return res.status(404).json({ success: false });
             res.json({ success: true, problem });
         });
@@ -1659,15 +1736,23 @@ module.exports = (db) => {
     // HOS: Problem Bookmarks API
     // ==========================================
     router.get('/hos/api/problem-bookmarks', requireRole('hos'), (req, res) => {
-        db.all(`SELECT problem_id FROM problem_bookmarks WHERE user_id = ?`, [req.session.user.id], (err, rows) => {
+        dbAllCb(`SELECT problem_id FROM problem_bookmarks WHERE user_id = ?`, [req.session.user.id], (err, rows) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.json({ success: true, data: (rows || []).map(r => r.problem_id) });
         });
     });
 
     router.post('/hos/api/problem-bookmarks', requireRole('hos'), (req, res) => {
-        const { problemId } = req.body;
-        db.run(`INSERT OR IGNORE INTO problem_bookmarks (user_id, problem_id) VALUES (?, ?)`, [req.session.user.id, problemId], function (err) {
+        const problemId = Number(req.body.problemId);
+        if (!Number.isInteger(problemId)) return res.status(400).json({ success: false, message: 'Invalid problem ID' });
+        db.run(
+            `INSERT INTO problem_bookmarks (user_id, problem_id)
+             SELECT ?, ?
+             WHERE NOT EXISTS (
+                SELECT 1 FROM problem_bookmarks WHERE user_id = ? AND problem_id = ?
+             )`,
+            [req.session.user.id, problemId, req.session.user.id, problemId],
+            function (err) {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.json({ success: true, message: 'Bookmarked!' });
         });
@@ -1724,28 +1809,51 @@ module.exports = (db) => {
     });
 
     // ⭐ HOS: Detailed Student Profile API
-    router.get('/hos/api/student/public-profile/:id', requireRole('hos'), (req, res) => {
+    router.get('/hos/api/student/public-profile/:id', requireRole('hos'), async (req, res) => {
         const studentId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`
-            SELECT id, fullName, email, department, branch, program, year, section, collegeName, role, status
-            FROM account_users 
-            WHERE id = ? AND collegeName = ? AND role = 'student'
-        `, [studentId, collegeName], (err, user) => {
-            if (err) return res.status(500).json({ success: false, message: "Database error" });
+        try {
+            const user = await new Promise((resolve, reject) => {
+                dbGetCb(`
+                    SELECT
+                        id, fullName, email, department, branch, program, year, section, collegeName, role, status,
+                        COALESCE(points, 0) as points,
+                        COALESCE(solvedCount, 0) as solvedCount,
+                        rank
+                    FROM account_users
+                    WHERE id = ? AND collegeName = ? AND role = 'student'
+                `, [studentId, collegeName], (err, row) => {
+                    if (err) return reject(err);
+                    resolve(row);
+                });
+            });
+
             if (!user) return res.status(404).json({ success: false, message: "Student not found" });
+
+            const rankRow = await new Promise((resolve, reject) => {
+                dbGetCb(`
+                    SELECT COUNT(*) as cnt
+                    FROM account_users
+                    WHERE LOWER(COALESCE(role, '')) IN ('student', 'individual')
+                      AND COALESCE(points, 0) > ?
+                `, [Number(user.points || 0)], (err, row) => {
+                    if (err) return reject(err);
+                    resolve(row);
+                });
+            });
 
             res.json({
                 success: true,
                 student: {
                     ...user,
-                    points: user.points || 0,
-                    rank: user.rank || 'Unranked',
-                    solvedCount: user.solvedCount || 0
+                    rank: user.rank || `#${Number(rankRow?.cnt || 0) + 1}`
                 }
             });
-        });
+        } catch (err) {
+            console.error("HOS public profile fetch error:", err);
+            return res.status(500).json({ success: false, message: "Database error" });
+        }
     });
 
     // ⭐ HOS: Detailed Faculty Profile API
@@ -1753,7 +1861,7 @@ module.exports = (db) => {
         const facultyId = req.params.id;
         const collegeName = req.session.user.collegeName;
 
-        db.get(`SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod 
+        dbGetCb(`SELECT id, fullName, email, department, branch, program, collegeName, role, status, is_hod 
                 FROM account_users WHERE id = ? AND collegeName = ?`, 
         [facultyId, collegeName], (err, user) => {
             if (err) return res.status(500).json({ success: false, message: "Database error" });
@@ -1765,7 +1873,7 @@ module.exports = (db) => {
                     (SELECT COUNT(*) FROM problems WHERE faculty_id = ?) as totalProblems
             `;
 
-            db.get(statsQuery, [facultyId, facultyId], (err, stats) => {
+            dbGetCb(statsQuery, [facultyId, facultyId], (err, stats) => {
                 res.json({
                     success: true,
                     faculty: user,
@@ -1798,8 +1906,8 @@ module.exports = (db) => {
         const weekLabels = ['6w ago','5w ago','4w ago','3w ago','2w ago','Last wk','This wk'];
 
         try {
-            const hosDbAll = (sql, params = []) => new Promise((res, rej) => db.all(sql, params, (err, rs) => err ? rej({err, sql, params}) : res(rs || [])));
-            const hosDbGet = (sql, params = []) => new Promise((res, rej) => db.get(sql, params, (err, r) => err ? rej({err, sql, params}) : res(r)));
+            const hosDbAll = (sql, params = []) => new Promise((res, rej) => dbAllCb(sql, params, (err, rs) => err ? rej({err, sql, params}) : res(rs || [])));
+            const hosDbGet = (sql, params = []) => new Promise((res, rej) => dbGetCb(sql, params, (err, r) => err ? rej({err, sql, params}) : res(r)));
 
             const subjects = await getAssignedSubjects(hosId, college);
             if (!subjects.length) {
@@ -1914,8 +2022,8 @@ module.exports = (db) => {
         }
 
         try {
-            const hosDbAll = (sql, params = []) => new Promise((res, rej) => db.all(sql, params, (err, rs) => err ? rej({err, sql, params}) : res(rs || [])));
-            const hosDbGet = (sql, params = []) => new Promise((res, rej) => db.get(sql, params, (err, r) => err ? rej({err, sql, params}) : res(r)));
+            const hosDbAll = (sql, params = []) => new Promise((res, rej) => dbAllCb(sql, params, (err, rs) => err ? rej({err, sql, params}) : res(rs || [])));
+            const hosDbGet = (sql, params = []) => new Promise((res, rej) => dbGetCb(sql, params, (err, r) => err ? rej({err, sql, params}) : res(r)));
 
             const subjects = await getAssignedSubjects(hosId, college);
             if (!subjects.length) return res.send("No assigned subjects found.");
