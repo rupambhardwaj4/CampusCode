@@ -564,7 +564,7 @@ module.exports = (db) => {
         try {
             const {
                 title, description, discription, guidelines, prize, contest_class, class: contestClassInput,
-                problems, startDate, endDate, registrationEndDate, duration, eligibility, publishNow
+                problems, startDate, endDate, duration, eligibility, publishNow
             } = req.body;
             if (!title || !String(title).trim()) {
                 return res.status(400).json({ success: false, error: 'Title is required' });
@@ -578,6 +578,7 @@ module.exports = (db) => {
             const status = publishNow ? 'accepted' : 'upcoming';
             const approvedBy = publishNow ? req.session.user.id : null;
             const approvedAt = publishNow ? new Date().toISOString() : null;
+            const registrationEndDate = endDate || null;
             let problemPayload = '[]';
             if (Array.isArray(problems)) {
                 problemPayload = JSON.stringify(problems);
@@ -630,6 +631,71 @@ module.exports = (db) => {
                 id: result.lastID,
                 message: publishNow ? 'Contest created and published.' : 'Contest created as draft.'
             });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    router.put('/api/contests/:id', requireRole('superadmin'), async (req, res) => {
+        try {
+            const contestId = Number(req.params.id);
+            if (!Number.isInteger(contestId) || contestId <= 0) {
+                return res.status(400).json({ success: false, error: 'Invalid contest id' });
+            }
+
+            const {
+                title, description, discription, guidelines, prize, contest_class, class: contestClassInput,
+                startDate, endDate, duration, eligibility
+            } = req.body;
+            if (!title || !String(title).trim()) {
+                return res.status(400).json({ success: false, error: 'Title is required' });
+            }
+
+            const allowedClasses = ['E', 'D', 'C', 'B', 'A', 'S'];
+            const classValue = String(contestClassInput || contest_class || 'E').toUpperCase();
+            const normalizedClass = allowedClasses.includes(classValue) ? classValue : 'E';
+            const finalDescription = String(description || discription || '').trim();
+            const finalGuidelines = String(guidelines || '').trim();
+            const finalPrize = String(prize || '').trim();
+            const registrationEndDate = endDate || null;
+
+            const result = await dbRun(`
+                UPDATE contests
+                SET title = ?,
+                    description = ?,
+                    guidelines = ?,
+                    rulesAndDescription = ?,
+                    contest_class = ?,
+                    prize = ?,
+                    startDate = ?,
+                    endDate = ?,
+                    registrationEndDate = ?,
+                    date = ?,
+                    deadline = ?,
+                    duration = ?,
+                    eligibility = ?
+                WHERE id = ?
+            `, [
+                title.trim(),
+                finalDescription,
+                finalGuidelines,
+                finalGuidelines,
+                normalizedClass,
+                finalPrize,
+                startDate || null,
+                endDate || null,
+                registrationEndDate,
+                startDate || null,
+                endDate || null,
+                duration || null,
+                eligibility || null,
+                contestId
+            ]);
+
+            if (!result.changes) {
+                return res.status(404).json({ success: false, error: 'Contest not found' });
+            }
+            res.json({ success: true, message: 'Contest updated successfully.' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

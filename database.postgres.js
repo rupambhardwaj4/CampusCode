@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 
 const { Pool } = require('pg');
 
@@ -176,6 +176,10 @@ async function ensureReady() {
         if (!usersTable.rows?.[0]?.exists) {
             console.error('[Postgres] users table not found. Run: node scripts/migrate-sqlite-to-postgres.js');
         }
+        await pool.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_contest_participants_unique
+            ON contest_participants (contest_id, user_id)
+        `);
         console.log('✅ Connected to PostgreSQL database.');
     } catch (err) {
         console.error('❌ PostgreSQL connection error:', err.message);
@@ -250,3 +254,4 @@ module.exports = {
     serialize,
     pool
 };
+

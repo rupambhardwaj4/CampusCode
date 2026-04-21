@@ -193,11 +193,6 @@
                                     <input id="endDate" type="datetime-local" class="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none transition-all">
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Registration Deadline</label>
-                                <input id="registrationEndDate" type="datetime-local" class="w-full px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none transition-all">
-                            </div>
-                            
                             <!-- <div>
                                 <label for="eligibility" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Eligibility</label>
                                 <input id="eligibility" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-primary-400 focus:border-transparent outline-none transition-all" placeholder="e.g. All students, Final year, etc.">
@@ -215,8 +210,12 @@
                             
                             <div class="pt-2">
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-3"><i class="fas fa-info-circle mr-1"></i> Use 'Add Problems' in the table to map questions after creation.</p>
+                                <input id="editingContestId" type="hidden" value="">
                                 <button type="submit" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center">
-                                    <i class="fas fa-magic mr-2"></i> Create Contest
+                                    <i class="fas fa-magic mr-2"></i> <span id="contestSubmitLabel">Create Contest</span>
+                                </button>
+                                <button id="cancelEditBtn" type="button" onclick="resetContestForm()" class="w-full mt-2 hidden bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-all">
+                                    Cancel Edit
                                 </button>
                             </div>
                         </form>
@@ -411,6 +410,9 @@
                                 <button onclick="event.stopPropagation(); openProblemOverlay(${Number(c.id)})" class="inline-flex items-center text-primary-600 hover:text-primary-700 transition bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50 border border-primary-100 dark:border-primary-800 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
                                     <i class="fas fa-layer-group mr-1.5"></i> Problems
                                 </button>
+                                <button onclick="event.stopPropagation(); beginEditContest(${Number(c.id)})" class="inline-flex items-center text-amber-600 hover:text-amber-700 transition bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 border border-amber-100 dark:border-amber-800 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm">
+                                    <i class="fas fa-pen-to-square mr-1.5"></i> Edit
+                                </button>
                                 ${publishBtn}
                                 <button onclick="event.stopPropagation(); deleteContest(${Number(c.id)})" class="inline-flex items-center text-red-600 hover:text-red-700 transition bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 border border-red-100 dark:border-red-800 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm" title="Delete Contest">
                                     <i class="fas fa-trash-alt mr-1.5"></i> Delete
@@ -447,6 +449,38 @@
 
         function openContestDetails(id) {
             window.location.href = `/superadmin/contests/${Number(id)}`;
+        }
+
+        function toDatetimeLocalValue(value) {
+            if (!value) return "";
+            const dt = new Date(value);
+            if (Number.isNaN(dt.getTime())) return "";
+            const pad = (n) => String(n).padStart(2, "0");
+            return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+        }
+
+        function beginEditContest(id) {
+            const contest = state.contests.find((c) => Number(c.id) === Number(id));
+            if (!contest) return;
+            document.getElementById("editingContestId").value = String(Number(id));
+            document.getElementById("title").value = contest.title || "";
+            document.getElementById("description").value = contest.description || "";
+            document.getElementById("contestClass").value = contest.contest_class || "E";
+            document.getElementById("duration").value = contest.duration || "";
+            document.getElementById("startDate").value = toDatetimeLocalValue(contest.startDate || contest.date);
+            document.getElementById("endDate").value = toDatetimeLocalValue(contest.endDate || contest.deadline);
+            document.getElementById("prize").value = contest.prize || "";
+            document.getElementById("guidelines").value = contest.guidelines || contest.rulesAndDescription || "";
+            document.getElementById("contestSubmitLabel").textContent = "Update Contest";
+            document.getElementById("cancelEditBtn").classList.remove("hidden");
+            document.getElementById("contestForm").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+
+        function resetContestForm() {
+            document.getElementById("contestForm").reset();
+            document.getElementById("editingContestId").value = "";
+            document.getElementById("contestSubmitLabel").textContent = "Create Contest";
+            document.getElementById("cancelEditBtn").classList.add("hidden");
         }
 
         function applyProblemFilters() {
@@ -573,29 +607,31 @@
                 duration: fieldValue("duration"),
                 startDate: fieldValue("startDate") || null,
                 endDate: fieldValue("endDate") || null,
-                registrationEndDate: fieldValue("registrationEndDate") || null,
                 prize: fieldValue("prize"),
                 eligibility: fieldValue("eligibility"),
                 guidelines: fieldValue("guidelines"),
                 problems: []
             };
+            const editingContestId = Number(fieldValue("editingContestId") || 0);
+            const isEditMode = Number.isInteger(editingContestId) && editingContestId > 0;
             const btn = e.target.querySelector('button[type="submit"]');
-            const originalContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating...';
+            const labelEl = document.getElementById("contestSubmitLabel");
+            const originalLabel = labelEl ? labelEl.textContent : "Create Contest";
+            if (labelEl) labelEl.textContent = isEditMode ? "Updating..." : "Creating...";
             btn.disabled = true;
 
             try {
-                await fetchJsonSafe("/superadmin/api/contests", {
-                    method: "POST",
+                await fetchJsonSafe(isEditMode ? `/superadmin/api/contests/${editingContestId}` : "/superadmin/api/contests", {
+                    method: isEditMode ? "PUT" : "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
-                e.target.reset();
+                resetContestForm();
                 loadContests();
             } catch (err) {
-                alert(err.message || "Contest creation failed. Please try again.");
+                alert(err.message || "Contest save failed. Please try again.");
             } finally {
-                btn.innerHTML = originalContent;
+                if (labelEl) labelEl.textContent = originalLabel;
                 btn.disabled = false;
             }
         });

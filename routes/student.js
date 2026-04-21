@@ -327,15 +327,26 @@ const GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK = 0.3;
             })
             .map((row) => {
                 const contestClass = getContestClass(row);
-                const canJoin = canJoinContestClass(displayUser.rank_class, contestClass);
+                const classEligible = canJoinContestClass(displayUser.rank_class, contestClass);
+                const nowTs = Date.now();
+                const startTs = parseDbDate(row.startDate || row.date)?.getTime() ?? null;
+                const endTs = parseDbDate(row.endDate || row.deadline)?.getTime() ?? null;
+                const isStarted = startTs == null || nowTs >= startTs;
+                const isEnded = endTs != null && nowTs > endTs;
+                const canJoinTimeWindow = isStarted && !isEnded;
+                const canJoin = classEligible && canJoinTimeWindow;
                 return {
                     ...row,
                     contest_class: contestClass,
                     can_join: canJoin,
+                    is_past: isEnded,
+                    is_started: isStarted,
                     student_rank_class: displayUser.rank_class,
-                    join_restriction: canJoin
-                        ? null
-                        : `Requires ${contestClass} class access. Your class is ${displayUser.rank_class}.`,
+                    join_restriction: canJoin ? null : (
+                        !classEligible
+                            ? `Requires ${contestClass} class access. Your class is ${displayUser.rank_class}.`
+                            : (!isStarted ? 'Contest has not started yet.' : (isEnded ? 'Contest has ended.' : 'Not eligible to join now.'))
+                    ),
                     prize: row.prize || '',
                     guidelines: row.guidelines || row.rulesAndDescription || ''
                 };
@@ -1413,9 +1424,14 @@ const GLOBAL_SOLVE_WEIGHT_FOR_COLLEGE_RANK = 0.3;
             }
 
             await dbRun(`
-                INSERT OR IGNORE INTO contest_participants (contest_id, user_id)
-                VALUES (?, ?)
-            `, [contestId, userId]);
+                INSERT INTO contest_participants (contest_id, user_id)
+                SELECT ?, ?
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM contest_participants
+                    WHERE contest_id = ? AND user_id = ?
+                )
+            `, [contestId, userId, contestId, userId]);
             return res.json({
                 success: true,
                 message: 'Joined contest successfully.',
