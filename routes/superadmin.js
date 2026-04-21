@@ -93,6 +93,13 @@ module.exports = (db) => {
     router.get('/contest', requireRole('superadmin'), checkScope, (req, res) => {
         res.render('superadmin/contest.html', { user: req.session.user, currentPage: 'contest' });
     });
+    router.get('/contests/:id', requireRole('superadmin'), checkScope, (req, res) => {
+        res.render('superadmin/contest_detail.html', {
+            user: req.session.user,
+            currentPage: 'contest',
+            contestId: Number(req.params.id) || 0
+        });
+    });
 
     router.get('/support', requireRole('superadmin'), checkScope, (req, res) => {
         res.render('superadmin/support.html', { user: req.session.user, currentPage: 'support' });
@@ -383,6 +390,171 @@ module.exports = (db) => {
                 };
             });
             res.json({ success: true, contests });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    router.get('/api/contests/:id/details', requireRole('superadmin'), async (req, res) => {
+        try {
+            const contestId = Number(req.params.id);
+            if (!Number.isInteger(contestId) || contestId <= 0) {
+                return res.status(400).json({ success: false, error: 'Invalid contest id' });
+            }
+            const contestRows = await dbAll(`
+                SELECT c.*, u.fullName AS creatorName, u.email AS creatorEmail
+                FROM contests c
+                LEFT JOIN account_users u ON u.id = c.createdBy
+                WHERE c.id = ?
+                LIMIT 1
+            `, [contestId]);
+            if (!contestRows.length) {
+                return res.status(404).json({ success: false, error: 'Contest not found' });
+            }
+            const contest = contestRows[0];
+            let mappedProblemIds = [];
+            try {
+                mappedProblemIds = JSON.parse(contest.problems || '[]')
+                    .map((p) => Number(typeof p === 'object' ? p.id : p))
+                    .filter((id) => Number.isInteger(id) && id > 0);
+            } catch {
+                mappedProblemIds = [];
+            }
+            const problemList = mappedProblemIds.length
+                ? await dbAll(`
+                    SELECT id, title, difficulty, tags
+                    FROM problems
+                    WHERE id IN (${mappedProblemIds.map(() => '?').join(',')})
+                    ORDER BY id ASC
+                `, mappedProblemIds)
+                : [];
+
+            const cpCols = await getTableColumns('contest_participants');
+            const accountCols = await getTableColumns('account_users');
+            const userClassExpr = accountCols.has('class')
+                ? 'u.class'
+                : (accountCols.has('contest_class') ? 'u.contest_class' : `'E'`);
+            const participantUserCol = cpCols.has('user_id') ? 'user_id'
+                : (cpCols.has('userId') ? 'userId'
+                    : (cpCols.has('participant_id') ? 'participant_id'
+                        : (cpCols.has('participantId') ? 'participantId' : null)));
+            const scoreCol = cpCols.has('score') ? 'score'
+                : (cpCols.has('points') ? 'points'
+                    : (cpCols.has('total_score') ? 'total_score' : null));
+            const solvedCol = cpCols.has('solved_count') ? 'solved_count'
+                : (cpCols.has('solvedCount') ? 'solvedCount' : null);
+            const leaderboard = participantUserCol
+                ? await dbAll(`
+                    SELECT
+                        u.id AS userId,
+                        u.fullName,
+                        u.email,
+                        COALESCE(MAX(cp.${scoreCol || 'id'}), 0) AS score,
+                        COALESCE(MAX(cp.${solvedCol || 'id'}), 0) AS solvedCount,
+                        MIN(cp.id) AS participantRowId
+                    FROM contest_participants cp
+                    LEFT JOIN account_users u ON u.id = cp.${participantUserCol}
+                    WHERE cp.contest_id = ?
+                    GROUP BY u.id, u.fullName, u.email
+                    ORDER BY score DESC, solvedCount DESC, participantRowId ASC
+                `, [contestId])
+                : [];
+
+            const studentFilter = [];
+            const studentParams = [];
+            const search = String(req.query.search || '').trim().toLowerCase();
+            const program = String(req.query.program || '').trim().toLowerCase();
+            const branch = String(req.query.branch || '').trim().toLowerCase();
+            const classFilter = String(req.query.class || '').trim().toUpperCase();
+            if (search) {
+                studentFilter.push(`LOWER(COALESCE(u.fullName, '') || ' ' || COALESCE(u.email, '')) LIKE ?`);
+                studentParams.push(`%${search}%`);
+            }
+            if (program) {
+                studentFilter.push(`LOWER(COALESCE(u.program, '')) = ?`);
+                studentParams.push(program);
+            }
+            if (branch) {
+                studentFilter.push(`LOWER(COALESCE(u.branch, '')) = ?`);
+                studentParams.push(branch);
+            }
+            if (classFilter) {
+                studentFilter.push(`UPPER(COALESCE(${userClassExpr}, 'E')) = ?`);
+                studentParams.push(classFilter);
+            }
+            const whereSql = studentFilter.length ? `AND ${studentFilter.join(' AND ')}` : '';
+            const studentSql = participantUserCol ? `
+                SELECT
+                    u.id,
+                    u.fullName,
+                    u.email,
+                    COALESCE(u.program, '') AS program,
+                    COALESCE(u.branch, '') AS branch,
+                    COALESCE(u.section, '') AS section,
+                    UPPER(COALESCE(${userClassExpr}, 'E')) AS class,
+                    CASE WHEN cp.id IS NULL THEN 0 ELSE 1 END AS joined
+                FROM account_users u
+                LEFT JOIN contest_participants cp
+                    ON cp.contest_id = ?
+                   AND cp.${participantUserCol} = u.id
+                WHERE LOWER(COALESCE(u.role, '')) = 'student'
+                ${whereSql}
+                ORDER BY joined DESC, u.fullName ASC
+                LIMIT 500
+            ` : `
+                SELECT
+                    u.id,
+                    u.fullName,
+                    u.email,
+                    COALESCE(u.program, '') AS program,
+                    COALESCE(u.branch, '') AS branch,
+                    COALESCE(u.section, '') AS section,
+                    UPPER(COALESCE(${userClassExpr}, 'E')) AS class,
+                    0 AS joined
+                FROM account_users u
+                WHERE LOWER(COALESCE(u.role, '')) = 'student'
+                ${whereSql}
+                ORDER BY u.fullName ASC
+                LIMIT 500
+            `;
+            const students = await dbAll(studentSql, participantUserCol ? [contestId, ...studentParams] : studentParams);
+
+            const allStudentsForFilters = await dbAll(`
+                SELECT
+                    COALESCE(program, '') AS program,
+                    COALESCE(branch, '') AS branch
+                FROM account_users
+                WHERE LOWER(COALESCE(role, '')) = 'student'
+            `, []);
+            const programs = [...new Set(allStudentsForFilters.map((r) => String(r.program || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            const branches = [...new Set(allStudentsForFilters.map((r) => String(r.branch || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+            const submissionRows = await dbAll(`
+                SELECT COUNT(*) AS totalSubmissions
+                FROM submissions
+                WHERE contest_id = ?
+            `, [contestId]);
+
+            res.json({
+                success: true,
+                details: {
+                    contest: {
+                        ...contest,
+                        creatorName: contest.creatorName || 'Unknown',
+                        creatorEmail: contest.creatorEmail || '',
+                        contest_class: contest.contest_class || 'E'
+                    },
+                    summary: {
+                        mappedProblems: problemList.length,
+                        participants: Number(leaderboard.length),
+                        totalSubmissions: Number(submissionRows[0]?.totalSubmissions || 0)
+                    },
+                    problems: problemList,
+                    leaderboard,
+                    students,
+                    filters: { programs, branches, classes: ['E', 'D', 'C', 'B', 'A', 'S'] }
+                }
+            });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
